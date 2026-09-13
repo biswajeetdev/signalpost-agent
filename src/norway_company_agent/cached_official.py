@@ -39,7 +39,7 @@ class OfficialCache:
         return connection
 
     def share_count(self, table: str, value: str) -> int:
-        key = {"email_domains": "domain", "phones": "phone"}[table]
+        key = {"email_domains": "domain", "phones": "phone", "name_keys": "key"}[table]
         row = self._db().execute(f"SELECT entities FROM {table} WHERE {key} = ?", (value,)).fetchone()
         return int(row[0]) if row else 0
 
@@ -48,6 +48,9 @@ class OfficialCache:
 
     def shared_phones(self) -> "_ShareCounts":
         return _ShareCounts(self, "phones")
+
+    def name_keys(self) -> "_ShareCounts":
+        return _ShareCounts(self, "name_keys")
 
     def module_records(self, org: str, modules: set[str] | None = None) -> dict[str, dict[str, Any]]:
         records = {}

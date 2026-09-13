@@ -25,6 +25,7 @@ def build_cache() -> Path:
         db.execute("INSERT INTO roles VALUES (?, ?, ?)", ("985589003", body, digest))
         db.execute("INSERT INTO email_domains VALUES (?, ?)", ("bate.no", 520))
         db.execute("INSERT INTO phones VALUES (?, ?)", ("57698950", 7))
+        db.execute("INSERT INTO name_keys VALUES (?, ?)", ("arkitektfirma jon vikoren", 1))
     return path
 
 
@@ -53,6 +54,7 @@ class OfficialCacheTest(unittest.TestCase):
         self.assertEqual(self.cache.shared_domains().get("bate.no"), 520)
         self.assertEqual(self.cache.shared_domains().get("unknown.no", 0), 0)
         self.assertEqual(self.cache.shared_phones().get("57698950"), 7)
+        self.assertEqual(self.cache.name_keys().get("arkitektfirma jon vikoren"), 1)
 
     def test_cache_path_must_exist(self) -> None:
         with self.assertRaises(FileNotFoundError):

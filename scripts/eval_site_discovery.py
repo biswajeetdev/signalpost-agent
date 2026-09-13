@@ -57,6 +57,7 @@ def main() -> None:
     parser.add_argument("--allowance", type=int, default=14)
     parser.add_argument("--max-hosts", type=int, default=4)
     parser.add_argument("--workers", type=int, default=16)
+    parser.add_argument("--unique-name-rule", action="store_true", help="Enable the unique full-legal-name domain rule")
     args = parser.parse_args()
 
     gold = [row for row in json.loads(Path(args.gold).read_text(encoding="utf-8")) if not args.split or row.get("split") == args.split]
@@ -64,6 +65,7 @@ def main() -> None:
     cache = Path(args.cache)
     shared_domains = SqliteCounts(cache, "email_domains", "domain")
     shared_phones = SqliteCounts(cache, "phones", "phone")
+    name_keys = SqliteCounts(cache, "name_keys", "key") if args.unique_name_rule else None
     budget = RequestBudget(max_requests=len(gold) * 20, reserve_fraction=0)
     robots = RobotsCache()
     started = time.monotonic()
@@ -71,7 +73,7 @@ def main() -> None:
     def run(reference: dict) -> dict:
         org = reference["org"]
         fetch, robots_allowed = make_site_fetchers(budget, org, allowance=args.allowance, robots=robots)
-        record, _ = discover_website(rows[org], shared_domains=shared_domains, shared_phones=shared_phones, fetch=fetch, robots_allowed=robots_allowed, max_hosts=args.max_hosts)
+        record, _ = discover_website(rows[org], shared_domains=shared_domains, shared_phones=shared_phones, fetch=fetch, robots_allowed=robots_allowed, max_hosts=args.max_hosts, name_keys=name_keys)
         reference_web = (reference.get("web") or {}).get("value") or {}
         return {
             "organisation_number": org,

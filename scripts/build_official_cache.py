@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from norway_company_agent.candidates import email_domain_counts  # noqa: E402
 from norway_company_agent.evidence import utc_now  # noqa: E402
 from norway_company_agent.official import normalize_roles  # noqa: E402
-from norway_company_agent.proof import phone_share_counts  # noqa: E402
+from norway_company_agent.proof import name_key_counts, phone_share_counts  # noqa: E402
 
 ROLES_URL = "https://data.brreg.no/enhetsregisteret/api/roller/totalbestand"
 SUBUNITS_URL = "https://data.brreg.no/enhetsregisteret/api/underenheter/lastned/csv"
@@ -87,6 +87,7 @@ def create_schema(db: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS locations (organisation_number TEXT PRIMARY KEY, body TEXT, content_sha256 TEXT);
         CREATE TABLE IF NOT EXISTS email_domains (domain TEXT PRIMARY KEY, entities INTEGER);
         CREATE TABLE IF NOT EXISTS phones (phone TEXT PRIMARY KEY, entities INTEGER);
+        CREATE TABLE IF NOT EXISTS name_keys (key TEXT PRIMARY KEY, entities INTEGER);
         """
     )
 
@@ -145,16 +146,18 @@ def load_locations(db: sqlite3.Connection, path: Path, universe: set[str]) -> in
     return len(grouped)
 
 
-def load_shared_identifiers(db: sqlite3.Connection, path: Path) -> tuple[int, int]:
-    """Share counts over the whole registry, so administrator domains and phones are recognised."""
+def load_shared_identifiers(db: sqlite3.Connection, path: Path) -> tuple[int, int, int]:
+    """Share counts over the whole registry: administrator domains and phones, and namesakes."""
     with gzip.open(path, "rt", encoding="utf-8", newline="") as handle:
-        rows = [{"epostadresse": row.get("epostadresse"), "telefon": row.get("telefon"), "mobil": row.get("mobil")} for row in csv.DictReader(handle)]
+        rows = [{"navn": row.get("navn"), "epostadresse": row.get("epostadresse"), "telefon": row.get("telefon"), "mobil": row.get("mobil")} for row in csv.DictReader(handle)]
     emails = email_domain_counts(rows)
     phones = phone_share_counts(rows)
+    names = name_key_counts(rows)
     db.executemany("INSERT OR REPLACE INTO email_domains VALUES (?, ?)", emails.items())
     db.executemany("INSERT OR REPLACE INTO phones VALUES (?, ?)", phones.items())
+    db.executemany("INSERT OR REPLACE INTO name_keys VALUES (?, ?)", names.items())
     record_snapshot(db, "shared_identifiers", ENTITIES_URL, path, len(rows))
-    return len(emails), len(phones)
+    return len(emails), len(phones), len(names)
 
 
 def main() -> None:
@@ -171,13 +174,14 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(output) as db:
         create_schema(db)
-        shared_domains, shared_phones = load_shared_identifiers(db, Path(args.entities))
+        shared_domains, shared_phones, name_keys = load_shared_identifiers(db, Path(args.entities))
         summary = {
             "universe": len(universe),
             "roles": load_roles(db, Path(args.roles), universe),
             "locations": load_locations(db, Path(args.subunits), universe),
             "email_domains": shared_domains,
             "phones": shared_phones,
+            "name_keys": name_keys,
         }
     print(json.dumps(summary, indent=2))
 

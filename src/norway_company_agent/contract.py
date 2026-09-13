@@ -22,7 +22,7 @@ _STATUS_TO_STATE = {
     "source_error": "failed",
     "not_fetched": "failed",
 }
-MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website")
+MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles")
 REGISTRY_FIELDS = (
     ("legal_name", "navn"),
     ("legal_form", "organisasjonsform.kode"),
@@ -166,15 +166,41 @@ def _website(envelope: _Envelope, record: Mapping[str, Any] | None, registry: Ma
     if "registry_declared_website" in proofs and registry:
         declared = str((registry.get("value") or {}).get("hjemmeside") or "")
         evidence_ids.append(envelope.cite(registry, f"hjemmeside: {declared}", proof="registry_declared_website"))
+    if "unique_legal_name_domain" in proofs and registry:
+        legal_name = str((registry.get("value") or {}).get("navn") or "")
+        evidence_ids.append(envelope.cite(registry, f"navn: {legal_name} (no other entity with this distinctive name in the registry snapshot)", proof="unique_legal_name_domain"))
+    if proofs & STRONG_WEBSITE_PROOFS:
+        confidence = 0.99
+    elif "registry_declared_website" in proofs:
+        confidence = 0.95
+    else:
+        confidence = 0.9
     envelope.claim(
         "official_website",
         value.get("final_url"),
         "available",
         evidence_ids,
-        confidence=0.99 if proofs & STRONG_WEBSITE_PROOFS else 0.95,
+        confidence=confidence,
         identity_proofs=sorted(proofs),
         candidate_source=value.get("candidate_source"),
     )
+
+
+def _social(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
+    state = availability(record)
+    profiles = ((record or {}).get("value") or {}).get("profiles") or []
+    if state != "available" or not profiles:
+        envelope.unavailable("social_profiles", record, "not_available" if state == "available" else state)
+        return
+    for item in profiles:
+        envelope.claim(
+            "social_profile",
+            {"platform": item.get("platform"), "url": item.get("url")},
+            "available",
+            [envelope.cite(record, item.get("claim_span") or item.get("url"))],
+            confidence=0.95,
+            relation="linked_from_verified_company_website",
+        )
 
 
 def build_envelope(
@@ -194,6 +220,7 @@ def build_envelope(
     _listed(envelope, records.get("roles"), module="roles", key="roles", field="role", span=lambda item: f"{item.get('role')}: {item.get('name')}")
     _listed(envelope, records.get("locations"), module="locations", key="locations", field="registered_workplace", span=lambda item: f"Underenhet {item.get('organisation_number')} {item.get('name')}")
     _website(envelope, records.get("website"), records.get("registry"))
+    _social(envelope, records.get("social_profiles"))
     return {
         "organisation_number": profile["organisation_number"],
         "legal_name": profile.get("name"),

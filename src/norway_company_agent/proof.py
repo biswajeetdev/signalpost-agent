@@ -12,7 +12,7 @@ from .candidates import FILLER_TOKENS, FOLDS, LEGAL_FORM_TOKENS, fold_name
 STRONG_PROOFS = frozenset({"organisation_number", "registry_email", "registry_phone"})
 # A phone registered for this many entities belongs to an accountant or administrator.
 SHARED_PHONE_THRESHOLD = 5
-METHOD = "registry_identifier_on_site_v2"
+METHOD = "registry_identifier_on_site_v3"
 MAX_TEXT_CHARS = 300_000
 _SEPARATOR = r"[\s.\- ]?"
 
@@ -84,6 +84,20 @@ def distinctive_name_tokens(name: str) -> list[str]:
     return [token for token in tokens if len(token) > 1 and token not in LEGAL_FORM_TOKENS and token not in FILLER_TOKENS]
 
 
+def name_key(name: str) -> str:
+    """Order-insensitive key of a legal name's distinctive words, for namesake counting."""
+    return " ".join(sorted(set(distinctive_name_tokens(name))))
+
+
+def name_key_counts(rows: Iterable[Mapping[str, Any]]) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    for row in rows:
+        key = name_key(str(row.get("navn") or ""))
+        if key:
+            counts[key] += 1
+    return counts
+
+
 def _visible_text(page_html: str) -> str:
     text = re.sub(r"(?is)<(script|style|noscript)\b.*?</\1\s*>", " ", page_html or "")
     text = re.sub(r"<[^>]+>", " ", text)
@@ -128,24 +142,30 @@ def assess_site_identity(
     registry_declared: bool = False,
     name_on_site: bool = False,
     full_name_domain: bool = False,
+    unique_legal_name: bool = False,
 ) -> dict[str, Any]:
     """Publishable only with an official tie to this exact entity.
 
     Exact when a registry identifier (org number, registry email, registry phone) is on the site,
-    or when the entity declared the site in the official register and its legal name is on it.
+    or when the entity declared the site in the official register and its legal name is on it,
+    or when the domain is the entity's full legal name, that name belongs to no other registry
+    entity, and the legal name is on the site.
     A domain shared by many entities is exact only for the entity it is fully named after.
-    Name similarity, shared email domains and addresses never publish on their own.
+    Partial-name domains, shared email domains and addresses never publish on their own.
     """
     found = set(proofs)
     strong = bool(found & STRONG_PROOFS)
     declared = registry_declared and name_on_site
+    unique_name_domain = unique_legal_name and full_name_domain and name_on_site
     if name_on_site:
         found.add("legal_name_on_site")
     if declared:
         found.add("registry_declared_website")
+    if unique_name_domain:
+        found.add("unique_legal_name_domain")
     if relation == "administrator_or_group" and not (full_name_domain and (strong or declared)):
         status, publishable = "related", False
-    elif strong or declared:
+    elif strong or declared or unique_name_domain:
         status, publishable = "exact", True
     elif found:
         status, publishable = "weak", False

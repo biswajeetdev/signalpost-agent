@@ -137,6 +137,20 @@ class SiteDiscoveryTest(unittest.TestCase):
         record, _ = discover_website(child, shared_domains=shared, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: True, resolver=web.resolve)
         self.assertEqual(record["status"], "ambiguous")
 
+    def test_unique_name_rule_is_off_by_default_and_needs_full_name_domain(self) -> None:
+        title = "<title>Fjeld og Vann AS - rørlegger</title>"
+        web = FakeWeb({"https://fjeldvann.no/": page("https://fjeldvann.no/", title), "https://vann.no/": page("https://vann.no/", title)}, {"fjeldvann.no"})
+        record, _ = run(web)
+        self.assertEqual(record["status"], "ambiguous")
+        record, _ = run(web, name_keys={"fjeld vann": 1})
+        self.assertEqual(record["status"], "available")
+        self.assertIn("unique_legal_name_domain", record["value"]["identity_assessment"]["proofs"])
+        record, _ = run(web, name_keys={"fjeld vann": 2})
+        self.assertEqual(record["status"], "ambiguous")
+        partial_only = FakeWeb(web.pages, {"vann.no"})
+        record, _ = run(partial_only, name_keys={"fjeld vann": 1})
+        self.assertEqual(record["status"], "ambiguous")
+
     def test_contact_links_stay_on_host_and_rank_contact_first(self) -> None:
         html = '<a href="https://other.no/kontakt">x</a><a href="/om-oss">Om</a><a href="/kontakt">Kontakt</a><a href="/">Hjem</a>'
         self.assertEqual(contact_links("https://firma.no/", html), ["https://firma.no/kontakt", "https://firma.no/om-oss"])

@@ -8,6 +8,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from norway_company_agent.proof import (  # noqa: E402
     assess_site_identity,
     legal_name_span,
+    name_key,
+    name_key_counts,
     normalise_phone,
     page_proof_spans,
     page_proofs,
@@ -69,6 +71,17 @@ class ProofTest(unittest.TestCase):
         self.assertEqual(declared["proofs"], ["legal_name_on_site", "registry_declared_website"])
         self.assertEqual(assess_site_identity(set(), registry_declared=False, name_on_site=True)["status"], "weak")
         self.assertEqual(assess_site_identity(set(), registry_declared=True, name_on_site=False)["status"], "unverified")
+
+    def test_unique_full_legal_name_domain_rule(self) -> None:
+        self.assertEqual(name_key("TRØNDELAG BETONG AS"), name_key("Betong Trøndelag"))
+        self.assertEqual(name_key_counts([{"navn": "TRØNDELAG BETONG AS"}, {"navn": "BETONG TRØNDELAG AS"}, {"navn": ""}])[name_key("TRØNDELAG BETONG AS")], 2)
+        unique = assess_site_identity(set(), name_on_site=True, full_name_domain=True, unique_legal_name=True)
+        self.assertEqual((unique["status"], unique["publishable"]), ("exact", True))
+        self.assertIn("unique_legal_name_domain", unique["proofs"])
+        self.assertFalse(assess_site_identity(set(), name_on_site=True, full_name_domain=False, unique_legal_name=True)["publishable"])
+        self.assertFalse(assess_site_identity(set(), name_on_site=False, full_name_domain=True, unique_legal_name=True)["publishable"])
+        shared = assess_site_identity(set(), "administrator_or_group", name_on_site=True, full_name_domain=True, unique_legal_name=True)
+        self.assertEqual(shared["status"], "related")
 
     def test_shared_domain_is_exact_only_for_the_fully_named_entity(self) -> None:
         parent = assess_site_identity({"organisation_number"}, "administrator_or_group", full_name_domain=True)

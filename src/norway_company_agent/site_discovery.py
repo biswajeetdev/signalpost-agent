@@ -14,14 +14,14 @@ from bs4 import BeautifulSoup
 from .budget import BudgetExhausted, RequestBudget, RobotsCache
 from .candidates import SHARED_DOMAIN_THRESHOLD, full_name_labels, registered_domain, website_candidates
 from .evidence import utc_now
-from .proof import STRONG_PROOFS, assess_site_identity, legal_name_span, page_proof_spans, registry_identifiers
+from .proof import STRONG_PROOFS, assess_site_identity, legal_name_span, name_key, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
 MAX_PAGE_BYTES = 1_500_000
 MAX_REDIRECTS = 5
 CONTACT_TERMS = ("kontakt", "contact", "om-oss", "om_oss", "about")
 REGISTRY_SOURCE = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv"
-METHOD = "registry_candidates_with_site_proof_v2"
+METHOD = "registry_candidates_with_site_proof_v3"
 
 
 @dataclass(frozen=True)
@@ -183,15 +183,18 @@ def discover_website(
     robots_allowed: RobotsCheck,
     resolver: Callable[[str], bool] = dns_resolves,
     max_hosts: int = 4,
+    name_keys: Mapping[str, int] | None = None,
 ) -> tuple[dict[str, Any], Page | None]:
     """Find the entity's own website. Returns the evidence record and the verified homepage for reuse.
 
     States: available (official tie to this entity on the site), ambiguous (reachable but only an
     administrator/group site), not_available (no candidate proved), failed (budget exhausted).
+    `name_keys` (registry namesake counts) enables the unique-full-legal-name rule; None disables it.
     """
     identifiers = registry_identifiers(row)
     legal_name = str(row.get("navn") or row.get("name") or "")
     full_labels = full_name_labels(legal_name)
+    unique_name = name_keys is not None and bool(name_key(legal_name)) and name_keys.get(name_key(legal_name), 0) == 1
     attempts: list[dict[str, Any]] = []
     seen_domains: set[str] = set()
     fallback: dict[str, Any] | None = None
@@ -226,11 +229,13 @@ def discover_website(
             if shared_domains.get(final_domain, 0) >= SHARED_DOMAIN_THRESHOLD:
                 relation = "administrator_or_group"
             registry_declared = candidate["source"] == "registry_website"
+            full_name_domain = final_domain.split(".")[0] in full_labels
+            name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
             spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
             name_span = legal_name_span(legal_name, home.html)
             found = set(spans)
             proof_pages = [_page_record(home, spans, name_span)]
-            if not found & STRONG_PROOFS and not (registry_declared and name_span):
+            if not found & STRONG_PROOFS and not (name_suffices and name_span):
                 for link in contact_links(home.final_url, home.html):
                     if not robots_allowed(link):
                         continue
@@ -242,14 +247,15 @@ def discover_website(
                     proof_pages.append(_page_record(page, page_spans, page_name))
                     found |= set(page_spans)
                     name_span = name_span or page_name
-                    if found & STRONG_PROOFS or (registry_declared and name_span):
+                    if found & STRONG_PROOFS or (name_suffices and name_span):
                         break
             assessment = assess_site_identity(
                 found,
                 relation,
                 registry_declared=registry_declared,
                 name_on_site=bool(name_span),
-                full_name_domain=final_domain.split(".")[0] in full_labels,
+                full_name_domain=full_name_domain,
+                unique_legal_name=unique_name,
             )
             attempts.append({**candidate, "outcome": assessment["status"], "url": home.final_url, "final_domain": final_domain, "proofs": assessment["proofs"]})
             value = {
