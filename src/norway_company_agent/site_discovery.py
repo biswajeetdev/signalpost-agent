@@ -12,16 +12,16 @@ from typing import Any, Callable, Mapping
 from bs4 import BeautifulSoup
 
 from .budget import BudgetExhausted, RequestBudget, RobotsCache
-from .candidates import SHARED_DOMAIN_THRESHOLD, registered_domain, website_candidates
+from .candidates import SHARED_DOMAIN_THRESHOLD, full_name_labels, registered_domain, website_candidates
 from .evidence import utc_now
-from .proof import STRONG_PROOFS, assess_site_identity, page_proof_spans, registry_identifiers
+from .proof import STRONG_PROOFS, assess_site_identity, legal_name_span, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
 MAX_PAGE_BYTES = 1_500_000
 MAX_REDIRECTS = 5
 CONTACT_TERMS = ("kontakt", "contact", "om-oss", "om_oss", "about")
 REGISTRY_SOURCE = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv"
-METHOD = "registry_candidates_with_site_proof_v1"
+METHOD = "registry_candidates_with_site_proof_v2"
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,8 @@ class Page:
 
 
 Fetch = Callable[[str], Page]
-RobotsCheck = Callable[[str], bool]
+# True: allowed, False: disallowed by robots.txt, None: host unreachable (skip without a page fetch).
+RobotsCheck = Callable[[str], "bool | None"]
 
 
 def dns_resolves(host: str) -> bool:
@@ -70,19 +71,17 @@ def make_site_fetchers(
 ) -> tuple[Fetch, RobotsCheck]:
     """Fetchers that charge every attempt and redirect hop to this company's allowance."""
 
-    def spend(purpose: str) -> None:
-        budget.spend(company, purpose, allowance=allowance)
-
-    def open_url(url: str, accept: str) -> Any:
+    def open_url(url: str, accept: str, purpose: str) -> Any:
         assert_public_url(url)
-        spend("site_discovery")
-        opener = urllib.request.build_opener(_BudgetedRedirectHandler(lambda: spend("site_discovery_redirect")))
+        budget.spend(company, purpose, allowance=allowance)
+        hop = lambda: budget.spend(company, purpose + "_redirect", allowance=allowance)  # noqa: E731
+        opener = urllib.request.build_opener(_BudgetedRedirectHandler(hop))
         return opener.open(urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept}), timeout=timeout)
 
     def fetch(url: str) -> Page:
         retrieved_at = utc_now()
         try:
-            with open_url(url, "text/html,application/xhtml+xml") as response:
+            with open_url(url, "text/html,application/xhtml+xml", "site_page") as response:
                 raw = response.read(MAX_PAGE_BYTES + 1)
                 final_url = response.geturl()
                 if "html" not in response.headers.get("content-type", "").lower():
@@ -99,7 +98,7 @@ def make_site_fetchers(
     def load_robots(origin: str) -> urllib.robotparser.RobotFileParser:
         parser = urllib.robotparser.RobotFileParser()
         try:
-            with open_url(origin + "/robots.txt", "text/plain") as response:
+            with open_url(origin + "/robots.txt", "text/plain", "robots") as response:
                 parser.parse(response.read(500_000).decode("utf-8", errors="replace").splitlines())
         except BudgetExhausted:
             raise
@@ -110,13 +109,16 @@ def make_site_fetchers(
             else:
                 parser.allow_all = True
         except Exception:
-            parser.allow_all = True
+            # Connection, TLS or timeout failure: the host cannot serve pages either.
+            parser.unreachable = True  # type: ignore[attr-defined]
         return parser
 
-    def robots_allowed(url: str) -> bool:
+    def robots_allowed(url: str) -> bool | None:
         parsed = urllib.parse.urlparse(url)
         origin = f"{parsed.scheme}://{parsed.netloc}"
         parser = robots.get(origin, lambda: load_robots(origin))
+        if getattr(parser, "unreachable", False):
+            return None
         return parser.can_fetch(USER_AGENT, url)  # type: ignore[attr-defined]
 
     return fetch, robots_allowed
@@ -140,15 +142,18 @@ def contact_links(base_url: str, html: str, limit: int = 2) -> list[str]:
     return [url for url, _ in sorted(ranked.items(), key=lambda item: (item[1], item[0]))[:limit]]
 
 
-def _page_record(page: Page, spans: dict[str, str]) -> dict[str, Any]:
+def _page_record(page: Page, spans: dict[str, str], name_span: str | None) -> dict[str, Any]:
+    claim_spans = dict(spans)
+    if name_span:
+        claim_spans["legal_name_on_site"] = name_span
     return {
         "url": page.final_url,
         "requested_url": page.requested_url,
         "http_status": page.status,
         "retrieved_at": page.retrieved_at,
         "content_sha256": page.content_sha256,
-        "proofs": sorted(spans),
-        "claim_spans": spans,
+        "proofs": sorted(claim_spans),
+        "claim_spans": claim_spans,
     }
 
 
@@ -181,16 +186,18 @@ def discover_website(
 ) -> tuple[dict[str, Any], Page | None]:
     """Find the entity's own website. Returns the evidence record and the verified homepage for reuse.
 
-    States: available (registry identifier on the site), ambiguous (reachable but only an
+    States: available (official tie to this entity on the site), ambiguous (reachable but only an
     administrator/group site), not_available (no candidate proved), failed (budget exhausted).
     """
     identifiers = registry_identifiers(row)
+    legal_name = str(row.get("navn") or row.get("name") or "")
+    full_labels = full_name_labels(legal_name)
     attempts: list[dict[str, Any]] = []
     seen_domains: set[str] = set()
     fallback: dict[str, Any] | None = None
     hosts_fetched = 0
     try:
-        for candidate in website_candidates(row, shared_domains):  # type: ignore[arg-type]
+        for candidate in website_candidates(row, shared_domains):
             domain = candidate["domain"]
             if hosts_fetched >= max_hosts:
                 break
@@ -201,7 +208,11 @@ def discover_website(
                 attempts.append({**candidate, "outcome": "no_dns"})
                 continue
             base_url = f"https://{host}/"
-            if not robots_allowed(base_url):
+            allowed = robots_allowed(base_url)
+            if allowed is None:
+                attempts.append({**candidate, "outcome": "unreachable", "url": base_url})
+                continue
+            if not allowed:
                 attempts.append({**candidate, "outcome": "blocked_robots", "url": base_url})
                 continue
             hosts_fetched += 1
@@ -214,22 +225,32 @@ def discover_website(
             relation = candidate["relation"]
             if shared_domains.get(final_domain, 0) >= SHARED_DOMAIN_THRESHOLD:
                 relation = "administrator_or_group"
-            home_spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
-            found = set(home_spans)
-            proof_pages = [_page_record(home, home_spans)]
-            if not found & STRONG_PROOFS:
+            registry_declared = candidate["source"] == "registry_website"
+            spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
+            name_span = legal_name_span(legal_name, home.html)
+            found = set(spans)
+            proof_pages = [_page_record(home, spans, name_span)]
+            if not found & STRONG_PROOFS and not (registry_declared and name_span):
                 for link in contact_links(home.final_url, home.html):
                     if not robots_allowed(link):
                         continue
                     page = fetch(link)
                     if page.error or registered_domain(page.final_url) != final_domain:
                         continue
-                    spans = page_proof_spans(identifiers, page.html, shared_phones=shared_phones)
-                    proof_pages.append(_page_record(page, spans))
-                    found |= set(spans)
-                    if found & STRONG_PROOFS:
+                    page_spans = page_proof_spans(identifiers, page.html, shared_phones=shared_phones)
+                    page_name = legal_name_span(legal_name, page.html)
+                    proof_pages.append(_page_record(page, page_spans, page_name))
+                    found |= set(page_spans)
+                    name_span = name_span or page_name
+                    if found & STRONG_PROOFS or (registry_declared and name_span):
                         break
-            assessment = assess_site_identity(found, relation)
+            assessment = assess_site_identity(
+                found,
+                relation,
+                registry_declared=registry_declared,
+                name_on_site=bool(name_span),
+                full_name_domain=final_domain.split(".")[0] in full_labels,
+            )
             attempts.append({**candidate, "outcome": assessment["status"], "url": home.final_url, "final_domain": final_domain, "proofs": assessment["proofs"]})
             value = {
                 "final_url": home.final_url,
@@ -246,4 +267,4 @@ def discover_website(
         return _record("failed", source_url=REGISTRY_SOURCE, retrieved_at=utc_now(), attempts=attempts, note=str(exc)), None
     if fallback:
         return fallback, None
-    return _record("not_available", source_url=REGISTRY_SOURCE, retrieved_at=utc_now(), attempts=attempts, note="No candidate website carried an official identifier for this entity"), None
+    return _record("not_available", source_url=REGISTRY_SOURCE, retrieved_at=utc_now(), attempts=attempts, note="No candidate website carried an official tie to this entity"), None

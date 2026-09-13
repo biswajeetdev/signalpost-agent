@@ -9,6 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from norway_company_agent.candidates import (  # noqa: E402
     email_domain,
     email_domain_counts,
+    full_name_labels,
     name_domain_labels,
     registered_domain,
     website_candidates,
@@ -38,6 +39,18 @@ class CandidateTest(unittest.TestCase):
         candidates = website_candidates(row, Counter({"bate.no": 520}))
         bate = next(item for item in candidates if item["domain"] == "bate.no")
         self.assertEqual(bate["relation"], "administrator_or_group")
+
+    def test_full_name_guesses_before_partial_and_partial_only_on_no(self) -> None:
+        row = {"navn": "TRØNDELAG BETONG AS", "epostadresse": "", "hjemmeside": ""}
+        candidates = website_candidates(row, Counter())
+        forms = [(item["domain"], item["name_form"]) for item in candidates]
+        self.assertEqual(forms[0], ("trondelagbetong.no", "full"))
+        first_com = next(index for index, (domain, _) in enumerate(forms) if domain.endswith(".com"))
+        first_partial = next(index for index, (_, form) in enumerate(forms) if form == "partial")
+        self.assertLess(first_com, first_partial)
+        self.assertTrue(all(domain.endswith(".no") for domain, form in forms if form == "partial"))
+        self.assertIn("trondelagbetong", full_name_labels("TRØNDELAG BETONG AS"))
+        self.assertNotIn("betong", full_name_labels("TRØNDELAG BETONG AS"))
 
     def test_candidate_order_and_deduplication(self) -> None:
         row = {"navn": "ZAPTEC ASA", "epostadresse": "post@zaptec.com", "hjemmeside": "www.zaptec.no"}

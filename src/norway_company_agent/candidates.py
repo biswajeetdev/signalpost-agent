@@ -4,7 +4,7 @@ import re
 import unicodedata
 import urllib.parse
 from collections import Counter
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import tldextract
 
@@ -16,7 +16,7 @@ getmail.no frisurf.no broadpark.no c2i.net start.no altibox.no lyse.net telenor.
 epost.no enivest.net tele2.no chello.no bluewin.ch
 """.split())
 # A domain used by this many registry entities belongs to an administrator (housing
-# co-op manager, accountant, franchise) and is never an exact company site.
+# co-op manager, accountant) or a group; it is exact only for the entity it is named after.
 SHARED_DOMAIN_THRESHOLD = 5
 LEGAL_FORM_TOKENS = frozenset("as asa ans da enk sa ba nuf ks bbl brl sf hf fli spa iks kf".split())
 FILLER_TOKENS = frozenset("stiftelsen stiftelse sameiet borettslag og i the holding norge norway group gruppen".split())
@@ -46,39 +46,70 @@ def email_domain_counts(rows: Iterable[dict[str, Any]]) -> Counter[str]:
     return counts
 
 
-def name_domain_labels(name: str, limit: int = 6) -> list[str]:
-    """Deterministic domain labels from a legal name, most specific first."""
-    ordered: list[str] = []
+def fold_name(value: str, mapping: Mapping[str, str] = FOLDS[0]) -> str:
+    folded = value.lower()
+    for source, target in mapping.items():
+        folded = folded.replace(source, target)
+    return unicodedata.normalize("NFKD", folded).encode("ascii", "ignore").decode()
+
+
+def _label_forms(name: str) -> tuple[list[str], list[str]]:
+    """(full-name labels, partial-name labels).
+
+    On the Builderr sample, full-name forms produced 48 of 56 matched domains; partial forms
+    (first word, dropped first word) produced 8 and are the generic, collision-prone ones.
+    """
+    full: list[str] = []
+    partial: list[str] = []
+
+    def add(bucket: list[str], sequence: list[str]) -> None:
+        for label in ("".join(sequence), "-".join(sequence)):
+            if len(label) >= 3 and label not in full and label not in partial:
+                bucket.append(label)
+
+    token_lists = []
     for mapping in FOLDS:
-        folded = name.lower()
-        for source, target in mapping.items():
-            folded = folded.replace(source, target)
-        folded = unicodedata.normalize("NFKD", folded).encode("ascii", "ignore").decode()
-        tokens = [token for token in re.split(r"[^a-z0-9]+", folded.replace("&", " og ")) if token]
+        tokens = [token for token in re.split(r"[^a-z0-9]+", fold_name(name.replace("&", " og "), mapping)) if token]
         without_form = [token for token in tokens if token not in LEGAL_FORM_TOKENS]
         core = [token for token in without_form if token not in FILLER_TOKENS]
-        for sequence_source in (core, without_form):
-            for sequence in (sequence_source, sequence_source[:2], sequence_source[1:], sequence_source[:1], sequence_source[-2:]):
-                for label in ("".join(sequence), "-".join(sequence)):
-                    if len(label) >= 3 and label not in ordered:
-                        ordered.append(label)
-    return ordered[:limit]
+        token_lists.extend((core, without_form))
+    for tokens in token_lists:
+        add(full, tokens)
+    for tokens in token_lists:
+        for sequence in (tokens[:2], tokens[1:], tokens[:1], tokens[-2:]):
+            add(partial, sequence)
+    return full, partial
 
 
-def website_candidates(row: dict[str, Any], shared_counts: Counter[str], *, guess_limit: int = 6) -> list[dict[str, str]]:
+def full_name_labels(name: str) -> set[str]:
+    return set(_label_forms(name)[0])
+
+
+def name_domain_labels(name: str, limit: int = 6) -> list[str]:
+    """Deterministic domain labels from a legal name, full-name forms first."""
+    full, partial = _label_forms(name)
+    return (full + partial)[:limit]
+
+
+def website_candidates(row: Mapping[str, Any], shared_counts: Mapping[str, int], *, full_limit: int = 4, partial_limit: int = 3) -> list[dict[str, str]]:
     """Ordered, de-duplicated website candidates. Candidates are never evidence."""
     found: dict[str, dict[str, str]] = {}
 
-    def add(domain: str, source: str, relation: str = "candidate") -> None:
+    def add(domain: str, source: str, relation: str = "candidate", name_form: str | None = None) -> None:
         if domain and domain not in found:
             found[domain] = {"domain": domain, "source": source, "relation": relation}
+            if name_form:
+                found[domain]["name_form"] = name_form
 
     add(registered_domain(row.get("hjemmeside") or row.get("website")), "registry_website")
     mail = email_domain(row.get("epostadresse"))
     if mail and mail not in FREE_MAIL_DOMAINS:
         shared = shared_counts.get(mail, 0) >= SHARED_DOMAIN_THRESHOLD
         add(mail, "registry_email_domain", "administrator_or_group" if shared else "candidate")
-    for label in name_domain_labels(str(row.get("navn") or row.get("name") or ""), guess_limit):
-        for suffix in ("no", "com"):
-            add(f"{label}.{suffix}", "name_guess")
+    full, partial = _label_forms(str(row.get("navn") or row.get("name") or ""))
+    for suffix in ("no", "com"):
+        for label in full[:full_limit]:
+            add(f"{label}.{suffix}", "name_guess", name_form="full")
+    for label in partial[:partial_limit]:
+        add(f"{label}.no", "name_guess", name_form="partial")
     return list(found.values())

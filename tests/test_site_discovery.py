@@ -110,6 +110,33 @@ class SiteDiscoveryTest(unittest.TestCase):
         self.assertEqual(len(web.calls), 2)
         self.assertEqual(record["status"], "ambiguous")
 
+    def test_registry_declared_site_with_legal_name_publishes_without_contact_fetch(self) -> None:
+        row = {**ROW, "hjemmeside": "www.gamlefirma.no", "epostadresse": ""}
+        web = FakeWeb({"https://gamlefirma.no/": page("https://gamlefirma.no/", '<title>Fjeld og Vann - rør</title><a href="/kontakt">Kontakt</a>')}, {"gamlefirma.no"})
+        record, _ = discover_website(row, shared_domains=SHARED, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: True, resolver=web.resolve)
+        self.assertEqual(record["status"], "available")
+        self.assertIn("registry_declared_website", record["value"]["identity_assessment"]["proofs"])
+        self.assertIn("Fjeld og Vann", record["value"]["proof_pages"][0]["claim_spans"]["legal_name_on_site"])
+        self.assertEqual(web.calls, ["https://gamlefirma.no/"])
+
+    def test_unreachable_host_is_skipped_without_page_fetch(self) -> None:
+        web = FakeWeb({}, {"fjeldvann.no", "fjeldogvann.no"})
+        record, _ = discover_website(ROW, shared_domains=SHARED, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: None, resolver=web.resolve)
+        self.assertEqual(record["status"], "not_available")
+        self.assertEqual(web.calls, [])
+        self.assertIn("unreachable", {item["outcome"] for item in record["attempts"]})
+
+    def test_group_domain_is_exact_for_parent_but_related_for_subsidiary(self) -> None:
+        shared = {"afgruppen.no": 40}
+        html = "<footer>AF Gruppen ASA · Org.nr 938 702 675 · Org.nr AF Anlegg 912 345 678</footer>"
+        web = FakeWeb({"https://afgruppen.no/": page("https://afgruppen.no/", html)}, {"afgruppen.no"})
+        parent = {"organisasjonsnummer": "938702675", "navn": "AF GRUPPEN ASA", "epostadresse": "post@afgruppen.no", "telefon": "", "hjemmeside": ""}
+        record, _ = discover_website(parent, shared_domains=shared, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: True, resolver=web.resolve)
+        self.assertEqual(record["status"], "available")
+        child = {"organisasjonsnummer": "912345678", "navn": "AF ANLEGG AS", "epostadresse": "post@afgruppen.no", "telefon": "", "hjemmeside": ""}
+        record, _ = discover_website(child, shared_domains=shared, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: True, resolver=web.resolve)
+        self.assertEqual(record["status"], "ambiguous")
+
     def test_contact_links_stay_on_host_and_rank_contact_first(self) -> None:
         html = '<a href="https://other.no/kontakt">x</a><a href="/om-oss">Om</a><a href="/kontakt">Kontakt</a><a href="/">Hjem</a>'
         self.assertEqual(contact_links("https://firma.no/", html), ["https://firma.no/kontakt", "https://firma.no/om-oss"])
