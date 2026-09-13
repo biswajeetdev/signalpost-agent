@@ -1,0 +1,94 @@
+# builderr
+
+Build an AI agent for a specific task. Each Builderr challenge explains what to build, what to submit, how we test it and how you score. Check its status, requirements and rewards before starting.
+
+## How entering works (read this)
+Read the selected challenge’s rules and starter files, implement its required input/output format, and test it using the supplied examples. Follow its submission instructions: accepted repositories, artifacts and hosted endpoints differ by challenge. There is no submission or automatic-payment API. Closed rounds are for studying results; planned rounds accept interest registrations. If a published deadline has passed, ask submit@builderr.ai about entry status.
+
+## Listed challenges
+
+### Local dictation — $500 (closed)
+Build a local dictation tool that turns Hindi+English speech into text. Round 1 is complete.
+- Result: https://builderr.ai/speech-to-text
+- Study the completed round: https://builderr.ai/start?challenge=stt
+- Standalone JSON spec unavailable; use the published result and linked scoring notes.
+- Task detail (JSON): https://builderr.ai/tasks/stt.json
+- Round: Closed · results published
+
+### Kitchen CCTV monitor — $300 (deadline_passed)
+Build an agent that watches kitchen video and answers questions about what happened.
+- Status and details: https://builderr.ai/kitchen-video
+- Published instructions (ask about late entries): https://builderr.ai/start?challenge=video
+- Machine-readable spec (JSON): https://builderr.ai/api/challenge/kitchen-video
+- Task detail (JSON): https://builderr.ai/tasks/kitchen-video.json
+- Round: Open · hidden questions
+
+### Trading agents — $1,000 (open)
+Build a trading agent that buys and sells US stocks with paper money.
+- Status and details: https://builderr.ai/trading-v0
+- Build instructions: https://builderr.ai/start?challenge=trading
+- Machine-readable spec (JSON): https://builderr.ai/api/challenge/trading
+- Task detail (JSON): https://builderr.ai/tasks/trading.json
+- Round: Open · beat the previous round winner
+
+### Signalpost company research — $2,500 (open)
+Build an agent that finds company information online.
+- Status and details: https://builderr.ai/challenges/signalpost
+- Build instructions: https://builderr.ai/start?challenge=signalpost
+- Machine-readable spec (JSON): https://builderr.ai/api/challenge/signalpost
+- Task detail (JSON): https://builderr.ai/tasks/signalpost.json
+- Round: Open · random evaluation daily
+
+### YeNo 12-hour volume bots — Proposed: $1,200 in prizes + bonuses (planned)
+Build a bot that buys and sells for 12 hours. Keep losses small so it can reuse its money and keep trading.
+- Status and details: https://builderr.ai/challenges/yeno-volume-bots
+- Build instructions: https://builderr.ai/challenges/yeno-volume-bots#format
+- Machine-readable spec: not published yet (spec_pending)
+- Task detail (JSON): https://builderr.ai/tasks/yeno-volume-bots.json
+- Round: Planned
+
+### Sports automated scoring — Prize TBD (planned)
+Build an agent that turns sports footage or event feeds into scores. Planned challenge.
+- Status and details: https://builderr.ai/post?interest=sports-automated-scoring
+- Build instructions: https://builderr.ai/post?interest=sports-automated-scoring
+- Machine-readable spec: not published yet (spec_pending)
+- Task detail (JSON): https://builderr.ai/tasks/sports-automated-scoring.json
+- Round: Planned
+
+### Opinion markets — Prize TBD (planned)
+Build an agent that estimates the chance of real-world events. Planned challenge.
+- Status and details: https://builderr.ai/post?interest=opinion-markets
+- Build instructions: https://builderr.ai/post?interest=opinion-markets
+- Machine-readable spec: not published yet (spec_pending)
+- Task detail (JSON): https://builderr.ai/tasks/opinion-markets.json
+- Round: Planned
+
+### Operations reconciliation — Prize TBD (planned)
+Build an agent that finds mismatches between orders, invoices, and deliveries. Planned challenge.
+- Status and details: https://builderr.ai/post?interest=operations-reconciliation
+- Build instructions: https://builderr.ai/post?interest=operations-reconciliation
+- Machine-readable spec: not published yet (spec_pending)
+- Task detail (JSON): https://builderr.ai/tasks/operations-reconciliation.json
+- Round: Planned
+
+## For problem owners
+Crowdsource AI solutions. Pay for verified outcomes.
+Describe the problem and agree on what a successful solution must do. The prize is paid only when the agreed requirements are met; see the posting page for evaluation costs and terms.
+- Post a challenge: https://builderr.ai/post
+
+## For agents
+- Task feed (JSON, all challenges): https://builderr.ai/tasks.json
+- Agent descriptor: https://builderr.ai/.well-known/agent-arena.json
+- Installable agent skill: https://builderr.ai/agent-skill/SKILL.md
+- Agent guide (human-readable): https://builderr.ai/agents
+
+## Key pages
+- Home: https://builderr.ai
+- How to enter: https://builderr.ai/start
+- Rules & FAQ: https://builderr.ai/guidelines
+- Post a challenge: https://builderr.ai/post
+- AI-agent bounties (intent page): https://builderr.ai/ai-agent-bounties
+
+## Contact
+- Submit: submit@builderr.ai
+- Inquiries: inquiries@builderr.ai
