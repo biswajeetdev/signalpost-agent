@@ -1,0 +1,4968 @@
+{
+ "summary": {
+  "companies": 62,
+  "outcomes": {
+   "published_matches_reference": 42,
+   "ambiguous_reference_exists": 10,
+   "not_available_reference_exists": 6,
+   "failed_reference_exists": 1,
+   "ambiguous": 1,
+   "not_available": 2
+  },
+  "published": 42,
+  "reference_websites": 59,
+  "requests": {
+   "requests": 276,
+   "limit": 1240,
+   "by_purpose": {
+    "robots": 102,
+    "robots_redirect": 35,
+    "site_page": 96,
+    "site_page_redirect": 43
+   },
+   "per_company_p50": 3,
+   "per_company_max": 14
+  },
+  "requests_p95": 11,
+  "wall_seconds": 38.4,
+  "candidate_source_of_published": {
+   "registry_website": 33,
+   "registry_email_domain": 2,
+   "name_guess": 7
+  },
+  "differs_for_review": []
+ },
+ "results": [
+  {
+   "organisation_number": "938702675",
+   "name": "AF GRUPPEN ASA",
+   "split": "development",
+   "reference_domain": "afgruppen.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.afgruppen.no/",
+    "retrieved_at": "2026-09-13T08:24:40.550858Z",
+    "content_sha256": "f81805a19f893f6eb45a6d1ef356b0d4c44ed3261b912984132ece8c6a49451b",
+    "value": {
+     "final_url": "https://www.afgruppen.no/",
+     "registered_domain": "afgruppen.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.afgruppen.no/",
+       "requested_url": "https://afgruppen.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:40.550858Z",
+       "content_sha256": "f81805a19f893f6eb45a6d1ef356b0d4c44ed3261b912984132ece8c6a49451b",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "AF Gruppen | Vi rydder fra fortiden og bygger for fremtiden -"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "afgruppen.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.afgruppen.no/",
+      "final_domain": "afgruppen.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "995754606",
+   "name": "CONSTO AS",
+   "split": "development",
+   "reference_domain": "consto.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://consto.no/",
+    "retrieved_at": "2026-09-13T08:24:40.987402Z",
+    "content_sha256": "4b01bca64574bf94ebed42b642056672593f0ab6c39d2d7794a3730bba7b3b14",
+    "value": {
+     "final_url": "https://consto.no/",
+     "registered_domain": "consto.no",
+     "candidate_source": "registry_email_domain",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_email"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://consto.no/",
+       "requested_url": "https://consto.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:40.987402Z",
+       "content_sha256": "4b01bca64574bf94ebed42b642056672593f0ab6c39d2d7794a3730bba7b3b14",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email"
+       ],
+       "claim_spans": {
+        "registry_email": "+47 77 75 27 00\">+47 77 75 27 00 firmapost@consto.no sjølundvegen 2 (",
+        "legal_name_on_site": "Consto | VI HOLDER DET VI LOVER Gå til innhold Tjenester Prosjekte"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "consto.no",
+      "source": "registry_email_domain",
+      "relation": "administrator_or_group",
+      "outcome": "exact",
+      "url": "https://consto.no/",
+      "final_domain": "consto.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_email"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "837895502",
+   "name": "HAUGESUND SPAREBANK",
+   "split": "development",
+   "reference_domain": "haugesund-sparebank.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.haugesund-sparebank.no/",
+    "retrieved_at": "2026-09-13T08:24:41.248567Z",
+    "content_sha256": "45bba39fca69006f1afddacc444274cf2219f67e73d6943c3cdf20d36406a1fd",
+    "value": {
+     "final_url": "https://www.haugesund-sparebank.no/",
+     "registered_domain": "haugesund-sparebank.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.haugesund-sparebank.no/",
+       "requested_url": "https://haugesund-sparebank.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.248567Z",
+       "content_sha256": "45bba39fca69006f1afddacc444274cf2219f67e73d6943c3cdf20d36406a1fd",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "Org.nr: 837 895 502",
+        "registry_email": "ommon link button--link button--size-standard\" href=\"mailto:kundesenteret@haugesund-sparebank.no\" data-track-id=\"sitecore-footer\" data-track-linkname=\"kunde",
+        "registry_phone": "n-common link button--link button--size-standard\" href=\"tel:52705000\" data-track-id=\"sitecore-footer\" data-track-linkname=\"52-70",
+        "legal_name_on_site": "Haugesund Sparebank Hopp til innholdet Søk Bli kunde Bytt til bedrift"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "haugesund-sparebank.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.haugesund-sparebank.no/",
+      "final_domain": "haugesund-sparebank.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "979543883",
+   "name": "DIPS AS",
+   "split": "development",
+   "reference_domain": "dips.com",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.dips.com/",
+    "retrieved_at": "2026-09-13T08:24:41.306795Z",
+    "content_sha256": "ffb5227f6fccf0d5fe8c66175bd230ca7fb5861d8110a2271fa2c230ff835986",
+    "value": {
+     "final_url": "https://www.dips.com/",
+     "registered_domain": "dips.com",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.dips.com/",
+       "requested_url": "https://dips.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.306795Z",
+       "content_sha256": "ffb5227f6fccf0d5fe8c66175bd230ca7fb5861d8110a2271fa2c230ff835986",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "item\"> post@dips.no",
+        "registry_phone": "Tlf: +47 75 59 20 00",
+        "legal_name_on_site": "DIPS - Ledende leverandør av e-helse til helsetjenesten Meny Hje"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "dips.com",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.dips.com/",
+      "final_domain": "dips.com",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "976695372",
+   "name": "TGS ASA",
+   "split": "development",
+   "reference_domain": "tgs.com",
+   "reference_identity": "exact",
+   "requests": 9,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://www.tgs.com/",
+    "retrieved_at": "2026-09-13T08:24:49.326268Z",
+    "content_sha256": "4af7bde9f86d2eaef53e7699a2c186beb65113177d410f4c71dae3f4ccdca496",
+    "value": {
+     "final_url": "https://www.tgs.com/",
+     "registered_domain": "tgs.com",
+     "candidate_source": "registry_email_domain",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.tgs.com/",
+       "requested_url": "https://tgs.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:49.326268Z",
+       "content_sha256": "4af7bde9f86d2eaef53e7699a2c186beb65113177d410f4c71dae3f4ccdca496",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "--> TGS | Energy Data & Intelligence --> Energy Starts With Us Data"
+       }
+      },
+      {
+       "url": "https://www.tgs.com/contact-us",
+       "requested_url": "https://www.tgs.com/contact-us",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:50.324559Z",
+       "content_sha256": "417d4c94ad991a41852fa4a5894a659f132d441ed716f1b43b53f2995b5b37e6",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "--> Contact Us | TGS --> Energy Starts With Us Data Library Interactive Map Data"
+       }
+      },
+      {
+       "url": "https://www.tgs.com/about-us/leadership",
+       "requested_url": "https://www.tgs.com/about-us/leadership",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:50.716709Z",
+       "content_sha256": "48f0306ba7c2042db16530b21589f1db224c21eba0c029fbba72c536f7819f87",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "--> TGS Executive Leadership | TGS --> Energy Starts With Us Data L"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "tgsnopec.com",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "unreachable",
+      "url": "https://tgsnopec.com/"
+     },
+     {
+      "domain": "tgs.com",
+      "source": "registry_email_domain",
+      "relation": "candidate",
+      "outcome": "weak",
+      "url": "https://www.tgs.com/",
+      "final_domain": "tgs.com",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "tgs.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://tgs.no/"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "999164137",
+   "name": "ZAPTEC ASA",
+   "split": "development",
+   "reference_domain": "zaptec.com",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.zaptec.com/",
+    "retrieved_at": "2026-09-13T08:24:41.534833Z",
+    "content_sha256": "de9dd2f5fc1eb9c7235371c69269fb3b8bfda8384e13b4234dba57dfae7584b0",
+    "value": {
+     "final_url": "https://www.zaptec.com/",
+     "registered_domain": "zaptec.com",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.zaptec.com/",
+       "requested_url": "https://zaptec.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.534833Z",
+       "content_sha256": "de9dd2f5fc1eb9c7235371c69269fb3b8bfda8384e13b4234dba57dfae7584b0",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Powers adventure with smart EV charging that lasts | Zaptec | Zaptec Charging solutions Home charging Zaptec Go Zaptec"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "zaptec.com",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.zaptec.com/",
+      "final_domain": "zaptec.com",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "971521902",
+   "name": "STIFTELSEN STEINERSKOLEN I BÆRUM",
+   "split": "development",
+   "reference_domain": "stib.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.stib.no/",
+    "retrieved_at": "2026-09-13T08:24:40.229601Z",
+    "content_sha256": "498fdfad716126ba33be7ec3451b3824405c5a6c643822b8c581c4340ffaa5b0",
+    "value": {
+     "final_url": "https://www.stib.no/",
+     "registered_domain": "stib.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.stib.no/",
+       "requested_url": "https://stib.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:40.229601Z",
+       "content_sha256": "498fdfad716126ba33be7ec3451b3824405c5a6c643822b8c581c4340ffaa5b0",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "60}]},\"saturday\":{\"text\":\"\",\"ranges\":[{}]}},\"contactemail\":\"grav@steinerskolen.no\",\"storesettings\":{\"returnpolicy\":null,\"termsofservice\":null",
+        "registry_phone": "Shortname\":\"\",\"commentsEnabled\":false,\"contactPhoneNumber\":\"67162270\",\"businessHours\":{\"monday\":{\"text\":\"08:00 til 16:00\",\"range",
+        "legal_name_on_site": "Steinerskolen i Bærum Skolen Skolen --> Fag materialer Instrumenter & ork"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "stib.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.stib.no/",
+      "final_domain": "stib.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "982215668",
+   "name": "RSV GRUPPEN AS",
+   "split": "development",
+   "reference_domain": "rsvgruppen.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://rsvgruppen.no/",
+    "retrieved_at": "2026-09-13T08:24:53.144684Z",
+    "content_sha256": "4b0196105f3e63c89fb67ac0b5f6317d5e72197cdc78c4e21dccaa54093395b8",
+    "value": {
+     "final_url": "https://rsvgruppen.no/",
+     "registered_domain": "rsvgruppen.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://rsvgruppen.no/",
+       "requested_url": "https://rsvgruppen.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:53.144684Z",
+       "content_sha256": "4b0196105f3e63c89fb67ac0b5f6317d5e72197cdc78c4e21dccaa54093395b8",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_phone": "N AS | Litleåsveien 49 | 5132 Nyborg | Tel: 55 95 07 30 | post",
+        "legal_name_on_site": "tteservice Hyttevask, vedservice og kjøkkenpakker OM OSS Om Rsv Gruppen AS Ledig stilling KONTAKT OSS ONLINE BESTILLING BES"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "renholdvest.no",
+      "source": "registry_email_domain",
+      "relation": "candidate",
+      "outcome": "unreachable",
+      "url": "https://renholdvest.no/"
+     },
+     {
+      "domain": "rsv.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://rsv.no/"
+     },
+     {
+      "domain": "rsvgruppen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://rsvgruppen.no/",
+      "final_domain": "rsvgruppen.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "990167826",
+   "name": "STIFTELSEN NASJONAL JAZZSCENE",
+   "split": "development",
+   "reference_domain": "nasjonaljazzscene.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://nasjonaljazzscene.no/",
+    "retrieved_at": "2026-09-13T08:24:41.637973Z",
+    "content_sha256": "4195616791bb3a2f52e387d25cfc55d9778ec0688d121007b5a64affb4f1d717",
+    "value": {
+     "final_url": "https://nasjonaljazzscene.no/",
+     "registered_domain": "nasjonaljazzscene.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://nasjonaljazzscene.no/",
+       "requested_url": "https://nasjonaljazzscene.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.637973Z",
+       "content_sha256": "4195616791bb3a2f52e387d25cfc55d9778ec0688d121007b5a64affb4f1d717",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Hjem - Nasjonal Jazzscene Hopp til hovedinnhold Søk etter: Del med venner Twitter Ins"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "nasjonaljazzscene.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://nasjonaljazzscene.no/",
+      "final_domain": "nasjonaljazzscene.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "814152162",
+   "name": "THE WELL AS",
+   "split": "development",
+   "reference_domain": "thewell.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://thewell.no/",
+    "retrieved_at": "2026-09-13T08:24:41.027513Z",
+    "content_sha256": "af5b07c1893509fb75d04b1d29b849f1ce9eb1dcfc99482e460237247c778e97",
+    "value": {
+     "final_url": "https://thewell.no/",
+     "registered_domain": "thewell.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://thewell.no/",
+       "requested_url": "https://thewell.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.027513Z",
+       "content_sha256": "af5b07c1893509fb75d04b1d29b849f1ce9eb1dcfc99482e460237247c778e97",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "The Well - Nordens største spa og spahotell nær Oslo | The Well Spa"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "thewell.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://thewell.no/",
+      "final_domain": "thewell.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "979299753",
+   "name": "HJELPEMIDDELSPESIALISTEN AS",
+   "split": "development",
+   "reference_domain": "hm-spes.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://hm-spes.no/",
+    "retrieved_at": "2026-09-13T08:24:41.405366Z",
+    "content_sha256": "fd69ef03cd1192c6de4137b5940d0d521a09943d8ce0cd7d0c7caf94fca466b3",
+    "value": {
+     "final_url": "https://hm-spes.no/",
+     "registered_domain": "hm-spes.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://hm-spes.no/",
+       "requested_url": "https://hjelpemiddelspesialisten.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.405366Z",
+       "content_sha256": "fd69ef03cd1192c6de4137b5940d0d521a09943d8ce0cd7d0c7caf94fca466b3",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "trong class=\"\">e-post firmapost@hm-spes.no",
+        "registry_phone": "> Telefon +47 66 81 60 70",
+        "legal_name_on_site": "Hjelpemiddelspesialisten - Skreddersydde hjelpemidler Hopp til innhold Produkter Akt"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "hjelpemiddelspesialisten.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://hm-spes.no/",
+      "final_domain": "hm-spes.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "925703508",
+   "name": "PERVACO AS",
+   "split": "development",
+   "reference_domain": "pervaco.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.pervaco.no/",
+    "retrieved_at": "2026-09-13T08:24:41.650631Z",
+    "content_sha256": "de2ac2ac376ae68de9b8cf567678f1cb6d234fe99c8398970d0970c6141f96d9",
+    "value": {
+     "final_url": "https://www.pervaco.no/",
+     "registered_domain": "pervaco.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.pervaco.no/",
+       "requested_url": "https://pervaco.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.650631Z",
+       "content_sha256": "de2ac2ac376ae68de9b8cf567678f1cb6d234fe99c8398970d0970c6141f96d9",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "erre av områder? Sikre arbeidsplassen og forebygge ulykker? Pervaco har alt du trenger og mye mer – lagerført med omgående utse"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "pervaco.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.pervaco.no/",
+      "final_domain": "pervaco.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "982178568",
+   "name": "STEINKJER BY- OG BYGDESERVICE SA",
+   "split": "development",
+   "reference_domain": "steinkjerbygdeservice.no",
+   "reference_identity": "exact",
+   "requests": 10,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://bygdeservice.no/",
+    "retrieved_at": "2026-09-13T08:24:42.201578Z",
+    "content_sha256": "118a03ce75ee9cbfda0f7cccf72d3ffcb49deab8f803626760cc1c89d037c6a5",
+    "value": {
+     "final_url": "https://bygdeservice.no/",
+     "registered_domain": "bygdeservice.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "related",
+      "publishable": false,
+      "proofs": [],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://bygdeservice.no/",
+       "requested_url": "https://bygdeservice.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:42.201578Z",
+       "content_sha256": "118a03ce75ee9cbfda0f7cccf72d3ffcb49deab8f803626760cc1c89d037c6a5",
+       "proofs": [],
+       "claim_spans": {}
+      },
+      {
+       "url": "https://bygdeservice.no/kontakt-oss/",
+       "requested_url": "https://bygdeservice.no/kontakt-oss",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:44.715685Z",
+       "content_sha256": "f60d77bc0186ea1b1bfbaf0fa5441c846830ef9e422e82b873db4b3e3b0b78da",
+       "proofs": [],
+       "claim_spans": {}
+      },
+      {
+       "url": "https://bygdeservice.no/kontakt-oss/",
+       "requested_url": "https://bygdeservice.no/kontakt-oss/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:48.271060Z",
+       "content_sha256": "f60d77bc0186ea1b1bfbaf0fa5441c846830ef9e422e82b873db4b3e3b0b78da",
+       "proofs": [],
+       "claim_spans": {}
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "bygdeservice.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "related",
+      "url": "https://bygdeservice.no/",
+      "final_domain": "bygdeservice.no",
+      "proofs": []
+     },
+     {
+      "domain": "steinkjerbybygdeservice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjer-by-bygdeservice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjerbyogbygdeservice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjer-by-og-bygdeservice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjerbybygdeservice.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjer-by-bygdeservice.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjerbyogbygdeservice.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjer-by-og-bygdeservice.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "steinkjerby.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://www.facebook.com/steinkjerby/",
+      "final_domain": "facebook.com",
+      "proofs": []
+     },
+     {
+      "domain": "steinkjer-by.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "bybygdeservice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "971487046",
+   "name": "STIFTELSEN HAMMAREN",
+   "split": "development",
+   "reference_domain": "barnehage.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:24:56.708889Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "hammaren.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://hammaren.no/"
+     },
+     {
+      "domain": "stiftelsenhammaren.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen-hammaren.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "hammaren.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://hammaren.com/"
+     },
+     {
+      "domain": "stiftelsenhammaren.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen-hammaren.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "blocked_robots",
+      "url": "https://stiftelsen.no/"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "983815251",
+   "name": "TEKNOMED AS",
+   "split": "development",
+   "reference_domain": "teknomed.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://teknomed.no/",
+    "retrieved_at": "2026-09-13T08:24:40.479511Z",
+    "content_sha256": "da1fff88207edc4a0cefaac51678a0195f0801c63259e877cd7e5bc5c25e45c0",
+    "value": {
+     "final_url": "https://teknomed.no/",
+     "registered_domain": "teknomed.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://teknomed.no/",
+       "requested_url": "https://teknomed.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:40.479511Z",
+       "content_sha256": "da1fff88207edc4a0cefaac51678a0195f0801c63259e877cd7e5bc5c25e45c0",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "f=\"tel:\"> 33 45 45 33 e-post: info@teknomed.no postadre",
+        "registry_phone": "r\">Se kart Telefon: 33 45 45 33 E-post: in",
+        "legal_name_on_site": "Forside - Teknomed Hvordan få hjelp Generell informasjon Hvordan få hjelp Lege"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "teknomed.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://teknomed.no/",
+      "final_domain": "teknomed.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "944379274",
+   "name": "TRANSPORTSENTRALEN VESTFOLD AS",
+   "split": "development",
+   "reference_domain": "ts-vestfold.no",
+   "reference_identity": "exact",
+   "requests": 14,
+   "record": {
+    "field": "website",
+    "status": "failed",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:18.079133Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "company allowance exhausted (14)",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "ts-sandefjord.no",
+      "source": "registry_email_domain",
+      "relation": "candidate",
+      "outcome": "unreachable",
+      "url": "https://ts-sandefjord.no/"
+     },
+     {
+      "domain": "transportsentralenvestfold.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://transportsentralenvestfold.no/"
+     },
+     {
+      "domain": "transportsentralen-vestfold.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "transportsentralenvestfold.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "transportsentralen-vestfold.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "vestfold.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "related",
+      "url": "https://www.vestfoldfylke.no/",
+      "final_domain": "vestfoldfylke.no",
+      "proofs": []
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "980545768",
+   "name": "NARVIK GOLFKLUBB",
+   "split": "development",
+   "reference_domain": "narvikgolf.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://narvikgolf.no/",
+    "retrieved_at": "2026-09-13T08:24:41.947738Z",
+    "content_sha256": "00798de89293e17c09890012a7d6e9a77275c8302f5f5580f7f6250796251e2d",
+    "value": {
+     "final_url": "https://narvikgolf.no/",
+     "registered_domain": "narvikgolf.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://narvikgolf.no/",
+       "requested_url": "https://narvikgolf.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:41.947738Z",
+       "content_sha256": "00798de89293e17c09890012a7d6e9a77275c8302f5f5580f7f6250796251e2d",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email"
+       ],
+       "claim_spans": {
+        "registry_email": "8;max-width:380px;margin:0\">sandmoveien 1, 8523 skjomen post@narvikgolf.no · 928 55 406",
+        "legal_name_on_site": "Narvik Golfklubb Narvik Golfklubb Anno 1992 · Skjomen Forsiden Banen Turneri"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "narvikgolf.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://narvikgolf.no/",
+      "final_domain": "narvikgolf.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "970601902",
+   "name": "NORDIC SUPPLY PARTNER AS",
+   "split": "development",
+   "reference_domain": "nsp.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.nsp.no/",
+    "retrieved_at": "2026-09-13T08:24:43.366451Z",
+    "content_sha256": "c9a506bafd94bf74814013c3f0092bc7baea659ff8423595e31dfab46ba15047",
+    "value": {
+     "final_url": "https://www.nsp.no/",
+     "registered_domain": "nsp.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.nsp.no/",
+       "requested_url": "https://nsp.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:43.366451Z",
+       "content_sha256": "c9a506bafd94bf74814013c3f0092bc7baea659ff8423595e31dfab46ba15047",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "yright-credits\">© 2026 | Nordic Supply Partner AS | Org.nr. 970 601 902 | Tlf: +47 417 31 000 | E-post: post@nsp.no",
+        "registry_phone": "+47 417 31 000",
+        "legal_name_on_site": "Hjem - Nordic Supply Partner AS Fri frakt over 1500,- i Oslo og Bergen – fri frakt over"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "nsp.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.nsp.no/",
+      "final_domain": "nsp.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "997439376",
+   "name": "L.A FURELI MASKIN AS",
+   "split": "development",
+   "reference_domain": "furelimaskin.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://furelimaskin.no/",
+    "retrieved_at": "2026-09-13T08:24:43.954225Z",
+    "content_sha256": "981057bdd96f96afbfbe01164badf4559645e69018a14d69082ec8d1a326514f",
+    "value": {
+     "final_url": "https://furelimaskin.no/",
+     "registered_domain": "furelimaskin.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://furelimaskin.no/",
+       "requested_url": "https://furelimaskin.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:43.954225Z",
+       "content_sha256": "981057bdd96f96afbfbe01164badf4559645e69018a14d69082ec8d1a326514f",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "fon: +47 916 01 512 e-post: la@furelimaskin.no adresse: kråkevika 1, 6996 vadheim",
+        "registry_phone": ".svg\"> TELEFON: +47 916 01 512 E-POST: la@furelimaskin.no",
+        "legal_name_on_site": "Fureli Maskin – Vi gjer draumar til verkelegheit Fureli Maskin Hei"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "furelimaskin.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://furelimaskin.no/",
+      "final_domain": "furelimaskin.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "999614973",
+   "name": "STUDIX AS",
+   "split": "development",
+   "reference_domain": "studix.com",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://studix.no/",
+    "retrieved_at": "2026-09-13T08:24:42.641446Z",
+    "content_sha256": "b376733d873d8359dc5576a5748720952de7fba0c188251848a05f7034e8d20a",
+    "value": {
+     "final_url": "https://studix.no/",
+     "registered_domain": "studix.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://studix.no/",
+       "requested_url": "https://studix.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:42.641446Z",
+       "content_sha256": "b376733d873d8359dc5576a5748720952de7fba0c188251848a05f7034e8d20a",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number"
+       ],
+       "claim_spans": {
+        "organisation_number": "Org nr 999 614 973",
+        "legal_name_on_site": "Studix STUDIX Home Partners Chatbot Text Analysis Image Analysis L"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "studix.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://studix.no/",
+      "final_domain": "studix.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "990090793",
+   "name": "CHRISTIANIA TAXI AS",
+   "split": "development",
+   "reference_domain": "02365.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://02365.no/",
+    "retrieved_at": "2026-09-13T08:24:44.182875Z",
+    "content_sha256": "4855f05e2e1e186f5fbe3cd72268b687aa90f9293850ad26a5a192f7dbc13b7d",
+    "value": {
+     "final_url": "https://02365.no/",
+     "registered_domain": "02365.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://02365.no/",
+       "requested_url": "https://02365.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:44.182875Z",
+       "content_sha256": "4855f05e2e1e186f5fbe3cd72268b687aa90f9293850ad26a5a192f7dbc13b7d",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "CHRISTIANIA TAXI | Hjem Om oss Bedrifter Bestilling Jobb som sjåfør Pri"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "02365.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://02365.no/",
+      "final_domain": "02365.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "991068287",
+   "name": "GULLSMED CAMILLA AS",
+   "split": "development",
+   "reference_domain": "gullsmedcamilla.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.gullsmedcamilla.no/",
+    "retrieved_at": "2026-09-13T08:24:44.582753Z",
+    "content_sha256": "2e8609f038f73a1f4e0b2fc49c9f6fd1dcfebe3161b5f92ee2b71617e4ae10db",
+    "value": {
+     "final_url": "https://www.gullsmedcamilla.no/",
+     "registered_domain": "gullsmedcamilla.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.gullsmedcamilla.no/",
+       "requested_url": "https://gullsmedcamilla.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:44.582753Z",
+       "content_sha256": "2e8609f038f73a1f4e0b2fc49c9f6fd1dcfebe3161b5f92ee2b71617e4ae10db",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "gullsmedcamilla – Gullsmed Camilla – håndlagde smykker Nettbutikk Øreringer Anheng Arm"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "gullsmedcamilla.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.gullsmedcamilla.no/",
+      "final_domain": "gullsmedcamilla.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "912048535",
+   "name": "SAILOR MUSIC AS",
+   "split": "development",
+   "reference_domain": "sailormusic.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.sailormusic.no/",
+    "retrieved_at": "2026-09-13T08:24:43.554886Z",
+    "content_sha256": "6212b93d60584f8c8a583703dc72e1d9ca9582dcd2645b0045ca42a02dfb5200",
+    "value": {
+     "final_url": "https://www.sailormusic.no/",
+     "registered_domain": "sailormusic.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.sailormusic.no/",
+       "requested_url": "https://sailormusic.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:43.554886Z",
+       "content_sha256": "6212b93d60584f8c8a583703dc72e1d9ca9582dcd2645b0045ca42a02dfb5200",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Sailor Music HOME LABEL CONTACT Menu HOME LABEL CONTACT We are sai"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "sailormusic.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.sailormusic.no/",
+      "final_domain": "sailormusic.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "913229169",
+   "name": "TEKNISK SENTER AS",
+   "split": "development",
+   "reference_domain": "teknisksenter.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://teknisksenter.no/",
+    "retrieved_at": "2026-09-13T08:24:43.240276Z",
+    "content_sha256": "ffeb78226eb5d56f618fcd16710769fd71ecbba307e2649376b56a9b3e2ab962",
+    "value": {
+     "final_url": "https://teknisksenter.no/",
+     "registered_domain": "teknisksenter.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://teknisksenter.no/",
+       "requested_url": "https://teknisksenter.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:43.240276Z",
+       "content_sha256": "ffeb78226eb5d56f618fcd16710769fd71ecbba307e2649376b56a9b3e2ab962",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number"
+       ],
+       "claim_spans": {
+        "organisation_number": "f=\"https://www.norsk-tipping.no/grasrotandelen/din-mottaker/913229169\">",
+        "legal_name_on_site": "Teknisk Senter | Lek, Læring & Likeverd Teknisk Senter Lek, Læring"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "teknisksenter.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://teknisksenter.no/",
+      "final_domain": "teknisksenter.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "993775770",
+   "name": "REVISJONSSENTERET AS",
+   "split": "development",
+   "reference_domain": "revisjonssenteret.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.revisjonssenteret.no/",
+    "retrieved_at": "2026-09-13T08:24:44.497408Z",
+    "content_sha256": "7d80e91d20cffc7bc5c8ac8e332dff4d6749a8b62b9ef27c47c7fd43beb96868",
+    "value": {
+     "final_url": "https://www.revisjonssenteret.no/",
+     "registered_domain": "revisjonssenteret.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.revisjonssenteret.no/",
+       "requested_url": "https://revisjonssenteret.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:44.497408Z",
+       "content_sha256": "7d80e91d20cffc7bc5c8ac8e332dff4d6749a8b62b9ef27c47c7fd43beb96868",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "Adresse: Luhrtoppen 2, 1470 Lørenskog Org. nr.: NO 993 775 770 MVA Bankkonto: NO21 8101 1888 429",
+        "registry_phone": "jon Telefon: 67 92 30 50 E-post: post@revis.no Adresse: Luhrtoppen 2, 1470 L",
+        "legal_name_on_site": "Revisjonssenteret AS – Revisjon og bedriftsrådgivning Skip to main content Cl"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "revisjonssenteret.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.revisjonssenteret.no/",
+      "final_domain": "revisjonssenteret.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "912180328",
+   "name": "SHOC LIFESTYLE AS",
+   "split": "development",
+   "reference_domain": "shoclifestyle.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://shoclifestyle.no/home",
+    "retrieved_at": "2026-09-13T08:24:44.020471Z",
+    "content_sha256": "78e44355ae89715d695ecf72083a3ce2c5dff2ec34f7470c53e1ab6be4ef2b17",
+    "value": {
+     "final_url": "https://shoclifestyle.no/home",
+     "registered_domain": "shoclifestyle.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://shoclifestyle.no/home",
+       "requested_url": "https://shoclifestyle.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:44.020471Z",
+       "content_sha256": "78e44355ae89715d695ecf72083a3ce2c5dff2ec34f7470c53e1ab6be4ef2b17",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "-c3811868054=\"\" class=\"d-flex align-items-center\"> ORG. NR: 912180328",
+        "registry_phone": "68054=\"\" class=\"underline-on-hover color-inherit\" href=\"tel:+4748093530\">+4748093530",
+        "legal_name_on_site": "Forside | SHOC Lifestyle Home eCommerce BRILLER SOLBRILLER BRILLETILBEHØR SKJERF VES"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "shoclifestyle.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://shoclifestyle.no/home",
+      "final_domain": "shoclifestyle.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "921861575",
+   "name": "THE MICE GURU AS",
+   "split": "development",
+   "reference_domain": "themiceguru.com",
+   "reference_identity": "exact",
+   "requests": 10,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://themiceguru.com/",
+    "retrieved_at": "2026-09-13T08:24:55.883572Z",
+    "content_sha256": "fb5ea39a22e367110d5adb0517dcda4734882c2ed2519b2b10899cfb801295c1",
+    "value": {
+     "final_url": "https://themiceguru.com/",
+     "registered_domain": "themiceguru.com",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://themiceguru.com/",
+       "requested_url": "https://themiceguru.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:55.883572Z",
+       "content_sha256": "fb5ea39a22e367110d5adb0517dcda4734882c2ed2519b2b10899cfb801295c1",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "The MICE Guru Creative Conferences Immersive Incentives Brand Activa"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "miceguru.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "mice-guru.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "themiceguru.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "the-mice-guru.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "miceguru.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://miceguru.com/"
+     },
+     {
+      "domain": "mice-guru.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "themiceguru.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "weak",
+      "url": "https://themiceguru.com/",
+      "final_domain": "themiceguru.com",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "the-mice-guru.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "guru.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unreachable",
+      "url": "https://guru.no/"
+     },
+     {
+      "domain": "mice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://www.askmedia.no/",
+      "final_domain": "askmedia.no",
+      "proofs": []
+     },
+     {
+      "domain": "themice.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "913979362",
+   "name": "KILSUND TRAVEL AS",
+   "split": "development",
+   "reference_domain": "kilsundtravel.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.kilsundtravel.no/",
+    "retrieved_at": "2026-09-13T08:24:44.214720Z",
+    "content_sha256": "92c4c945546f3e87dec00a7e80c8d58ad0adf019f41b94fcf0a51801045eebc6",
+    "value": {
+     "final_url": "https://www.kilsundtravel.no/",
+     "registered_domain": "kilsundtravel.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.kilsundtravel.no/",
+       "requested_url": "https://kilsundtravel.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:44.214720Z",
+       "content_sha256": "92c4c945546f3e87dec00a7e80c8d58ad0adf019f41b94fcf0a51801045eebc6",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Kilsund Kilsund Travel AS Forside Destinasjoner Maldivene Mauritius"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "kilsundtravel.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.kilsundtravel.no/",
+      "final_domain": "kilsundtravel.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "917255342",
+   "name": "TRØNDELAG BETONG AS",
+   "split": "development",
+   "reference_domain": "trondelag-betong.no",
+   "reference_identity": "exact",
+   "requests": 12,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://trondelag-betong.no/",
+    "retrieved_at": "2026-09-13T08:24:54.003556Z",
+    "content_sha256": "46128961493fabbc69d8bc2db1196cb670c8334ddbe8adf1f42cffda672eaedb",
+    "value": {
+     "final_url": "https://trondelag-betong.no/",
+     "registered_domain": "trondelag-betong.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://trondelag-betong.no/",
+       "requested_url": "https://trondelag-betong.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:54.003556Z",
+       "content_sha256": "46128961493fabbc69d8bc2db1196cb670c8334ddbe8adf1f42cffda672eaedb",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Trøndelag Betong AS - Betong- og forskalingsarbeid i Trøndelag Hjem T"
+       }
+      },
+      {
+       "url": "https://trondelag-betong.no/kontakt/",
+       "requested_url": "https://trondelag-betong.no/kontakt/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:55.377998Z",
+       "content_sha256": "c9ef4edc37fcbf8836415ed2a970fe2b462693984315b0bbd4c41f5bc24fe0eb",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Kontakt - Trøndelag Betong Hjem Tjenester Referanser Aktuelt Om oss HMSK Kontak"
+       }
+      },
+      {
+       "url": "https://trondelag-betong.no/om-oss/",
+       "requested_url": "https://trondelag-betong.no/om-oss/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:56.433677Z",
+       "content_sha256": "ad4f45d8ca350ee845ac1a29e1ab6b2159f97b4436f45a37e92dd39a03314663",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Om oss - Trøndelag Betong Hjem Tjenester Referanser Aktuelt Om oss HMSK Kontak"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "trondelagbetong.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://trondelagbetong.no/"
+     },
+     {
+      "domain": "trondelag-betong.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "weak",
+      "url": "https://trondelag-betong.no/",
+      "final_domain": "trondelag-betong.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "trondelagbetong.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "trondelag-betong.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "betong.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "weak",
+      "url": "https://www.betong.no/",
+      "final_domain": "betong.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "trondelag.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "913170296",
+   "name": "WORK SYSTEM NORWAY AS",
+   "split": "development",
+   "reference_domain": "worksystem.no",
+   "reference_identity": "related_or_uncertain",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.worksystem.no/",
+    "retrieved_at": "2026-09-13T08:24:46.174334Z",
+    "content_sha256": "4558b1d4c5666a6332898b6da856a3ea37ddfc32f68773392a43de031a2ef9b7",
+    "value": {
+     "final_url": "https://www.worksystem.no/",
+     "registered_domain": "worksystem.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.worksystem.no/",
+       "requested_url": "https://worksystem.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:46.174334Z",
+       "content_sha256": "4558b1d4c5666a6332898b6da856a3ea37ddfc32f68773392a43de031a2ef9b7",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "nligst ta kontakt p\\u00e5 telefon: +47 22 42 78 39, e-post: info@worksystem.no eller via chat.\",\"to product\":\"til produkt\",\"square_meters_",
+        "registry_phone": "",
+        "legal_name_on_site": "Innredning til varebil | Work System Kontakt Finn et anlegg nær deg Gå til kartet Montering Bæru"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "worksystem.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.worksystem.no/",
+      "final_domain": "worksystem.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "971493399",
+   "name": "DIGNI",
+   "split": "development",
+   "reference_domain": "digni.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://digni.no/en/welcome/",
+    "retrieved_at": "2026-09-13T08:24:46.105345Z",
+    "content_sha256": "dd53177e4fe5035161ce86736428fa5355fd788154ca519d8aab63120b66e56f",
+    "value": {
+     "final_url": "https://digni.no/en/welcome/",
+     "registered_domain": "digni.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://digni.no/en/welcome/",
+       "requested_url": "https://digni.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:46.105345Z",
+       "content_sha256": "dd53177e4fe5035161ce86736428fa5355fd788154ca519d8aab63120b66e56f",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "50\">+47 24 11 11 50 post@digni.no",
+        "registry_phone": "ns gate 11, 0253 Oslo +47 24 11 11 50",
+        "legal_name_on_site": "Welcome - Digni About Us About Us What we do Employees Projects Board membe"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "digni.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://digni.no/en/welcome/",
+      "final_domain": "digni.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "922532184",
+   "name": "HAIKJEFTEN AS",
+   "split": "development",
+   "reference_domain": "haikjeften.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.haikjeften.no/",
+    "retrieved_at": "2026-09-13T08:24:46.977291Z",
+    "content_sha256": "69b38702f0a6abb287855d2200c8328a6f3b511032b620722e06bf3548c0c835",
+    "value": {
+     "final_url": "https://www.haikjeften.no/",
+     "registered_domain": "haikjeften.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.haikjeften.no/",
+       "requested_url": "https://haikjeften.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:46.977291Z",
+       "content_sha256": "69b38702f0a6abb287855d2200c8328a6f3b511032b620722e06bf3548c0c835",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Haikjeften 2026 KJØP BILLETTER 0 Hopp til innhold INFO Historien Prakt"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "haikjeften.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.haikjeften.no/",
+      "final_domain": "haikjeften.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "932098342",
+   "name": "BRANNKONTROLL NORGE AS",
+   "split": "development",
+   "reference_domain": "brannkontrollnorge.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://brannkontrollnorge.no/",
+    "retrieved_at": "2026-09-13T08:24:50.987715Z",
+    "content_sha256": "11347601d76971ae5f28f95eff41b3335be44f6299efd554bc2e604e46127224",
+    "value": {
+     "final_url": "https://brannkontrollnorge.no/",
+     "registered_domain": "brannkontrollnorge.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://brannkontrollnorge.no/",
+       "requested_url": "https://brannkontrollnorge.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:50.987715Z",
+       "content_sha256": "11347601d76971ae5f28f95eff41b3335be44f6299efd554bc2e604e46127224",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "span style=\"color: #ffffff;\"> Org nr: 932 098 342 MVA E-pos",
+        "registry_email": ">e-post: post@brannkontrollnorge.no telefon:",
+        "registry_phone": "Telefon: 902 69 951",
+        "legal_name_on_site": "Brannkontroll Norge Hopp til innhold Tjenester Borettslag og sameier Bedr"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "brannkontrollnorge.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://brannkontrollnorge.no/",
+      "final_domain": "brannkontrollnorge.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "943672520",
+   "name": "PEAB BYGG AS",
+   "split": "development",
+   "reference_domain": "peab.no",
+   "reference_identity": "exact",
+   "requests": 9,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://peab.no/",
+    "retrieved_at": "2026-09-13T08:24:47.296879Z",
+    "content_sha256": "6a53783dff4f057d508c00f1ebf6233d89f766e3a1a2f6ded0ef7034e2c80a55",
+    "value": {
+     "final_url": "https://peab.no/",
+     "registered_domain": "peab.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "related",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://peab.no/",
+       "requested_url": "https://peab.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:47.296879Z",
+       "content_sha256": "6a53783dff4f057d508c00f1ebf6233d89f766e3a1a2f6ded0ef7034e2c80a55",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Peab - Nordens samfunnsbygger - Peab Bygg Kontakt Peab Bygg Pros"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "peab.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "related",
+      "url": "https://peab.no/",
+      "final_domain": "peab.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     },
+     {
+      "domain": "bjorn.no",
+      "source": "registry_email_domain",
+      "relation": "candidate",
+      "outcome": "unreachable",
+      "url": "https://bjorn.no/"
+     },
+     {
+      "domain": "peabbygg.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "peab-bygg.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "peabbygg.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "peab-bygg.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "bygg.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "related",
+      "url": "https://www.bygg.no/",
+      "final_domain": "bygg.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "996547639",
+   "name": "LY FORSIKRING ASA",
+   "split": "development",
+   "reference_domain": "lyforsikring.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://lyforsikring.no/",
+    "retrieved_at": "2026-09-13T08:24:47.906954Z",
+    "content_sha256": "e6a2538682550e07d0a5c28d6c13f6d97baf16200f789ff435a522a929ed7cf2",
+    "value": {
+     "final_url": "https://lyforsikring.no/",
+     "registered_domain": "lyforsikring.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://lyforsikring.no/",
+       "requested_url": "https://lyforsikring.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:47.906954Z",
+       "content_sha256": "e6a2538682550e07d0a5c28d6c13f6d97baf16200f789ff435a522a929ed7cf2",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "10 05 00 eller send en e-post til post@lyforsikring.no",
+        "registry_phone": "akk med en av våre hyggelige rådgivere på tlf. 61 10 05 00 eller send en e-post til",
+        "legal_name_on_site": "Ly Forsikring - Forsikring for bedrifter Skip to content Toggle Navigatio"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "lyforsikring.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://lyforsikring.no/",
+      "final_domain": "lyforsikring.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "983717098",
+   "name": "LEIRVIK AS",
+   "split": "development",
+   "reference_domain": "leirvik.com",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://leirvik.com/",
+    "retrieved_at": "2026-09-13T08:24:47.943710Z",
+    "content_sha256": "099d7e87b2d1ab2cfbfecd7312c66068842591e0f07593ed1720f75104d2c24d",
+    "value": {
+     "final_url": "https://leirvik.com/",
+     "registered_domain": "leirvik.com",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://leirvik.com/",
+       "requested_url": "https://leirvik.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:47.943710Z",
+       "content_sha256": "099d7e87b2d1ab2cfbfecd7312c66068842591e0f07593ed1720f75104d2c24d",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_phone": "href=\"mailto:sales@leirvik.com\">sales@leirvik.com +47 53 49 62 00",
+        "legal_name_on_site": "Leirvik AS | The leading supplier of Living Quarters modules for of"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "leirvik.com",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://leirvik.com/",
+      "final_domain": "leirvik.com",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "983793347",
+   "name": "ODFJELL WELL SERVICES NORWAY AS",
+   "split": "development",
+   "reference_domain": "odfjelltechnology.com",
+   "reference_identity": "review",
+   "requests": 9,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://www.odfjelltechnology.com/what-we-do/well-services/",
+    "retrieved_at": "2026-09-13T08:24:58.235065Z",
+    "content_sha256": "28760ab382819aa79c42cc705b7f3506fc7a7ee6e8bde2cdff229d19c28362b5",
+    "value": {
+     "final_url": "https://www.odfjelltechnology.com/what-we-do/well-services/",
+     "registered_domain": "odfjelltechnology.com",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.odfjelltechnology.com/what-we-do/well-services/",
+       "requested_url": "https://odfjellwellservices.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:58.235065Z",
+       "content_sha256": "28760ab382819aa79c42cc705b7f3506fc7a7ee6e8bde2cdff229d19c28362b5",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Well Services - Odfjell Technology Well Services Well Services Tubular ru"
+       }
+      },
+      {
+       "url": "https://www.odfjelltechnology.com/contact/",
+       "requested_url": "https://www.odfjelltechnology.com/contact/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:25:01.061076Z",
+       "content_sha256": "e8bf85acdc95e7c9da36555c7ccb9573e08a77a1682ed175c896a6b389a4b18c",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "management Engineering solutions HVAC-R departments Marine services Subsea services Operations Platform operations MOU manageme"
+       }
+      },
+      {
+       "url": "https://www.odfjelltechnology.com/investor/ir-contacts/",
+       "requested_url": "https://www.odfjelltechnology.com/investor/ir-contacts/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:25:02.466329Z",
+       "content_sha256": "7b76e888319d96fbd306675a473adf9f2a874fdd813241e717a55b94c505696f",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "management Engineering solutions HVAC-R departments Marine services Subsea services Operations Platform operations MOU manageme"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "ows.no",
+      "source": "registry_email_domain",
+      "relation": "candidate",
+      "outcome": "unreachable",
+      "url": "https://ows.no/"
+     },
+     {
+      "domain": "odfjellwellservices.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://odfjellwellservices.no/"
+     },
+     {
+      "domain": "odfjell-well-services.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjellwellservicesnorway.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjell-well-services-norway.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjellwellservices.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "weak",
+      "url": "https://www.odfjelltechnology.com/what-we-do/well-services/",
+      "final_domain": "odfjelltechnology.com",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "odfjell-well-services.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjellwellservicesnorway.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjell-well-services-norway.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjellwell.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "odfjell-well.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "wellservices.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "991853995",
+   "name": "BIEN SPAREBANK ASA",
+   "split": "development",
+   "reference_domain": "bien.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.bien.no/",
+    "retrieved_at": "2026-09-13T08:24:49.819970Z",
+    "content_sha256": "2849d8e38bbcdb92529eaaa92ab90b455bb61a0a157224f68c9002d701fb06c8",
+    "value": {
+     "final_url": "https://www.bien.no/",
+     "registered_domain": "bien.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.bien.no/",
+       "requested_url": "https://bien.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:49.819970Z",
+       "content_sha256": "2849d8e38bbcdb92529eaaa92ab90b455bb61a0a157224f68c9002d701fb06c8",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "Org.nr: 991853995",
+        "registry_email": "ommon link button--link button--size-standard\" href=\"mailto:post@bien.no\" data-track-id=\"sitecore-footer\" data-track-linkname=\"postb",
+        "registry_phone": "n-common link button--link button--size-standard\" href=\"tel:91502436\" data-track-id=\"sitecore-footer\" data-track-linkname=\"91-50",
+        "legal_name_on_site": "Bien Sparebank Hopp til innholdet Søk Bytt til bedrift Logg inn Privat Bed"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "bien.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.bien.no/",
+      "final_domain": "bien.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "910608193",
+   "name": "KAEFER ENERGY AS",
+   "split": "development",
+   "reference_domain": "kaefer.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://kaefer.no/",
+    "retrieved_at": "2026-09-13T08:24:48.895321Z",
+    "content_sha256": "e4dce832e275ce224cbc091db8e3949960eeda669d0325e940536d1657b436a6",
+    "value": {
+     "final_url": "https://kaefer.no/",
+     "registered_domain": "kaefer.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://kaefer.no/",
+       "requested_url": "https://kaefer.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:48.895321Z",
+       "content_sha256": "e4dce832e275ce224cbc091db8e3949960eeda669d0325e940536d1657b436a6",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Welcome to KAEFER Norway Welcome to KAEFER Norway KAEFER Energy er et ledende"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "kaefer.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://kaefer.no/",
+      "final_domain": "kaefer.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "869938432",
+   "name": "STIFTELSEN SILDAJAZZEN",
+   "split": "development",
+   "reference_domain": "sildajazz.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:24:51.946723Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "sildajazz.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "unverified",
+      "url": "https://sildajazz.no/",
+      "final_domain": "sildajazz.no",
+      "proofs": []
+     },
+     {
+      "domain": "sildajazzen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsensildajazzen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen-sildajazzen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "sildajazzen.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsensildajazzen.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen-sildajazzen.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "blocked_robots",
+      "url": "https://stiftelsen.no/"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "971339071",
+   "name": "SAMEIET ST OLAV",
+   "split": "development",
+   "reference_domain": "st-olav.no",
+   "reference_identity": "exact",
+   "requests": 11,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://st-olav.no/",
+    "retrieved_at": "2026-09-13T08:24:58.206530Z",
+    "content_sha256": "5af34219f48fc77e50d3ec2b696f928e4e996d9ae97e5822395e681ded523092",
+    "value": {
+     "final_url": "https://st-olav.no/",
+     "registered_domain": "st-olav.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://st-olav.no/",
+       "requested_url": "https://st-olav.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:58.206530Z",
+       "content_sha256": "5af34219f48fc77e50d3ec2b696f928e4e996d9ae97e5822395e681ded523092",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number"
+       ],
+       "claim_spans": {
+        "organisation_number": "ass=\"wp-block-paragraph\">Faktura sendes EHF til org.nr.: 971339071 eller epost til faktura@bate.no",
+        "legal_name_on_site": "Sameiet St Olav - Sameiet St Olav Hopp til innholdet Styre og valgkomité Re"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "bate.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "related",
+      "url": "https://bate.no/",
+      "final_domain": "bate.no",
+      "proofs": []
+     },
+     {
+      "domain": "stolav.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "related",
+      "url": "https://www.stolav.no/",
+      "final_domain": "stolav.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "st-olav.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://st-olav.no/",
+      "final_domain": "st-olav.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "979214502",
+   "name": "STIFTELSEN HAVNAHUSET BU- OG SERVICESENTER",
+   "split": "development",
+   "reference_domain": "vestbo.no",
+   "reference_identity": "related_or_uncertain",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://vestbo.no/",
+    "retrieved_at": "2026-09-13T08:24:50.042043Z",
+    "content_sha256": "5ebf53bda21c30e2112087587841931c65230516fe693b2999bc917fe4b49573",
+    "value": {
+     "final_url": "https://vestbo.no/",
+     "registered_domain": "vestbo.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "related",
+      "publishable": false,
+      "proofs": [
+       "registry_email"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://vestbo.no/",
+       "requested_url": "https://vestbo.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:50.042043Z",
+       "content_sha256": "5ebf53bda21c30e2112087587841931c65230516fe693b2999bc917fe4b49573",
+       "proofs": [
+        "registry_email"
+       ],
+       "claim_spans": {
+        "registry_email": "\",\"sameas\":[\"https://www.facebook.com/vestbo.no/\"],\"email\":\"post@vestbo.no\",\"address\":{\"@type\":\"postaladdress\",\"streetaddress\":\"strand"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "vestbo.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "related",
+      "url": "https://vestbo.no/",
+      "final_domain": "vestbo.no",
+      "proofs": [
+       "registry_email"
+      ]
+     },
+     {
+      "domain": "havnahusetbuservicesenter.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "havnahuset-bu-servicesenter.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsenhavnahusetbuogservicesenter.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen-havnahuset-bu-og-servicesenter.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "havnahusetbuservicesenter.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "havnahuset-bu-servicesenter.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsenhavnahusetbuogservicesenter.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "stiftelsen-havnahuset-bu-og-servicesenter.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "havnahusetbu.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "havnahuset-bu.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "buservicesenter.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "914022940",
+   "name": "H. LUNDBECK AS",
+   "split": "development",
+   "reference_domain": "lundbeck.com",
+   "reference_identity": "exact",
+   "requests": 8,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.lundbeck.com/global",
+    "retrieved_at": "2026-09-13T08:24:52.438614Z",
+    "content_sha256": "ca7d4cdb279b4393003fb003213a1bd2ea1743a9040e10d95eca664e4857dabb",
+    "value": {
+     "final_url": "https://www.lundbeck.com/global",
+     "registered_domain": "lundbeck.com",
+     "candidate_source": "registry_email_domain",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.lundbeck.com/global",
+       "requested_url": "https://lundbeck.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:52.438614Z",
+       "content_sha256": "ca7d4cdb279b4393003fb003213a1bd2ea1743a9040e10d95eca664e4857dabb",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "lopment Our value chain Products Pipeline Medical education Lundbeck Institute Clinical trials Clinical trial diversity Study sy"
+       }
+      },
+      {
+       "url": "https://www.lundbeck.com/global/contact",
+       "requested_url": "https://www.lundbeck.com/global/contact",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:55.777407Z",
+       "content_sha256": "2c508adb154ff8f0f5c3144acf56d0a3e9a552b29c3b0aa13040373995a9c04e",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "w.lundbeck.com/no norway@lundbeck.com",
+        "registry_phone": "Norway +47 91 30 08 00",
+        "legal_name_on_site": "lopment Our value chain Products Pipeline Medical education Lundbeck Institute Clinical trials Clinical trial diversity Study sy"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "lundbeck.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "unreachable",
+      "url": "https://lundbeck.no/"
+     },
+     {
+      "domain": "lundbeck.com",
+      "source": "registry_email_domain",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.lundbeck.com/global",
+      "final_domain": "lundbeck.com",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "985855137",
+   "name": "JUBEL EVENT AS",
+   "split": "development",
+   "reference_domain": null,
+   "reference_identity": null,
+   "requests": 8,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://www.jubel.no/",
+    "retrieved_at": "2026-09-13T08:25:10.728956Z",
+    "content_sha256": "62a282df5689c2523ce2fe6d7bd0dc62a1cded2a5834005a8d5b40fd4757d077",
+    "value": {
+     "final_url": "https://www.jubel.no/",
+     "registered_domain": "jubel.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.jubel.no/",
+       "requested_url": "https://jubel.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:25:10.728956Z",
+       "content_sha256": "62a282df5689c2523ce2fe6d7bd0dc62a1cded2a5834005a8d5b40fd4757d077",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Jubel AS Insight into Asia's Tech Plain Text Kontakt oss Galleri"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "jubelevent.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "jubel-event.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "jubelevent.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "jubel-event.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "event.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://event.no/",
+      "final_domain": "event.no",
+      "proofs": []
+     },
+     {
+      "domain": "jubel.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "weak",
+      "url": "https://www.jubel.no/",
+      "final_domain": "jubel.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "885681182",
+   "name": "SLIPETEKNIKK AS",
+   "split": "development",
+   "reference_domain": "slipeteknikk.no",
+   "reference_identity": "related_or_uncertain",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://slipeteknikk.no/",
+    "retrieved_at": "2026-09-13T08:24:52.334526Z",
+    "content_sha256": "11b36d9d96e0ce97d335ab9f621bfd241736bf4934f0104469d02661729bdc25",
+    "value": {
+     "final_url": "https://slipeteknikk.no/",
+     "registered_domain": "slipeteknikk.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://slipeteknikk.no/",
+       "requested_url": "https://slipeteknikk.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:52.334526Z",
+       "content_sha256": "11b36d9d96e0ce97d335ab9f621bfd241736bf4934f0104469d02661729bdc25",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Slipeteknikk AS - Mekanisk verksted i Bergen En feil har oppstått. Last"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "slipeteknikk.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "weak",
+      "url": "https://slipeteknikk.no/",
+      "final_domain": "slipeteknikk.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "slipeteknikk.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "976969324",
+   "name": "AV & PÅ ELEKTRO AS",
+   "split": "development",
+   "reference_domain": "avogpaa.no",
+   "reference_identity": "exact",
+   "requests": 6,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.avogpaa.no/",
+    "retrieved_at": "2026-09-13T08:24:54.638347Z",
+    "content_sha256": "b94d0bba1b375968aa420b0bd9ed3951020125cd2188a0254e4c59aa2bcfe6c3",
+    "value": {
+     "final_url": "https://www.avogpaa.no/",
+     "registered_domain": "avogpaa.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.avogpaa.no/",
+       "requested_url": "https://avogpaa.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:54.638347Z",
+       "content_sha256": "b94d0bba1b375968aa420b0bd9ed3951020125cd2188a0254e4c59aa2bcfe6c3",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "lbord: 950 79 559 send e-p",
+        "registry_phone": "Sentralbord: 9",
+        "legal_name_on_site": "Av & på elektro avogpå_logo Tjenester Inspirasjon Kjøkkenet Barnerommet Gan"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "avogpaa.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.avogpaa.no/",
+      "final_domain": "avogpaa.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "990002398",
+   "name": "FAGERAAS SKOGSDRIFT DA",
+   "split": "development",
+   "reference_domain": "fageraasskogsdrift.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://fageraasskogsdrift.no/",
+    "retrieved_at": "2026-09-13T08:24:53.779730Z",
+    "content_sha256": "24f00a051d0965d1aa4d6ceac2b96daabc68a7b449a1ed8dcaacb44ac78906a7",
+    "value": {
+     "final_url": "https://fageraasskogsdrift.no/",
+     "registered_domain": "fageraasskogsdrift.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://fageraasskogsdrift.no/",
+       "requested_url": "https://fageraasskogsdrift.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:53.779730Z",
+       "content_sha256": "24f00a051d0965d1aa4d6ceac2b96daabc68a7b449a1ed8dcaacb44ac78906a7",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_phone": "themes/mint/img/phone.png\" alt=\"Hjem 1\"> 959 22 322",
+        "legal_name_on_site": "Hjem | Fageraas Skogsdrift Skip to content Main Navigation Fageraas Skogsdrift Tjenest"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "fageraasskogsdrift.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://fageraasskogsdrift.no/",
+      "final_domain": "fageraasskogsdrift.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "935762286",
+   "name": "VALDRES INSTALLASJON AS",
+   "split": "development",
+   "reference_domain": "valdres-installasjon.no",
+   "reference_identity": "exact",
+   "requests": 8,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:06.831383Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "valdres-installasjon.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "unverified",
+      "url": "https://valdres-installasjon.no/",
+      "final_domain": "valdres-installasjon.no",
+      "proofs": []
+     },
+     {
+      "domain": "valdresinstallasjon.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "valdresinstallasjon.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "valdres-installasjon.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "installasjon.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://www.installasjon.no/",
+      "final_domain": "installasjon.no",
+      "proofs": []
+     },
+     {
+      "domain": "valdres.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "fetch_failed",
+      "url": "https://valdres.no/",
+      "http_status": 500,
+      "error": "HTTP 500"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "991449175",
+   "name": "MOSA DESIGNLAB AS",
+   "split": "development",
+   "reference_domain": "mosadesignlab.no",
+   "reference_identity": "exact",
+   "requests": 6,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.mosadesignlab.no/",
+    "retrieved_at": "2026-09-13T08:24:55.156304Z",
+    "content_sha256": "800a28f9e5feb184f7c16a556783dc0c3a40c98cfbf14700a98be121e1536d73",
+    "value": {
+     "final_url": "https://www.mosadesignlab.no/",
+     "registered_domain": "mosadesignlab.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.mosadesignlab.no/",
+       "requested_url": "https://mosadesignlab.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:55.156304Z",
+       "content_sha256": "800a28f9e5feb184f7c16a556783dc0c3a40c98cfbf14700a98be121e1536d73",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "MOSA Designlab the design studio of Industrial Designer - Morten Sagstuen"
+       }
+      },
+      {
+       "url": "https://www.mosadesignlab.no/connect/",
+       "requested_url": "https://www.mosadesignlab.no/connect/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:57.897963Z",
+       "content_sha256": "c0f236e38409bd2d576bdf85b9ecbf467940cb1e552a82b2dce6d9a4906a549c",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_phone": "NORWAY contact@mosadesignlab.no Morten +47 91371721",
+        "legal_name_on_site": "CONTACT - MOSA Designlab the design studio of Industrial Designer - Morten Sagstuen"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "mosadesignlab.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://www.mosadesignlab.no/",
+      "final_domain": "mosadesignlab.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "918853197",
+   "name": "RS GREEN POWER GROUP AS",
+   "split": "development",
+   "reference_domain": "greenpowergroup.id",
+   "reference_identity": "review",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:02.845448Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "rsgreenpower.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rs-green-power.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rsgreenpowergroup.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rs-green-power-group.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rsgreenpower.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rs-green-power.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rsgreenpowergroup.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rs-green-power-group.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rsgreen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "rs-green.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "greenpower.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://www.fruits.co/en/domain/greenpower.no",
+      "final_domain": "fruits.co",
+      "proofs": []
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "919694580",
+   "name": "KJØKKENDRIFT NO 1 RYGGE AS",
+   "split": "development",
+   "reference_domain": "kitchn.no",
+   "reference_identity": "related_or_uncertain",
+   "requests": 8,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://www.kitchn.no/",
+    "retrieved_at": "2026-09-13T08:24:58.177716Z",
+    "content_sha256": "c260e05d8122687ae89740ce798f81bf9ea10ef0b46b8c4fd9ab340d5d897eb9",
+    "value": {
+     "final_url": "https://www.kitchn.no/",
+     "registered_domain": "kitchn.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "related",
+      "publishable": false,
+      "proofs": [],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.kitchn.no/",
+       "requested_url": "https://kitchn.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:58.177716Z",
+       "content_sha256": "c260e05d8122687ae89740ce798f81bf9ea10ef0b46b8c4fd9ab340d5d897eb9",
+       "proofs": [],
+       "claim_spans": {}
+      },
+      {
+       "url": "https://www.kitchn.no/kundeservice/kontakt/",
+       "requested_url": "https://www.kitchn.no/kundeservice/kontakt/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:25:03.328046Z",
+       "content_sha256": "0fa9d87c2d07b160680b6cc02ebf2ffa6253f32dfa6910dc2bbb545f0d600c9b",
+       "proofs": [],
+       "claim_spans": {}
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "kitchn.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "related",
+      "url": "https://www.kitchn.no/",
+      "final_domain": "kitchn.no",
+      "proofs": []
+     },
+     {
+      "domain": "kjokkendriftno1rygge.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "kjokkendrift-no-1-rygge.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "kjokkendriftno1rygge.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "kjokkendrift-no-1-rygge.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "kjokkendriftno.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "kjokkendrift-no.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "no1rygge.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "820371542",
+   "name": "FJELD OG VANN AS",
+   "split": "development",
+   "reference_domain": "fjeldogvann.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://fjeldogvann.no/",
+    "retrieved_at": "2026-09-13T08:24:56.010783Z",
+    "content_sha256": "f4222e88e1ad82277138e07d23927e16c77914c532a9a71ce25315168d889a71",
+    "value": {
+     "final_url": "https://fjeldogvann.no/",
+     "registered_domain": "fjeldogvann.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://fjeldogvann.no/",
+       "requested_url": "https://fjeldogvann.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:56.010783Z",
+       "content_sha256": "f4222e88e1ad82277138e07d23927e16c77914c532a9a71ce25315168d889a71",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number"
+       ],
+       "claim_spans": {
+        "organisation_number": "ass='stacks_in com_yourhead_stack_header_stack'> Org nr. 820 371 542 MVA",
+        "legal_name_on_site": "essurser Om meg Prosjekter Publikasjoner Gardsøya Kontakt 0 Fjeld og vann AS Miljøundersøkelser i vann FJELD OG VANN AS Org n"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "fjeldogvann.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://fjeldogvann.no/",
+      "final_domain": "fjeldogvann.no",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "820868382",
+   "name": "P.E. GAARUD AS",
+   "split": "development",
+   "reference_domain": "pe-gaarud.no",
+   "reference_identity": "exact",
+   "requests": 4,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:01.658614Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "pegaarud.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "p-e-gaarud.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "pegaarud.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "p-e-gaarud.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "p-e.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://www.fruits.co/en/domain/p-e.no",
+      "final_domain": "fruits.co",
+      "proofs": []
+     },
+     {
+      "domain": "egaarud.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "e-gaarud.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "923393528",
+   "name": "PRIVATKLINIKKEN I SKIEN AS",
+   "split": "development",
+   "reference_domain": "privatklinikkeniskien.no",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://privatklinikkeniskien.no/",
+    "retrieved_at": "2026-09-13T08:24:58.220780Z",
+    "content_sha256": "8d55874ad1455ff2c14926974606bdc5250db66360413034cf69402ee554acb6",
+    "value": {
+     "final_url": "https://privatklinikkeniskien.no/",
+     "registered_domain": "privatklinikkeniskien.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://privatklinikkeniskien.no/",
+       "requested_url": "https://privatklinikkeniskien.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:58.220780Z",
+       "content_sha256": "8d55874ad1455ff2c14926974606bdc5250db66360413034cf69402ee554acb6",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_email": "\">mail: post@privatklinikkeniskien.no",
+        "registry_phone": "s=\"gem-contacts-item gem-contacts-phone\"> +47 - 35 60 90 60",
+        "legal_name_on_site": "PRIVATKLINIKKEN I SKIEN – PRIVATKLINIKKEN I SKIEN Skip to main content Scro"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "privatklinikkeniskien.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://privatklinikkeniskien.no/",
+      "final_domain": "privatklinikkeniskien.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "924913835",
+   "name": "PUMPETEKNIKK AS",
+   "split": "development",
+   "reference_domain": "pumpeteknikk.as",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://pumpeteknikk.as/",
+    "retrieved_at": "2026-09-13T08:24:57.716966Z",
+    "content_sha256": "4a3ffb456be593f0ce4aff8badc888439cda0fba18c11aa3293ceb9e5f2a2ebc",
+    "value": {
+     "final_url": "https://pumpeteknikk.as/",
+     "registered_domain": "pumpeteknikk.as",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://pumpeteknikk.as/",
+       "requested_url": "https://pumpeteknikk.as/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:57.716966Z",
+       "content_sha256": "4a3ffb456be593f0ce4aff8badc888439cda0fba18c11aa3293ceb9e5f2a2ebc",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number",
+        "registry_email",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "organisation_number": "lb-vatid\"> Org. nr.: 924 913 835",
+        "registry_email": "class=\"o-menu social-network\">",
+        "registry_phone": "ost@pumpeteknikk.as",
+        "legal_name_on_site": "Pumpeteknikk AS Jump to main content Jump to main navigation Jump to Sea"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "pumpeteknikk.as",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://pumpeteknikk.as/",
+      "final_domain": "pumpeteknikk.as",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number",
+       "registry_declared_website",
+       "registry_email",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "925358916",
+   "name": "RENTALY AS",
+   "split": "development",
+   "reference_domain": "rentaly.no",
+   "reference_identity": "exact",
+   "requests": 3,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://www.rentaly.no/",
+    "retrieved_at": "2026-09-13T08:24:57.703129Z",
+    "content_sha256": "281f2530d2b7cda20795e354b387d7fd1457111e04653742aac2b611b3e96fd3",
+    "value": {
+     "final_url": "https://www.rentaly.no/",
+     "registered_domain": "rentaly.no",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://www.rentaly.no/",
+       "requested_url": "https://rentaly.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:57.703129Z",
+       "content_sha256": "281f2530d2b7cda20795e354b387d7fd1457111e04653742aac2b611b3e96fd3",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "Rentaly Skip to content Hjem Veidrift og veivedlikehold Entreprenør"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "rentaly.no",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://www.rentaly.no/",
+      "final_domain": "rentaly.no",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "929034597",
+   "name": "TAKSTOLFABRIKKEN AS",
+   "split": "development",
+   "reference_domain": "takstolfabrikken.com",
+   "reference_identity": "related_or_uncertain",
+   "requests": 11,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://takstolfabrikken.com/",
+    "retrieved_at": "2026-09-13T08:25:07.817078Z",
+    "content_sha256": "70ad77ce42c9be6b4e43302fd327992b367bf454ca6ce88b66d1105a0a67fab4",
+    "value": {
+     "final_url": "https://takstolfabrikken.com/",
+     "registered_domain": "takstolfabrikken.com",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://takstolfabrikken.com/",
+       "requested_url": "https://takstolfabrikken.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:25:07.817078Z",
+       "content_sha256": "70ad77ce42c9be6b4e43302fd327992b367bf454ca6ce88b66d1105a0a67fab4",
+       "proofs": [
+        "legal_name_on_site",
+        "organisation_number"
+       ],
+       "claim_spans": {
+        "organisation_number": "0\"> Tlf: 77 09 31 12, Mobil: 48 15 46 20, Org.nr. NO 929 034 597 MVA e-post:",
+        "legal_name_on_site": "﻿ Takstolfabrikken AS, Borkenes ﻿ Forside Produkter Levering Om oss Dokumenter"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "takstolfabrikken.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unverified",
+      "url": "https://landheim.no/",
+      "final_domain": "landheim.no",
+      "proofs": []
+     },
+     {
+      "domain": "takstolfabrikken.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "exact",
+      "url": "https://takstolfabrikken.com/",
+      "final_domain": "takstolfabrikken.com",
+      "proofs": [
+       "legal_name_on_site",
+       "organisation_number"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "834547252",
+   "name": "LAPSEN & CO AS",
+   "split": "development",
+   "reference_domain": "lapsen.no",
+   "reference_identity": "review",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "ambiguous",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://lapsen.no/",
+    "retrieved_at": "2026-09-13T08:24:58.629085Z",
+    "content_sha256": "d43ebe0ba414faeb4beac59ec70d61616d674818c2d07389943a6a67aea6a25b",
+    "value": {
+     "final_url": "https://lapsen.no/",
+     "registered_domain": "lapsen.no",
+     "candidate_source": "name_guess",
+     "identity_assessment": {
+      "status": "weak",
+      "publishable": false,
+      "proofs": [
+       "legal_name_on_site"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://lapsen.no/",
+       "requested_url": "https://lapsen.no/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:24:58.629085Z",
+       "content_sha256": "d43ebe0ba414faeb4beac59ec70d61616d674818c2d07389943a6a67aea6a25b",
+       "proofs": [
+        "legal_name_on_site"
+       ],
+       "claim_spans": {
+        "legal_name_on_site": "tside underveis! I mellomtiden kan du følge oss på LinkedIn Lapsen & Co AS Holtet 45 1368 Stabekk post@lapsen.no"
+       }
+      }
+     ]
+    },
+    "note": "Reachable site is not proven to be this exact entity; not published",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "lapsenco.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsen-co.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsenogco.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsen-og-co.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsenco.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsen-co.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsenogco.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsen-og-co.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsen.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "weak",
+      "url": "https://lapsen.no/",
+      "final_domain": "lapsen.no",
+      "proofs": [
+       "legal_name_on_site"
+      ]
+     },
+     {
+      "domain": "lapsenog.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "lapsen-og.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "932738228",
+   "name": "A PLACE TO STAY STAVANGER AS",
+   "split": "development",
+   "reference_domain": "aplacetostaystavanger.com",
+   "reference_identity": "exact",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "available",
+    "source_type": "verified_company_website",
+    "source_class": "verified_company_website",
+    "source_url": "https://aplacetostaystavanger.com/",
+    "retrieved_at": "2026-09-13T08:25:00.294453Z",
+    "content_sha256": "9f14d22b8d56e295eb6f183dbd1519773251cc403f4745b7a039f159335ab04e",
+    "value": {
+     "final_url": "https://aplacetostaystavanger.com/",
+     "registered_domain": "aplacetostaystavanger.com",
+     "candidate_source": "registry_website",
+     "identity_assessment": {
+      "status": "exact",
+      "publishable": true,
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_phone"
+      ],
+      "method": "registry_identifier_on_site_v2"
+     },
+     "proof_pages": [
+      {
+       "url": "https://aplacetostaystavanger.com/",
+       "requested_url": "https://aplacetostaystavanger.com/",
+       "http_status": 200,
+       "retrieved_at": "2026-09-13T08:25:00.294453Z",
+       "content_sha256": "9f14d22b8d56e295eb6f183dbd1519773251cc403f4745b7a039f159335ab04e",
+       "proofs": [
+        "legal_name_on_site",
+        "registry_phone"
+       ],
+       "claim_spans": {
+        "registry_phone": "id=\"1718971146\" style=\"\"> +47 404 78 011",
+        "legal_name_on_site": "Book now Contact us Home Properties Contact A Place To Stay Stavanger ﻿ Discover your perfect retreat Discover Your Perfect Stay"
+       }
+      }
+     ]
+    },
+    "note": null,
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "aplacetostaystavanger.com",
+      "source": "registry_website",
+      "relation": "candidate",
+      "outcome": "exact",
+      "url": "https://aplacetostaystavanger.com/",
+      "final_domain": "aplacetostaystavanger.com",
+      "proofs": [
+       "legal_name_on_site",
+       "registry_declared_website",
+       "registry_phone"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "934652266",
+   "name": "DOLLY DIMPLES EGERSUND AS",
+   "split": "development",
+   "reference_domain": "dolly.no",
+   "reference_identity": "related_or_uncertain",
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:15.192150Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "dollydimplesegersund.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "dolly-dimples-egersund.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "dollydimplesegersund.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "dolly-dimples-egersund.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "dollydimples.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unreachable",
+      "url": "https://dollydimples.no/"
+     },
+     {
+      "domain": "dolly-dimples.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unreachable",
+      "url": "https://dolly-dimples.no/"
+     },
+     {
+      "domain": "dimplesegersund.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "987526157",
+   "name": "SMOOTHIE XCHANGE AS",
+   "split": "development",
+   "reference_domain": null,
+   "reference_identity": null,
+   "requests": 9,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:08.019387Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "smoothiexchange.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unreachable",
+      "url": "https://smoothiexchange.no/"
+     },
+     {
+      "domain": "smoothie-xchange.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "smoothiexchange.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "unverified",
+      "url": "https://smoothiexchange.com/",
+      "final_domain": "smoothiexchange.com",
+      "proofs": []
+     },
+     {
+      "domain": "smoothie-xchange.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "xchange.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "smoothie.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://domeneland.no/parkert",
+      "final_domain": "domeneland.no",
+      "proofs": []
+     }
+    ]
+   }
+  },
+  {
+   "organisation_number": "979392710",
+   "name": "H&P MODU OPERATIONS AS",
+   "split": "development",
+   "reference_domain": null,
+   "reference_identity": null,
+   "requests": 2,
+   "record": {
+    "field": "website",
+    "status": "not_available",
+    "source_type": "website_candidate_search",
+    "source_class": "website_candidate_search",
+    "source_url": "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+    "retrieved_at": "2026-09-13T08:25:05.425397Z",
+    "content_sha256": null,
+    "value": null,
+    "note": "No candidate website carried an official tie to this entity",
+    "method": "registry_candidates_with_site_proof_v2",
+    "attempts": [
+     {
+      "domain": "hpmoduoperations.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "h-p-modu-operations.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "hogpmoduoperations.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "h-og-p-modu-operations.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "hpmoduoperations.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "h-p-modu-operations.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "hogpmoduoperations.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "h-og-p-modu-operations.com",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "full",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "h-p.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "unverified",
+      "url": "https://h-p.no/",
+      "final_domain": "h-p.no",
+      "proofs": []
+     },
+     {
+      "domain": "pmoduoperations.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     },
+     {
+      "domain": "p-modu-operations.no",
+      "source": "name_guess",
+      "relation": "candidate",
+      "name_form": "partial",
+      "outcome": "no_dns"
+     }
+    ]
+   }
+  }
+ ]
+}
