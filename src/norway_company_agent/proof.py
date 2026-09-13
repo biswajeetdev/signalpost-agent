@@ -46,23 +46,33 @@ def registry_identifiers(row: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def page_proofs(identifiers: Mapping[str, Any], page_html: str, *, shared_phones: Mapping[str, int] | None = None) -> set[str]:
+def _claim_span(text: str, match: re.Match[str], context: int = 60) -> str:
+    window = text[max(0, match.start() - context): match.end() + context]
+    return " ".join(re.sub(r"<[^>]*>?", " ", window).split())[:240]
+
+
+def page_proof_spans(identifiers: Mapping[str, Any], page_html: str, *, shared_phones: Mapping[str, int] | None = None) -> dict[str, str]:
+    """Registry identifiers found on the page, each with the surrounding text that proves it."""
     text = html_lib.unescape(page_html or "")
     lowered = text.lower()
-    proofs: set[str] = set()
+    spans: dict[str, str] = {}
     org = identifiers.get("organisation_number") or ""
-    if len(org) == 9 and _digits_pattern(org).search(text):
-        proofs.add("organisation_number")
+    if len(org) == 9 and (match := _digits_pattern(org).search(text)):
+        spans["organisation_number"] = _claim_span(text, match)
     email = identifiers.get("email") or ""
-    if email and re.search(r"(?<![\w.+-])" + re.escape(email) + r"(?![\w-])", lowered):
-        proofs.add("registry_email")
+    if email and (match := re.search(r"(?<![\w.+-])" + re.escape(email) + r"(?![\w-])", lowered)):
+        spans["registry_email"] = _claim_span(lowered, match)
     for phone in identifiers.get("phones") or []:
         if shared_phones and shared_phones.get(phone, 0) >= SHARED_PHONE_THRESHOLD:
             continue
-        if _digits_pattern(phone, country_prefix=True).search(text):
-            proofs.add("registry_phone")
+        if match := _digits_pattern(phone, country_prefix=True).search(text):
+            spans["registry_phone"] = _claim_span(text, match)
             break
-    return proofs
+    return spans
+
+
+def page_proofs(identifiers: Mapping[str, Any], page_html: str, *, shared_phones: Mapping[str, int] | None = None) -> set[str]:
+    return set(page_proof_spans(identifiers, page_html, shared_phones=shared_phones))
 
 
 def assess_site_identity(proofs: Iterable[str], relation: str = "candidate") -> dict[str, Any]:

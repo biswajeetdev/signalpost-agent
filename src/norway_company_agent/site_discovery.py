@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from .budget import BudgetExhausted, RequestBudget, RobotsCache
 from .candidates import SHARED_DOMAIN_THRESHOLD, registered_domain, website_candidates
 from .evidence import utc_now
-from .proof import STRONG_PROOFS, assess_site_identity, page_proofs, registry_identifiers
+from .proof import STRONG_PROOFS, assess_site_identity, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
 MAX_PAGE_BYTES = 1_500_000
@@ -140,14 +140,15 @@ def contact_links(base_url: str, html: str, limit: int = 2) -> list[str]:
     return [url for url, _ in sorted(ranked.items(), key=lambda item: (item[1], item[0]))[:limit]]
 
 
-def _page_record(page: Page, proofs: set[str]) -> dict[str, Any]:
+def _page_record(page: Page, spans: dict[str, str]) -> dict[str, Any]:
     return {
         "url": page.final_url,
         "requested_url": page.requested_url,
         "http_status": page.status,
         "retrieved_at": page.retrieved_at,
         "content_sha256": page.content_sha256,
-        "proofs": sorted(proofs),
+        "proofs": sorted(spans),
+        "claim_spans": spans,
     }
 
 
@@ -213,8 +214,9 @@ def discover_website(
             relation = candidate["relation"]
             if shared_domains.get(final_domain, 0) >= SHARED_DOMAIN_THRESHOLD:
                 relation = "administrator_or_group"
-            found = page_proofs(identifiers, home.html, shared_phones=shared_phones)
-            proof_pages = [_page_record(home, found)]
+            home_spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
+            found = set(home_spans)
+            proof_pages = [_page_record(home, home_spans)]
             if not found & STRONG_PROOFS:
                 for link in contact_links(home.final_url, home.html):
                     if not robots_allowed(link):
@@ -222,9 +224,9 @@ def discover_website(
                     page = fetch(link)
                     if page.error or registered_domain(page.final_url) != final_domain:
                         continue
-                    proofs = page_proofs(identifiers, page.html, shared_phones=shared_phones)
-                    proof_pages.append(_page_record(page, proofs))
-                    found |= proofs
+                    spans = page_proof_spans(identifiers, page.html, shared_phones=shared_phones)
+                    proof_pages.append(_page_record(page, spans))
+                    found |= set(spans)
                     if found & STRONG_PROOFS:
                         break
             assessment = assess_site_identity(found, relation)

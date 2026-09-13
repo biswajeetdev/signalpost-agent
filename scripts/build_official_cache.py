@@ -17,6 +17,7 @@ import hashlib
 import json
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,7 +82,7 @@ def iter_json_array(path: Path, chunk_size: int = 1 << 20):
 def create_schema(db: sqlite3.Connection) -> None:
     db.executescript(
         """
-        CREATE TABLE IF NOT EXISTS snapshots (name TEXT PRIMARY KEY, source_url TEXT, sha256 TEXT, built_at TEXT, rows INTEGER);
+        CREATE TABLE IF NOT EXISTS snapshots (name TEXT PRIMARY KEY, source_url TEXT, sha256 TEXT, retrieved_at TEXT, built_at TEXT, rows INTEGER);
         CREATE TABLE IF NOT EXISTS roles (organisation_number TEXT PRIMARY KEY, body TEXT, content_sha256 TEXT);
         CREATE TABLE IF NOT EXISTS locations (organisation_number TEXT PRIMARY KEY, body TEXT, content_sha256 TEXT);
         CREATE TABLE IF NOT EXISTS email_domains (domain TEXT PRIMARY KEY, entities INTEGER);
@@ -91,7 +92,9 @@ def create_schema(db: sqlite3.Connection) -> None:
 
 
 def record_snapshot(db: sqlite3.Connection, name: str, url: str, path: Path, rows: int) -> None:
-    db.execute("INSERT OR REPLACE INTO snapshots VALUES (?, ?, ?, ?, ?)", (name, url, sha256_file(path), utc_now(), rows))
+    # Claims cite when the bulk file was downloaded, not when this cache was built.
+    retrieved_at = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat().replace("+00:00", "Z")
+    db.execute("INSERT OR REPLACE INTO snapshots VALUES (?, ?, ?, ?, ?, ?)", (name, url, sha256_file(path), retrieved_at, utc_now(), rows))
 
 
 def canonical(value: object) -> tuple[str, str]:

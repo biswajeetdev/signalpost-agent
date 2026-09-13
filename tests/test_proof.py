@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from norway_company_agent.proof import (  # noqa: E402
     assess_site_identity,
     normalise_phone,
+    page_proof_spans,
     page_proofs,
     phone_share_counts,
     registry_identifiers,
@@ -28,6 +29,13 @@ class ProofTest(unittest.TestCase):
     def test_formatted_org_number_in_footer(self) -> None:
         self.assertEqual(page_proofs(self.ids, "<footer>Org.nr: 985 589 003 MVA</footer>"), {"organisation_number"})
         self.assertEqual(page_proofs(self.ids, "<p>NO985.589.003</p>"), {"organisation_number"})
+
+    def test_claim_span_is_readable_text_around_the_identifier(self) -> None:
+        spans = page_proof_spans(self.ids, "<div class='f'><p>Arkitektfirma Jon Vikøren AS</p><p>Org.nr: 985 589 003</p></div>")
+        self.assertEqual(set(spans), {"organisation_number"})
+        self.assertIn("985 589 003", spans["organisation_number"])
+        self.assertIn("Arkitektfirma Jon Vikøren AS", spans["organisation_number"])
+        self.assertNotIn("<", spans["organisation_number"])
 
     def test_org_number_inside_longer_number_is_not_proof(self) -> None:
         self.assertEqual(page_proofs(self.ids, "id=19855890031"), set())
