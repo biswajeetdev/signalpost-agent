@@ -68,16 +68,18 @@ def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) ->
         if org not in wanted:
             continue
         raw = profile.pop("raw", {})
+        misaligned = profile.pop("csv_row_misaligned", False)
         profile["evidence"] = {
             "registry": evidence(
                 "registry",
-                "available",
+                "source_error" if misaligned else "available",
                 "official_registry_bulk",
                 "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
-                value=raw,
+                value=None if misaligned else raw,
                 retrieved_at=retrieved_at,
                 content_sha256=snapshot_sha256,
                 source_row_key=org,
+                note="Bulk CSV row has shifted columns; registry fields withheld" if misaligned else None,
             ),
             "accounting_obligation": accounting_obligation_assessment(profile),
         }

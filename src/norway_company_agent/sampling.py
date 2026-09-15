@@ -39,7 +39,10 @@ def normalize_row(row: dict[str, str]) -> dict[str, Any]:
         "industry_label": _first(row, "naeringskode1.beskrivelse", "Næringskode1.beskrivelse"),
         "website": _first(row, "hjemmeside", "Hjemmeside"),
         "latest_submitted_accounts": _first(row, "sisteInnsendteAarsregnskap", "Siste innsendte årsregnskap"),
-        "raw": row,
+        # csv.DictReader files extra fields under a None key (breaks sorted JSON) and fills missing ones
+        # with None. Empty trailing extras are harmless; non-empty extras or missing fields mean shifted columns.
+        "raw": {key: value for key, value in row.items() if key is not None},
+        "csv_row_misaligned": any(str(value).strip() for value in row.get(None) or []) or any(value is None for key, value in row.items() if key is not None),
     }
 
 

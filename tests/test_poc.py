@@ -684,6 +684,35 @@ class SamplingTests(unittest.TestCase):
         self.assertEqual(stratum(base), "AS|5-19|active|web")
         self.assertEqual(stratum({**base, "bankrupt": True, "website": ""}), "AS|5-19|adverse|no-web")
 
+    def test_normalize_drops_csv_overflow_fields_so_raw_serializes(self):
+        row = normalize_row({"organisasjonsnummer": "914882036", "navn": "KULTURLANDRO AS", None: ["", ""]})
+        self.assertNotIn(None, row["raw"])
+        self.assertEqual(row["raw"]["navn"], "KULTURLANDRO AS")
+        self.assertFalse(row["csv_row_misaligned"])
+        json.dumps(row, sort_keys=True)
+
+    def test_shifted_bulk_row_withholds_registry_fields(self):
+        shifted = normalize_row({"organisasjonsnummer": "917317046", "navn": "ANK PROJECTS AS", None: ["NOK", "", "2016-06-14"]})
+        short = normalize_row({"organisasjonsnummer": "917317047", "navn": "SHORT AS", "hjemmeside": None})
+        self.assertTrue(shifted["csv_row_misaligned"])
+        self.assertTrue(short["csv_row_misaligned"])
+        fields = ["organisasjonsnummer", "navn", "organisasjonsform.kode"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.csv.gz"
+            with gzip.open(path, "wt", encoding="utf-8", newline="") as handle:
+                handle.write(";".join(fields) + "\n")
+                for index in range(10):  # enough well-formed rows for csv.Sniffer, as in the real snapshot
+                    handle.write(f"{300000000 + index};Company {index} AS;AS\n")
+                handle.write("917317046;ANK PROJECTS AS;AS;NOK;2016-06-14\n")
+            profiles, _ = profiles_from_bulk(path, ["917317046"])
+        registry = profiles[0]["evidence"]["registry"]
+        self.assertEqual(registry["status"], "source_error")
+        self.assertIsNone(registry["value"])
+        envelope = build_envelope(profiles[0], run_id="t", started_at="2026-09-15T00:00:00Z", completed_at="2026-09-15T00:00:01Z", operations={"requests": 0})
+        self.assertEqual(validate_envelope(envelope), [])
+        self.assertEqual(envelope["modules"]["registry"], "failed")
+        json.dumps(profiles, sort_keys=True)
+
     def test_normalize_does_not_invent_employee_count(self):
         row = normalize_row({"organisasjonsnummer": "923609016", "navn": "Example AS", "antallAnsatte": ""})
         self.assertIsNone(row["employees"])
