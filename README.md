@@ -1,116 +1,120 @@
-# Signalpost reference agent
+# Signalpost agent — agent-v1
 
-This is a runnable starting point for the Signalpost company-research challenge. It is intentionally a solid baseline, not a winning submission.
+A Norwegian company research agent for the Builderr Signalpost challenge. Give it organisation
+numbers; it returns exactly one terminal contract envelope per input, with a source, retrieval
+time, content hash and claim span for every published fact, and an explicit availability state
+(`available`, `not_available`, `blocked`, `not_applicable`, `ambiguous`, `failed`) for everything else.
 
-The public universe contains 411,160 eligible companies. A valid entry must process at least 1,000; you may process 10,000 or the full universe.
+Accuracy comes before volume: a website or profile is published only when it carries an official
+tie to this exact entity. Parent, group, administrator and similarly named sites are held back as
+`ambiguous`.
 
-## What it already does
+## What it collects
 
-- reads a batch of Norwegian organisation numbers;
-- anchors identity in the Brønnøysund bulk registry;
-- fetches official financials, roles, group links and registered workplaces;
-- visits the registry-listed website and rejects weak entity matches;
-- emits one terminal JSONL envelope per input;
-- records sources, retrieval times, content hashes, request counts and latency;
-- supports checkpoint/resume and a deterministic refresh replay;
-- includes examples for external-footprint discovery and an evidence-bounded research agent.
+| Module | Source | Published when |
+|---|---|---|
+| Legal identity, form, industry, address, employees, bankrupt/liquidation flags | Brønnøysund entity bulk snapshot | Row exists for the exact organisation number |
+| Latest annual accounts (revenue, results, assets, equity, debt) | Brønnøysund `regnskapsregisteret` API, live | Returned for the organisation; reporting period on every claim |
+| Filed annual-account years and official PDF copies | Brønnøysund `aarsregnskap/kopi` API, live, paced | Returned for the organisation |
+| Roles (board, CEO, auditor, …) | Brønnøysund `roller/totalbestand` bulk, declared local cache | Active roles only; birth dates never stored |
+| Registered workplaces | Brønnøysund `underenheter` bulk, declared local cache | Subunits whose parent is the organisation |
+| Official website | Registry-declared site plus request-free domain candidates | Organisation number, registry email or registry phone on the site, or a registry-declared/unique full-legal-name domain carrying the legal name |
+| Social profiles | Links on the verified company website only | Never matched by name similarity |
 
-## First run: try one saved example
+## Setup
 
-Requires Python 3.12+. Open a terminal inside this extracted folder.
-
-Before downloading company data or running a full crawl, try the bundled public
-sample. It uses saved responses: no API key, registry download or live web requests.
-
-```bash
-python3 scripts/run_refresh_replay.py \
-  --manifest tests/fixtures/refresh-snapshots.json \
-  --output out/refresh-demo.json
-```
-
-Open `out/refresh-demo.json`. The `events` list shows what changed between two
-versions of one company profile and the source evidence for each change. The sample
-should find two expected changes, no false changes, and no extra changes when the
-same data is checked again.
-
-The report's `qualification_passed` field refers only to this public sample check.
-It does not qualify an entry for the competition or prove live information coverage.
-The printed request counts are reads from saved responses, not network calls.
-
-## Next: research live companies
-
-Requires Python 3.12+ and `uv`. This step downloads data and makes live requests.
-The manifest selector requires at least 1,000 companies for a full entry. You can
-use its first ten rows for a private smoke test before running the full batch.
+Requires Python 3.12+ and [`uv`](https://docs.astral.sh/uv/). Dependencies are pinned in `uv.lock`.
 
 ```bash
 uv sync
-curl -L 'https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv' -o brreg-enheter.csv
+mkdir -p cache
+
+# Public Brønnøysund bulk downloads (NLOD 2.0). The CSV endpoints serve gzip; keep the .gz names.
+curl -L 'https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv' -o brreg-enheter.csv.gz
+curl -L 'https://data.brreg.no/enhetsregisteret/api/underenheter/lastned/csv' -o cache/underenheter.csv.gz
+curl -L 'https://data.brreg.no/enhetsregisteret/api/roller/totalbestand' -o cache/roller-totalbestand.json.gz
 curl -L 'https://builderr.ai/signalpost-company-universe-2025.jsonl.gz' -o signalpost-universe.jsonl.gz
 
-uv run python select_entry_batch.py \
+# Build the declared official cache (roles, workplaces, shared email domains/phones, name keys).
+uv run python scripts/build_official_cache.py \
   --universe signalpost-universe.jsonl.gz \
-  --count 1000 \
-  --output entry-companies.jsonl
-
-# Start with ten companies before the full 1,000-company run.
-head -n 10 entry-companies.jsonl > smoke-companies.jsonl
-
-uv run python scripts/run_competition_batch.py \
-  --organisations smoke-companies.jsonl \
-  --bulk brreg-enheter.csv \
-  --profiles-output out/smoke-profiles.jsonl \
-  --output out/smoke-envelopes.jsonl \
-  --report out/smoke-report.json \
-  --run-id smoke-001 \
-  --expected-count 10
-
-# When the smoke output looks right, run your full entry.
-uv run python scripts/run_competition_batch.py \
-  --organisations entry-companies.jsonl \
-  --bulk brreg-enheter.csv \
-  --profiles-output out/profiles.jsonl \
-  --output out/envelopes.jsonl \
-  --report out/run-report.json \
-  --run-id local-001 \
-  --expected-count 1000
-
-uv run --with pytest pytest -q
+  --roles cache/roller-totalbestand.json.gz \
+  --subunits cache/underenheter.csv.gz \
+  --entities brreg-enheter.csv.gz \
+  --output cache/official.sqlite
 ```
 
-The published archive was clean-room verified on August 24, 2026: 104 tests and 5 subtests passed, followed by a one-company live BRREG smoke run with one terminal envelope, five requests and zero silent drops.
+## Run command
 
-Increase `--count` and `--expected-count` together if you want to publish more than the 1,000-company minimum. The ten-row smoke test above is practice only. Do not set `select_entry_batch.py --count 10`: the selector enforces the 1,000-company entry minimum.
+One command takes a JSONL, JSON or text batch of organisation numbers:
 
-## The improvement loop
+```bash
+uv run python scripts/run_signalpost.py \
+  --organisations batch.jsonl \
+  --bulk brreg-enheter.csv.gz \
+  --cache cache/official.sqlite \
+  --output out/envelopes.jsonl \
+  --profiles-output out/profiles.jsonl \
+  --report out/report.json \
+  --run-id daily-YYYY-MM-DD \
+  --expected-count 100
+```
 
-1. Treat the organisation number as the anchor.
-2. Generate site/profile candidates from official data, the company site, lawful search providers and named people.
-3. Save every candidate and the evidence for or against it.
-4. Publish only exact-entity matches. Parent, brand, franchise and similarly named companies are not exact.
-5. Crawl static HTML first. Escalate to a browser only when a deterministic completeness check fails.
-6. Measure added supported coverage, wrong-company claims, runtime, requests and cost.
-7. Promote a strategy only when it improves coverage without weakening the accuracy gates.
-8. Freeze strategies and thresholds before the daily evaluation run.
+Defaults match the locked daily budget: `--max-requests 2000`, `--max-minutes 45`, 8 workers,
+14 website requests per company. Every attempt, retry, robots.txt fetch and redirect hop is charged
+to the budget. Near the wall-clock limit website discovery is skipped and marked `failed`, so every
+input still gets its envelope. The command exits non-zero if validation fails or the envelope count
+differs from `--expected-count`.
 
-The strongest differentiator is external evidence that remains exact and auditable: official company pages, company-owned profiles, jobs, dated activity, ratings/reviews and permitted public signals. Do not trade accuracy for volume.
+**Refresh.** Pass the previous run's profiles to record material changes in each envelope's
+`changes` list. Re-running an unchanged snapshot produces no changes:
 
-## Important source rule
+```bash
+uv run python scripts/run_signalpost.py ... --previous-profiles out/previous-profiles.jsonl
+```
 
-Open-source code does not grant permission to scrape a platform. Follow each source's terms, robots policy, rate limits and licence. LinkedIn, Meta and Indeed are useful identity/discovery targets, but direct automated collection may be restricted. Use permitted APIs, licensed providers, company-owned outbound links, or return `blocked`/`not_available`.
+**Tests.** `uv run --with pytest pytest -q`
 
-Read `docs/competition-control-loop.md`, `docs/external-connectors.md` and the public source policy before adding connectors.
+## Submitted artifact
 
-## Submission contract
+`submission/` holds the entry run on the official 1,000-company manifest
+(`select_entry_batch.py`, seed 20260823):
 
-Submit a repository with:
+- `entry-companies.jsonl` — the exact organisation-number manifest
+- `entry-1000-envelopes.jsonl` — 1,000 terminal envelopes
+- `entry-1000-profiles.jsonl` — the profile snapshot a refresh diffs against
+- `entry-1000-report.json` — runtime, requests by purpose, module states, validation
 
-- at least 1,000 completed company profiles and the exact organisation-number manifest used;
-- one documented command that accepts a JSONL batch of organisation numbers;
-- exactly one terminal envelope per input;
-- pinned dependencies and reproducible setup;
-- a previous-snapshot input and material-change output;
-- a machine-readable run report with runtime, request count and third-party cost;
-- declared models, APIs, licences and source-rights assumptions.
+## Cost, models and APIs
 
-Email the repository URL, run command, models/APIs and expected cost per 100-company run to `submit@builderr.ai`.
+- **Models:** none. No LLM or ML model runs in the evaluator command.
+- **Third-party paid APIs:** none. **Expected cost per 100-company run: USD 0.**
+- **Secrets:** none required; the command reads no API keys or environment secrets.
+- **Measured load (100 companies):** 599 outbound requests, about 4 minutes, runtime p50 16 s and
+  p95 30 s per company, well inside the 2,000-request / 45-minute budget.
+
+## Source rights and safe handling
+
+- **Brønnøysundregistrene** (entity, subunit and role bulk data; accounts API): open data under the
+  Norwegian Licence for Open Government Data (NLOD 2.0). Person data is used only in the
+  company-role context; birth dates are discarded.
+- **Company websites:** only the company's own public pages (home page and at most two same-host
+  contact/about pages per candidate host, at most four hosts). robots.txt is fetched and honoured
+  per host, 401/403 on robots.txt means disallow. User agent:
+  `builderr-signalpost-poc/0.1 (+https://builderr.ai)`.
+- **URL safety:** every URL and every redirect hop passes a public-address guard (no private,
+  loopback or link-local targets), redirects are capped at 5 and pages at 1.5 MB.
+- **No scraping of restricted platforms.** LinkedIn, Meta, Indeed and search engines are not called
+  by the evaluator command. Standalone experimental connectors under `scripts/` are not part of it.
+
+## Known limits
+
+- Brønnøysund's normalized accounts endpoint returns HTTP 500 for some regulated banks and
+  insurers (e.g. ASA banks); those envelopes carry `financials: failed` with the source error, while
+  filed years remain available.
+- The frozen universe contains entities deleted after the freeze. An organisation absent from the
+  bulk snapshot still gets a terminal envelope with `legal_identity: not_available`, and is listed
+  in the report under `registry.absent_from_snapshot`.
+- Jobs and dated public activity are not yet collected.
+
+See `OUTPUT_CONTRACT.md` for the envelope shape and `docs/builderr/` for the challenge rules.
