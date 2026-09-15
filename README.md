@@ -151,9 +151,14 @@ latest accounts for 997 companies, 872 registered workplaces, 225 verified offic
 - A few bulk CSV rows have shifted columns (extra non-empty or missing fields; 15 in the universe).
   Their registry fields are withheld and the registry module is `failed`, rather than publishing
   misaligned values. Empty trailing extra fields are dropped harmlessly.
-- Refresh tracks registry, accounts, filing years, roles and workplaces. Website changes (a site
-  newly proven, or no longer provable) are not yet reported as changes; 2 such transitions occurred
-  in the 100-company refresh.
+- Refresh reports website and company-linked social-profile changes only when both runs reached a
+  conclusive website result (`available`, `not_available` or `ambiguous`). A `failed` check (for
+  example the per-company allowance) is never a change: the last conclusive records are carried in
+  the profile snapshot, so a real change is reported on the next conclusive run, possibly one run
+  late. The committed `submission/refresh/` evidence predates website tracking (code `5ddd709`);
+  re-diffing it with the current code reports 3 changes: ATEA ASA's `https://atea.com/` is no longer
+  provable (its LinkedIn link is withdrawn with it) and STIFTELSEN SILDAJAZZEN's
+  `https://sildajazz.no/` became verified. The immediate re-run still reports 0 changes.
 - Jobs and dated public activity are not yet collected.
 
 See `OUTPUT_CONTRACT.md` for the envelope shape and `docs/builderr/` for the challenge rules.

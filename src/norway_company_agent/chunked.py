@@ -25,7 +25,7 @@ from .contract import build_envelope, validate_envelope
 from .evidence import utc_now
 from .pipeline import RunSettings, _mark_failed, batch_report, run_batch
 
-CHECKPOINT_VERSION = 1
+CHECKPOINT_VERSION = 2  # bump whenever profiles, changes or envelopes change meaning
 T = TypeVar("T")
 
 

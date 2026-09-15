@@ -21,7 +21,7 @@ from norway_company_agent.operations import domain_request_summary, latency_summ
 from norway_company_agent.sampling import deterministic_extension_sample, deterministic_financial_filer_sample, deterministic_website_audit_sample, financial_filer_eligible, normalize_row, stratum  # noqa: E402
 from norway_company_agent.research import answer_profile, parse_screen_query, screen_profiles  # noqa: E402
 from norway_company_agent.workspace import load_workspace, record_screen, save_workspace  # noqa: E402
-from norway_company_agent.refresh import diff_datasets, diff_profile  # noqa: E402
+from norway_company_agent.refresh import carry_forward, diff_datasets, diff_profile  # noqa: E402
 from norway_company_agent.sentiment import aggregate_company_sentiment, evaluate_predictions, publishable_sentiment_item, sentiment_input_eligibility  # noqa: E402
 from norway_company_agent.external_footprint import aggregate_footprint, publishable_observation, validate_observation  # noqa: E402
 from norway_company_agent.external_tasks import plan_external_tasks  # noqa: E402
@@ -1272,6 +1272,37 @@ class RefreshTests(unittest.TestCase):
     def test_refresh_rejects_membership_or_identity_drift(self):
         with self.assertRaises(ValueError):
             diff_datasets([{"organisation_number": "923609016"}], [{"organisation_number": "999999999"}])
+
+    @staticmethod
+    def site_profile(status, url=None, socials=(), span="linked from site"):
+        website = evidence("website", status, "website_candidate_search", url or "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv", value={"final_url": url} if url else None)
+        profiles = [{"platform": "linkedin", "url": item, "claim_span": span} for item in socials]
+        social = evidence("social_profiles", "available" if profiles else "not_available", "company_owned_website", url or "https://example.test", value={"profiles": profiles})
+        return {"organisation_number": "920237126", "evidence": {"website": website, "social_profiles": social}}
+
+    def test_website_transitions_are_real_changes(self):
+        demoted = diff_profile(self.site_profile("available", "https://atea.com/"), self.site_profile("ambiguous", "https://atea.no/"))
+        self.assertEqual([(c["field"], c["old_value"], c["new_value"]) for c in demoted], [("website.official_url", "https://atea.com/", None)])
+        proven = diff_profile(self.site_profile("not_available"), self.site_profile("available", "https://sildajazz.no/"))
+        self.assertEqual([(c["field"], c["old_value"], c["new_value"]) for c in proven], [("website.official_url", None, "https://sildajazz.no/")])
+        self.assertEqual(proven[0]["source_url"], "https://sildajazz.no/")
+
+    def test_failed_website_is_not_a_change_and_does_not_hide_the_next_one(self):
+        first = self.site_profile("available", "https://atea.com/", socials=["https://linkedin.com/company/atea"])
+        failed = carry_forward(first, self.site_profile("failed"))
+        self.assertEqual(diff_profile(first, failed), [])
+        self.assertEqual(failed["evidence"]["carried_website"]["status"], "available")
+        later = carry_forward(failed, self.site_profile("ambiguous", "https://atea.no/"))
+        self.assertNotIn("carried_website", later["evidence"])
+        fields = {c["field"]: (c["old_value"], c["new_value"]) for c in diff_profile(failed, later)}
+        self.assertEqual(fields, {"website.official_url": ("https://atea.com/", None), "social_profiles.urls": (["https://linkedin.com/company/atea"], [])})
+
+    def test_social_changes_follow_the_verified_site_and_ignore_span_wording(self):
+        old = self.site_profile("available", "https://atea.no/", socials=["https://linkedin.com/company/atea"])
+        reworded = self.site_profile("available", "https://atea.no/", socials=["https://linkedin.com/company/atea"], span="Følg oss på LinkedIn")
+        self.assertEqual(diff_profile(old, reworded), [])
+        added = self.site_profile("available", "https://atea.no/", socials=["https://linkedin.com/company/atea", "https://youtube.com/@atea"])
+        self.assertEqual([c["field"] for c in diff_profile(old, added)], ["social_profiles.urls"])
 
 
 class WebsiteIdentityTests(unittest.TestCase):

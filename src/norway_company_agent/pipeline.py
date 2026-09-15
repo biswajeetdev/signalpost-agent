@@ -18,7 +18,7 @@ from .contract import MODULES, build_envelope, validate_envelope
 from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
 from .official import _reserve_history_slot, fetch_official_modules
-from .refresh import diff_profile
+from .refresh import carry_forward, diff_profile
 from .site_discovery import Page, discover_website, make_site_fetchers
 from .website import _social_links, structured_social_links
 
@@ -152,7 +152,7 @@ def run_batch(
     for profile in profiles:
         org = profile["organisation_number"]
         enriched, operations = results[org]
-        changes = diff_profile(dict(previous[org]), enriched) if previous and org in previous else []
+        changes = diff_profile(dict(previous[org]), carry_forward(previous[org], enriched)) if previous and org in previous else []
         envelopes.append(build_envelope(enriched, run_id=run_id, started_at=started_at, completed_at=completed_at, operations=operations, changes=changes))
     return envelopes, [results[profile["organisation_number"]][0] for profile in profiles], batch_report(envelopes, budget, started_at, completed_at)
 
