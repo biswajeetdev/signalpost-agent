@@ -57,6 +57,12 @@ class RequestBudget:
             self.by_company[company] += 1
             self.by_purpose[purpose] += 1
 
+    def charge_prior(self, requests: int, seconds: float) -> None:
+        """Count requests and wall-clock already spent in reused (checkpointed) chunks against this run."""
+        with self._lock:
+            self.used += requests
+            self.deadline -= seconds
+
     def report(self) -> dict[str, object]:
         with self._lock:
             counts = sorted(self.by_company.values())

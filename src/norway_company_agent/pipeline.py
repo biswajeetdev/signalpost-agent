@@ -129,11 +129,12 @@ def run_batch(
     run_id: str,
     settings: RunSettings = RunSettings(),
     previous: Mapping[str, Mapping[str, Any]] | None = None,
+    robots: RobotsCache | None = None,
     **enrich_overrides: Any,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     """Enrich every profile and return (envelopes, profiles, report); one envelope per input, in input order."""
     started_at = utc_now()
-    robots = RobotsCache()
+    robots = RobotsCache() if robots is None else robots
     shared = {"domains": cache.shared_domains(), "phones": cache.shared_phones(), "names": cache.name_keys()}
     results: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
 

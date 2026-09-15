@@ -63,8 +63,19 @@ uv run python scripts/run_signalpost.py \
 Defaults match the locked daily budget: `--max-requests 2000`, `--max-minutes 45`, 8 workers,
 14 website requests per company. Every attempt, retry, robots.txt fetch and redirect hop is charged
 to the budget. Near the wall-clock limit website discovery is skipped and marked `failed`, so every
-input still gets its envelope. The command exits non-zero if validation fails or the envelope count
-differs from `--expected-count`.
+input still gets its envelope. The command exits non-zero if validation fails, the envelope count
+differs from `--expected-count`, or envelopes are out of input order.
+
+**Fail-safe chunks.** The batch runs in chunks of `--chunk-size` companies (default 50), one after
+another in the same process, sharing one request budget and one robots.txt cache. Each finished
+chunk is checked (one valid envelope per company, in order) and saved to `--checkpoint-dir`
+(default `<report>.checkpoints/` next to `--report`) before the next chunk starts. A chunk that
+raises or fails its check is retried `--chunk-retries` times (default 1) on fresh copies; if it
+still fails, its companies get `failed` envelopes and the run continues. Re-running the same
+command with the same `--run-id` resumes: saved chunks are reused only when their fingerprint
+matches (run id, organisations, registry snapshot, previous profiles, cache and settings), and
+their requests and time still count against the budget. A new `--run-id` always re-crawls. The
+report adds a `chunks` summary (total, passed first try, retried, fallback, resumed).
 
 **Refresh.** Pass the previous run's profiles to record material changes in each envelope's
 `changes` list. Re-running an unchanged snapshot produces no changes:

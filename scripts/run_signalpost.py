@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Signalpost evaluator command: organisation numbers in, exactly one contract envelope per input out.
 
+Runs in chunks (--chunk-size, default 50), checkpointing to --checkpoint-dir after every chunk so a
+late crash loses at most the in-flight chunk; rerunning the same command resumes from checkpoints
+whose fingerprint still matches the inputs.
+
 Example:
   uv run python scripts/run_signalpost.py --organisations batch.txt --bulk brreg-enheter.csv.gz \
     --cache cache/official.sqlite --output out/envelopes.jsonl --profiles-output out/profiles.jsonl \
@@ -19,7 +23,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from norway_company_agent.batch import profiles_from_bulk, read_organisation_inputs  # noqa: E402
 from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import OfficialCache  # noqa: E402
-from norway_company_agent.pipeline import RunSettings, run_batch  # noqa: E402
+from norway_company_agent.chunked import run_chunked  # noqa: E402
+from norway_company_agent.pipeline import RunSettings  # noqa: E402
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -54,7 +59,14 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--discovery-allowance", type=int, default=14)
     parser.add_argument("--disable-unique-name-rule", action="store_true")
+    parser.add_argument("--chunk-size", type=int, default=50, help="Organisations per checkpointed chunk")
+    parser.add_argument("--chunk-retries", type=int, default=1, help="Extra attempts for a chunk before it falls back to failed envelopes")
+    parser.add_argument("--checkpoint-dir", help="Default: <report>.checkpoints/ next to --report")
     args = parser.parse_args()
+    if args.chunk_size < 1:
+        raise SystemExit(f"--chunk-size must be >= 1, got {args.chunk_size}")
+    if args.chunk_retries < 0:
+        raise SystemExit(f"--chunk-retries must be >= 0, got {args.chunk_retries}")
 
     inputs = read_organisation_inputs(args.organisations)
     organisations = [item["organisation_number"] for item in inputs]
@@ -67,17 +79,29 @@ def main() -> None:
         unique_name_rule=not args.disable_unique_name_rule,
         workers=args.workers,
     )
-    envelopes, enriched, report = run_batch(
+    report_path = Path(args.report)
+    checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else report_path.with_name(report_path.stem + ".checkpoints")
+    envelopes, enriched, report = run_chunked(
         profiles,
         cache=OfficialCache(args.cache),
         budget=budget,
         run_id=args.run_id,
         settings=settings,
         previous=read_previous(args.previous_profiles),
+        registry_sha256=registry["registry_snapshot_sha256"],
+        checkpoint_dir=checkpoint_dir,
+        chunk_size=args.chunk_size,
+        chunk_retries=args.chunk_retries,
     )
     report = {"run_id": args.run_id, "expected_count": args.expected_count, "registry": registry, **report}
     report["validation"]["exact_expected_count"] = len(envelopes) == args.expected_count
-    report["validation"]["passed"] = report["validation"]["passed"] and report["validation"]["exact_expected_count"] and report["unique_organisations"]
+    report["validation"]["input_order"] = [item["organisation_number"] for item in envelopes] == organisations
+    report["validation"]["passed"] = (
+        report["validation"]["passed"]
+        and report["validation"]["exact_expected_count"]
+        and report["validation"]["input_order"]
+        and report["unique_organisations"]
+    )
     write_jsonl(Path(args.profiles_output), enriched)
     write_jsonl(Path(args.output), envelopes)
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)
