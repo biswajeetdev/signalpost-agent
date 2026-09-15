@@ -28,7 +28,8 @@ from norway_company_agent.external_tasks import plan_external_tasks  # noqa: E40
 from norway_company_agent.external_control import development_score, run_company_control, strategy_order  # noqa: E402
 from norway_company_agent.identity import apply_website_identity_gate, assess_social_identity, assess_website_identity  # noqa: E402
 from norway_company_agent.website import _extraction_state, _priority_links, _social_links, assert_public_url, normalize_homepage, normalize_social_url, structured_social_links  # noqa: E402
-from norway_company_agent.batch import evidence_terminal_state, profile_complete_for_modules, read_organisation_inputs, terminal_envelope, validate_envelopes  # noqa: E402
+from norway_company_agent.batch import evidence_terminal_state, profile_complete_for_modules, profiles_from_bulk, read_organisation_inputs, terminal_envelope, validate_envelopes  # noqa: E402
+from norway_company_agent.contract import build_envelope, validate_envelope  # noqa: E402
 from norway_company_agent.snapshots import SnapshotFetcher  # noqa: E402
 from bs4 import BeautifulSoup  # noqa: E402
 from scripts.build_prototype import compact as compact_prototype, qualification_copy  # noqa: E402
@@ -659,6 +660,24 @@ class SamplingTests(unittest.TestCase):
         self.assertEqual([item["organisation_number"] for item in first], [item["organisation_number"] for item in second])
         self.assertEqual(len(first), 5)
         self.assertEqual(metadata["overlap_with_excluded"], 0)
+
+    def test_org_absent_from_bulk_snapshot_still_gets_a_valid_envelope(self):
+        fields = ["organisasjonsnummer", "navn", "organisasjonsform.kode"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "registry.csv.gz"
+            with gzip.open(path, "wt", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields, delimiter=";")
+                writer.writeheader()
+                writer.writerow({"organisasjonsnummer": "985589003", "navn": "Present AS", "organisasjonsform.kode": "AS"})
+            profiles, metadata = profiles_from_bulk(path, ["928987728", "985589003"])
+        self.assertEqual([item["organisation_number"] for item in profiles], ["928987728", "985589003"])
+        self.assertEqual(metadata["absent_from_snapshot"], ["928987728"])
+        self.assertEqual(metadata["selected"], 1)
+        self.assertEqual(profiles[0]["evidence"]["registry"]["status"], "not_found")
+        envelope = build_envelope(profiles[0], run_id="t", started_at="2026-09-15T00:00:00Z", completed_at="2026-09-15T00:00:01Z", operations={"requests": 0})
+        self.assertEqual(validate_envelope(envelope), [])
+        self.assertEqual(envelope["modules"]["registry"], "not_available")
+        self.assertIn("legal_identity", {claim["field"] for claim in envelope["claims"] if claim["availability"] == "not_available"})
 
     def test_strata_distinguish_adverse_and_web_coverage(self):
         base = {"legal_form": "AS", "employees": 12, "bankrupt": False, "liquidating": False, "website": "example.no"}
