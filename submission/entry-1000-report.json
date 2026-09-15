@@ -1,0 +1,94 @@
+{
+  "run_id": "entry-1000-2026-09-15",
+  "expected_count": 1000,
+  "registry": {
+    "registry_snapshot_sha256": "1817f874fe09747c63207128d341a0b461c1596d070b2e08172cffffa1bb6732",
+    "registry_rows_scanned": 1174087,
+    "requested": 1000,
+    "selected": 999,
+    "absent_from_snapshot": [
+      "928987728"
+    ]
+  },
+  "started_at": "2026-09-15T13:49:15.106306Z",
+  "completed_at": "2026-09-15T14:29:08.015758Z",
+  "envelopes": 1000,
+  "unique_organisations": true,
+  "module_states": {
+    "registry": {
+      "available": 999,
+      "not_available": 1
+    },
+    "financials": {
+      "available": 997,
+      "not_available": 1,
+      "failed": 2
+    },
+    "financial_history": {
+      "available": 1000
+    },
+    "roles": {
+      "available": 999,
+      "not_available": 1
+    },
+    "locations": {
+      "available": 745,
+      "not_available": 255
+    },
+    "website": {
+      "available": 225,
+      "not_available": 598,
+      "ambiguous": 138,
+      "failed": 39
+    },
+    "social_profiles": {
+      "not_available": 887,
+      "available": 113
+    }
+  },
+  "available_claims": {
+    "legal_name": 999,
+    "legal_form": 999,
+    "industry_code": 999,
+    "industry": 999,
+    "business_address": 997,
+    "bankrupt": 999,
+    "under_liquidation": 999,
+    "financials.revenue": 772,
+    "financials.operating_result": 982,
+    "financials.profit_before_tax": 962,
+    "financials.annual_result": 997,
+    "financials.assets": 997,
+    "financials.equity": 992,
+    "financials.debt": 956,
+    "financials.filed_years": 1000,
+    "role": 3962,
+    "registered_workplace": 872,
+    "official_website": 225,
+    "social_profile": 259,
+    "registered_employees": 144,
+    "registry_declared_website": 107
+  },
+  "operations": {
+    "requests": 5745,
+    "limit": 8000,
+    "by_purpose": {
+      "official": 2002,
+      "robots": 1518,
+      "robots_redirect": 382,
+      "site_page": 1235,
+      "site_page_redirect": 608
+    },
+    "per_company_p50": 5,
+    "per_company_max": 14,
+    "runtime_ms_p50": 16740,
+    "runtime_ms_p95": 39830,
+    "third_party_cost_usd": 0
+  },
+  "validation": {
+    "passed": true,
+    "problems": {},
+    "envelopes_with_problems": 0,
+    "exact_expected_count": true
+  }
+}

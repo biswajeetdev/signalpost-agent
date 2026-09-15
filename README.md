@@ -85,13 +85,20 @@ uv run python scripts/run_signalpost.py ... --previous-profiles out/previous-pro
 - `entry-1000-profiles.jsonl` — the profile snapshot a refresh diffs against
 - `entry-1000-report.json` — runtime, requests by purpose, module states, validation
 
+Run `entry-1000-2026-09-15` (code at commit `5c179c7`, registry snapshot SHA-256 `1817f874…`):
+1,000 envelopes in manifest order, validation passed, USD 0. Published claims include 3,962 roles,
+latest accounts for 997 companies, 872 registered workplaces, 225 verified official websites and
+259 company-linked social profiles.
+
 ## Cost, models and APIs
 
 - **Models:** none. No LLM or ML model runs in the evaluator command.
 - **Third-party paid APIs:** none. **Expected cost per 100-company run: USD 0.**
 - **Secrets:** none required; the command reads no API keys or environment secrets.
-- **Measured load (100 companies):** 599 outbound requests, about 4 minutes, runtime p50 16 s and
-  p95 30 s per company, well inside the 2,000-request / 45-minute budget.
+- **Measured load:** 100 companies took 599 requests in about 4 minutes. The 1,000-company entry run
+  took 5,745 requests (about 575 per 100 companies) in 40 minutes, runtime p50 17 s and p95 40 s per
+  company. Most of that time is Brønnøysund's filing-years pacing (one request start per 2.1 s), so a
+  daily 100-company batch stays well inside the 2,000-request / 45-minute budget.
 
 ## Source rights and safe handling
 
@@ -109,12 +116,18 @@ uv run python scripts/run_signalpost.py ... --previous-profiles out/previous-pro
 
 ## Known limits
 
-- Brønnøysund's normalized accounts endpoint returns HTTP 500 for some regulated banks and
-  insurers (e.g. ASA banks); those envelopes carry `financials: failed` with the source error, while
-  filed years remain available.
+- Brønnøysund's normalized accounts endpoint returns HTTP 500 for some regulated financial entities
+  (ASA banks, insurers, securities funds, pension funds); those envelopes carry `financials: failed`
+  with the source error, while filed years remain available. 2 of 1,000 in the entry run.
+- Website discovery stops at 14 requests per company. When that runs out before a candidate is
+  proven, the website module is `failed` with `company allowance exhausted (14)`. 39 of 1,000 in the
+  entry run.
 - The frozen universe contains entities deleted after the freeze. An organisation absent from the
   bulk snapshot still gets a terminal envelope with `legal_identity: not_available`, and is listed
   in the report under `registry.absent_from_snapshot`.
+- A few bulk CSV rows have shifted columns (extra non-empty or missing fields; 15 in the universe).
+  Their registry fields are withheld and the registry module is `failed`, rather than publishing
+  misaligned values. Empty trailing extra fields are dropped harmlessly.
 - Jobs and dated public activity are not yet collected.
 
 See `OUTPUT_CONTRACT.md` for the envelope shape and `docs/builderr/` for the challenge rules.
