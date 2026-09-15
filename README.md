@@ -101,6 +101,18 @@ Run `entry-1000-2026-09-15` (code at commit `5c179c7`, registry snapshot SHA-256
 latest accounts for 997 companies, 872 registered workplaces, 225 verified official websites and
 259 company-linked social profiles.
 
+`submission/refresh/` holds the refresh evidence (code at commit `5ddd709`):
+
+- `organisations.txt`, `previous-profiles.jsonl` — 100 companies and their 13 September 2026
+  profiles, the previous snapshot
+- `refresh-1-*` — the same companies re-crawled on 15 September with `--previous-profiles`:
+  100 envelopes, validation passed, 601 requests. Every accounts, filing-history and website record
+  was re-fetched; no tracked field changed in those two days, so `changes` is empty
+- `refresh-2-*` — an immediate re-run against `refresh-1` profiles: 0 changes, so no false changes
+- `refresh-replay.json` — `scripts/run_refresh_replay.py` on the bundled saved responses: both
+  expected material changes found (employee count, annual accounts), precision 1.0, recall 1.0,
+  evidence complete, idempotent re-run
+
 ## Cost, models and APIs
 
 - **Models:** none. No LLM or ML model runs in the evaluator command.
@@ -139,6 +151,9 @@ latest accounts for 997 companies, 872 registered workplaces, 225 verified offic
 - A few bulk CSV rows have shifted columns (extra non-empty or missing fields; 15 in the universe).
   Their registry fields are withheld and the registry module is `failed`, rather than publishing
   misaligned values. Empty trailing extra fields are dropped harmlessly.
+- Refresh tracks registry, accounts, filing years, roles and workplaces. Website changes (a site
+  newly proven, or no longer provable) are not yet reported as changes; 2 such transitions occurred
+  in the 100-company refresh.
 - Jobs and dated public activity are not yet collected.
 
 See `OUTPUT_CONTRACT.md` for the envelope shape and `docs/builderr/` for the challenge rules.

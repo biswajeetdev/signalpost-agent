@@ -1,0 +1,89 @@
+{
+  "run_id": "refresh-2-2026-09-15",
+  "expected_count": 100,
+  "registry": {
+    "registry_snapshot_sha256": "1817f874fe09747c63207128d341a0b461c1596d070b2e08172cffffa1bb6732",
+    "registry_rows_scanned": 1173163,
+    "requested": 100,
+    "selected": 100,
+    "absent_from_snapshot": []
+  },
+  "started_at": "2026-09-15T14:39:06.699238Z",
+  "completed_at": "2026-09-15T14:43:00.945386Z",
+  "envelopes": 100,
+  "unique_organisations": true,
+  "module_states": {
+    "registry": {
+      "available": 100
+    },
+    "financials": {
+      "available": 97,
+      "failed": 3
+    },
+    "financial_history": {
+      "available": 100
+    },
+    "roles": {
+      "available": 100
+    },
+    "locations": {
+      "available": 99,
+      "not_available": 1
+    },
+    "website": {
+      "available": 77,
+      "ambiguous": 12,
+      "not_available": 9,
+      "failed": 2
+    },
+    "social_profiles": {
+      "available": 44,
+      "not_available": 56
+    }
+  },
+  "available_claims": {
+    "legal_name": 100,
+    "legal_form": 100,
+    "industry_code": 100,
+    "industry": 100,
+    "registry_declared_website": 67,
+    "business_address": 99,
+    "bankrupt": 100,
+    "under_liquidation": 100,
+    "financials.revenue": 97,
+    "financials.operating_result": 97,
+    "financials.profit_before_tax": 93,
+    "financials.annual_result": 97,
+    "financials.assets": 97,
+    "financials.equity": 97,
+    "financials.debt": 97,
+    "financials.filed_years": 100,
+    "role": 715,
+    "registered_workplace": 180,
+    "official_website": 77,
+    "social_profile": 109,
+    "registered_employees": 60
+  },
+  "operations": {
+    "requests": 600,
+    "limit": 2000,
+    "by_purpose": {
+      "official": 203,
+      "robots": 147,
+      "robots_redirect": 54,
+      "site_page": 134,
+      "site_page_redirect": 62
+    },
+    "per_company_p50": 5,
+    "per_company_max": 14,
+    "runtime_ms_p50": 15431,
+    "runtime_ms_p95": 28918,
+    "third_party_cost_usd": 0
+  },
+  "validation": {
+    "passed": true,
+    "problems": {},
+    "envelopes_with_problems": 0,
+    "exact_expected_count": true
+  }
+}
