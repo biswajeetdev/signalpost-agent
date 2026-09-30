@@ -1,0 +1,114 @@
+{
+  "run_id": "smoke-100-v3",
+  "expected_count": 100,
+  "registry": {
+    "registry_snapshot_sha256": "1c89710e5b01f8617e86d09fbdff4a52f2f8dbbba297e74f7164b5984f5a0384",
+    "registry_rows_scanned": 407112,
+    "requested": 100,
+    "selected": 100,
+    "absent_from_snapshot": []
+  },
+  "started_at": "2026-09-30T18:45:15.606252Z",
+  "completed_at": "2026-09-30T18:49:23.029486Z",
+  "envelopes": 100,
+  "unique_organisations": true,
+  "module_states": {
+    "registry": {
+      "available": 100
+    },
+    "financials": {
+      "available": 100
+    },
+    "financial_history": {
+      "available": 100
+    },
+    "roles": {
+      "available": 100
+    },
+    "locations": {
+      "not_available": 20,
+      "available": 80
+    },
+    "website": {
+      "not_available": 59,
+      "ambiguous": 18,
+      "available": 23
+    },
+    "social_profiles": {
+      "not_available": 89,
+      "available": 11
+    },
+    "jobs": {
+      "not_available": 100
+    },
+    "public_activity": {
+      "not_available": 100
+    }
+  },
+  "available_claims": {
+    "legal_name": 100,
+    "legal_form": 100,
+    "industry_code": 100,
+    "industry": 100,
+    "business_address": 100,
+    "bankrupt": 100,
+    "under_liquidation": 100,
+    "financials.operating_result": 100,
+    "financials.profit_before_tax": 97,
+    "financials.annual_result": 100,
+    "financials.assets": 100,
+    "financials.equity": 99,
+    "financials.debt": 97,
+    "financials.filed_years": 100,
+    "role": 434,
+    "financials.revenue": 83,
+    "registered_workplace": 172,
+    "registered_employees": 17,
+    "registry_declared_website": 12,
+    "official_website": 23,
+    "social_profile": 25
+  },
+  "operations": {
+    "requests": 952,
+    "limit": 2600,
+    "by_purpose": {
+      "jobs_feed": 66,
+      "official": 500,
+      "robots": 177,
+      "site_page": 148,
+      "robots_redirect": 45,
+      "site_page_redirect": 82
+    },
+    "per_company_p50": 8,
+    "per_company_max": 25,
+    "runtime_ms_p50": 17287,
+    "runtime_ms_p95": 32126,
+    "third_party_cost_usd": 0,
+    "resumed_requests": 0
+  },
+  "validation": {
+    "passed": true,
+    "problems": {},
+    "envelopes_with_problems": 0,
+    "exact_expected_count": true,
+    "input_order": true
+  },
+  "chunks": {
+    "size": 50,
+    "total": 2,
+    "passed_first_try": 2,
+    "retried": 0,
+    "fallback": 0,
+    "resumed": 0,
+    "fallback_organisations": []
+  },
+  "jobs_feed": {
+    "state": "available",
+    "pages": 216,
+    "active_ads": 10604,
+    "lookback_days": 120,
+    "deferred_then_filled": 100,
+    "note": null
+  },
+  "viewer": "/Users/biswajeetkumar/.claude/jobs/67421539/tmp/sF/envelopes.html"
+}
