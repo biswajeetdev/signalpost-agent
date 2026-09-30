@@ -140,6 +140,14 @@ class LiveOfficialCache:
         if not wanted:
             return {}
         records, _ = fetch_official_modules(org, wanted, **({"fetcher": fetch} if fetch else {}))
+        # An empty list from the live endpoint means the entity has none: not_available, like the bulk cache.
+        for module, key, note in (("roles", "roles", "No roles registered for this entity"),
+                                  ("locations", "locations", "No active registered subunits for this entity")):
+            record = records.get(module)
+            if record and record.get("status") == "available" and not (record.get("value") or {}).get(key):
+                record["status"] = "not_available"
+                record["value"] = None
+                record["note"] = note
         return records
 
 

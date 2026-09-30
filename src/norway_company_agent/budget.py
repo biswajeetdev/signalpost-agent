@@ -31,7 +31,17 @@ class RequestBudget:
         self.used = 0
         self.by_company: Counter[str] = Counter()
         self.by_purpose: Counter[str] = Counter()
+        # Companies still due a call to a paced (rate-limited) endpoint; set by the runner.
+        self.paced_pending = 0
         self._lock = threading.Lock()
+
+    def take_paced_slot(self, seconds_per_call: float, margin_seconds: float = 90.0) -> bool:
+        """Claim one company's paced call only if the whole remaining paced backlog still fits the
+        wall-clock budget; otherwise skip it so the run finishes on time rather than timing out."""
+        with self._lock:
+            pending = max(self.paced_pending, 1)
+            self.paced_pending = max(self.paced_pending - 1, 0)
+        return self.seconds_left() - margin_seconds >= pending * seconds_per_call
 
     def remaining(self) -> int:
         with self._lock:

@@ -95,6 +95,7 @@ def main() -> None:
     if len(organisations) != args.expected_count:
         raise SystemExit(f"Expected {args.expected_count} organisations, received {len(organisations)}")
     budget = RequestBudget(args.max_requests or 12 * len(organisations), args.max_minutes * 60)
+    budget.paced_pending = len(organisations)
     # No bulk supplied: the batch file itself is the registry source when it carries company rows,
     # otherwise the live entity endpoint fills each registry row (see profiles_from_live_registry).
     profiles, registry = profiles_from_bulk(args.bulk, organisations) if args.bulk else profiles_from_live_registry(organisations)

@@ -24,6 +24,8 @@ from .website import _social_links, structured_social_links
 
 LIVE_OFFICIAL_MODULES = frozenset({"financials", "financial_history"})
 HISTORY_PATH = "/aarsregnskap/kopi/"
+HISTORY_URL = "https://data.brreg.no/regnskapsregisteret/regnskap/aarsregnskap/kopi/{org}/aar"
+HISTORY_SECONDS = 2.1  # matches official._reserve_history_slot
 REGISTRY_SOURCE = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv"
 
 
@@ -116,7 +118,7 @@ def enrich_company(
     fetcher = official_fetcher(budget, org)
     fill_registry_contacts(records, org, fetcher)
     records.update(cache.module_records(org, fetch=fetcher))
-    official, _ = fetch_official_modules(org, set(LIVE_OFFICIAL_MODULES), fetcher=fetcher)
+    official, _ = fetch_official_modules(org, {"financials"}, fetcher=fetcher)
     records.update(official)
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
@@ -134,6 +136,16 @@ def enrich_company(
             **({"resolver": resolver} if resolver else {}),
         )
     records["social_profiles"] = social_profiles(records["website"], home)
+    # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,
+    # and only while the remaining paced backlog fits the time budget.
+    if budget.take_paced_slot(HISTORY_SECONDS):
+        history, _ = fetch_official_modules(org, {"financial_history"}, fetcher=fetcher)
+        records.update(history)
+    else:
+        records["financial_history"] = evidence(
+            "financial_history", "failed", "official_annual_account_copies", HISTORY_URL.format(org=org),
+            note="Deferred: the rate-limited annual-account copy endpoint would not fit this run's time budget",
+        )
     return profile, {"requests": budget.by_company[org], "runtime_ms": int((time.monotonic() - started) * 1000), "third_party_cost_usd": 0}
 
 
