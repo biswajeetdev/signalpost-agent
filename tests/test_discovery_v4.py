@@ -84,5 +84,49 @@ class CheapFallbackTest(unittest.TestCase):
         self.assertEqual(record["status"], "available")
 
 
+class PrecisionGateTest(unittest.TestCase):
+    """Cases from the audit of the v3 1,000-company run, where the unique-name rule published wrong sites."""
+
+    def _discover(self, name, domain, html, org="912345678"):
+        row = {"organisasjonsnummer": org, "navn": name, "epostadresse": "", "telefon": "", "mobil": ""}
+        from norway_company_agent.proof import name_key
+        keys = {name_key(name): 1}
+        fetch = lambda url: Page(url, url, 200, html, "a" * 64, "t")  # noqa: E731
+        record, _ = discover_website(row, shared_domains={}, shared_phones={}, fetch=fetch, robots_allowed=lambda url: True,
+                                     resolver=lambda host: host in {domain, "www." + domain}, name_keys=keys, max_hosts=6)
+        return record
+
+    LONG = "<p>" + "Velkommen til oss. Vi leverer gode tjenester i hele regionen. " * 60 + "</p>"
+
+    def test_parked_page_is_never_published(self):
+        record = self._discover("VERAX HOLDING AS", "verax.no", "<p>verax.no is parked. verax.no is registered, but the owner has not set up a site.</p>")
+        self.assertNotEqual(record["status"], "available")
+        self.assertIn("parked", [a["outcome"] for a in record["attempts"]])
+
+    def test_domain_mention_is_not_the_legal_name(self):
+        record = self._discover("BRANDSUITE AS", "brandsuite.no", "<p>www.brandsuite.no</p>" + self.LONG)
+        self.assertNotEqual(record["status"], "available")
+
+    def test_name_rule_does_not_apply_to_com(self):
+        record = self._discover("DUERTEX AS", "duertex.com", "<h1>DUERTEX</h1><p>The worlds most comfortable pants</p>" + self.LONG)
+        self.assertNotEqual(record["status"], "available")
+
+    def test_acronym_needs_an_identifier(self):
+        record = self._discover("BQL AS", "bql.no", "<h1>BQL</h1><p>Bergen Quiltelag</p>" + self.LONG)
+        self.assertNotEqual(record["status"], "available")
+
+    def test_foreign_org_number_blocks_name_rule(self):
+        record = self._discover("PDIMPORT AS", "pdimport.no", "<p>PDIMPORT AS Org. nr. 930692522</p>" + self.LONG)
+        self.assertNotEqual(record["status"], "available")
+
+    def test_unique_long_no_name_still_publishes(self):
+        record = self._discover("RELASJONSPSYKOLOGEN AS", "relasjonspsykologen.no", "<h1>Relasjonspsykologen AS</h1>" + self.LONG)
+        self.assertEqual(record["status"], "available")
+
+    def test_own_org_number_still_publishes_despite_other_numbers(self):
+        record = self._discover("ACME HOLDING AS", "acmeholding.no", "<p>Acme Holding AS org.nr 912 345 678. Datter: org.nr 999 888 777</p>" + self.LONG)
+        self.assertEqual(record["status"], "available")
+
+
 if __name__ == "__main__":
     unittest.main()

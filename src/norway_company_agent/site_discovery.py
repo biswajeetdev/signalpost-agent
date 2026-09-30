@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import socket
 import urllib.error
 import urllib.parse
@@ -142,6 +143,42 @@ def make_site_fetchers(
     return fetch, robots_allowed
 
 
+PARKED_PATTERNS = re.compile(
+    r"(is parked|domain (name )?is for sale|this domain (is|may be) for sale|buy this domain|future home of|"
+    r"is registered,? but|domain has (just )?been registered|parkingcrew|sedoparking|bodis\.com|dan\.com|"
+    r"domenet er (til salgs|parkert|registrert)|kjøp (dette )?domenet|dette domenet|domene til salgs|"
+    r"under construction|kommer snart|coming soon|website is (currently )?under)",
+    re.I,
+)
+MIN_UNIQUE_NAME_CHARS = 5
+PARKED_MAX_TEXT_CHARS = 3000
+
+
+def is_parked(html: str) -> bool:
+    """Registrar parking, for-sale and placeholder pages: never evidence for any company."""
+    text = re.sub(r"(?is)<(script|style)\b.*?</\1\s*>", " ", html or "")
+    text = " ".join(re.sub(r"<[^>]+>", " ", text).split())
+    # Parking pages are short; a live site that merely says "coming soon" somewhere is not parked.
+    return len(text) < PARKED_MAX_TEXT_CHARS and bool(PARKED_PATTERNS.search(text))
+
+
+ORG_NUMBER_MENTION = re.compile(r"(?i)(?:org(?:anisasjons)?\.?\s*(?:nr|nummer|no|number)\.?|foretaksregisteret|\bNO)\s*[:.]?\s*(\d{3}[\s.]?\d{3}[\s.]?\d{3})(?!\d)")
+
+
+def foreign_org_numbers(html: str, own: set[str]) -> set[str]:
+    """Organisation numbers the page presents as its operator's that belong to no entity in `own`."""
+    text = " ".join(re.sub(r"<[^>]+>", " ", html or "").split())
+    found = {re.sub(r"\D", "", match.group(1)) for match in ORG_NUMBER_MENTION.finditer(text)}
+    return {number for number in found if len(number) == 9} - own
+
+
+def without_domain_mentions(html: str, domain: str) -> str:
+    """Page HTML with the site's own domain removed, so 'acme.no' printed on the page cannot count as
+    the legal name 'ACME' appearing on it."""
+    label = domain.split(".")[0]
+    return re.sub(r"(?i)(https?://)?(www\.)?" + re.escape(label) + r"\.[a-z]{2,}(/\S*)?", " ", html or "")
+
+
 def _fallback_kind(reason: str) -> str:
     """Classify an unreachable origin: 'timeout' (host effectively dead: try nothing else), 'tls'
     (certificate/TLS problem: plain HTTP may work), or 'other' (refused, reset: try the next host)."""
@@ -235,7 +272,10 @@ def discover_website(
     identifiers = registry_identifiers(row)
     legal_name = str(row.get("navn") or row.get("name") or "")
     full_labels = full_name_labels(legal_name)
-    unique_name = name_keys is not None and bool(name_key(legal_name)) and name_keys.get(name_key(legal_name), 0) == 1
+    # Acronyms (USH, NGE) are too short to identify a company by name alone; they need a registry identifier.
+    distinctive = name_key(legal_name)
+    unique_name = (name_keys is not None and bool(distinctive) and name_keys.get(distinctive, 0) == 1
+                   and len(distinctive.replace(" ", "")) >= MIN_UNIQUE_NAME_CHARS)
     attempts: list[dict[str, Any]] = []
     seen_domains: set[str] = set()
     fallback: dict[str, Any] | None = None
@@ -283,17 +323,23 @@ def discover_website(
                 continue
             final_domain = registered_domain(home.final_url)
             seen_domains.update({domain, final_domain})
+            if is_parked(home.html):
+                attempts.append({**candidate, "outcome": "parked", "url": home.final_url, "final_domain": final_domain})
+                continue
             relation = candidate["relation"]
             if shared_domains.get(final_domain, 0) >= SHARED_DOMAIN_THRESHOLD:
                 relation = "administrator_or_group"
             registry_declared = candidate["source"] == "registry_website"
-            full_name_domain = final_domain.split(".")[0] in full_labels
+            # Registry uniqueness says nothing about global .com names: the name rule is for .no only.
+            full_name_domain = final_domain.split(".")[0] in full_labels and final_domain.endswith(".no")
             name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
             spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
-            name_span = legal_name_span(legal_name, home.html)
+            name_span = legal_name_span(legal_name, without_domain_mentions(home.html, final_domain))
             found = set(spans)
             proof_pages = [_page_record(home, spans, name_span)]
-            if not found & STRONG_PROOFS and not (name_suffices and name_span):
+            own_numbers = {identifiers.get("organisation_number") or "", *(identifiers.get("subunit_numbers") or [])} - {""}
+            foreign = foreign_org_numbers(home.html, own_numbers)
+            if not found & STRONG_PROOFS and not (name_suffices and name_span and not foreign):
                 for link in contact_links(home.final_url, home.html):
                     if not robots_allowed(link):
                         continue
@@ -301,7 +347,8 @@ def discover_website(
                     if page.error or registered_domain(page.final_url) != final_domain:
                         continue
                     page_spans = page_proof_spans(identifiers, page.html, shared_phones=shared_phones)
-                    page_name = legal_name_span(legal_name, page.html)
+                    page_name = legal_name_span(legal_name, without_domain_mentions(page.html, final_domain))
+                    foreign |= foreign_org_numbers(page.html, own_numbers)
                     proof_pages.append(_page_record(page, page_spans, page_name))
                     found |= set(page_spans)
                     name_span = name_span or page_name
@@ -315,6 +362,11 @@ def discover_website(
                 full_name_domain=full_name_domain,
                 unique_legal_name=unique_name,
             )
+            if foreign and not found & STRONG_PROOFS:
+                # The site names another entity as its operator and none of ours: never publish on name
+                # or registry declaration alone (group, parent, previous owner or a namesake).
+                assessment = {**assessment, "status": "related", "publishable": False,
+                              "conflicting_organisation_numbers": sorted(foreign)}
             attempts.append({**candidate, "outcome": assessment["status"], "url": home.final_url, "final_domain": final_domain, "proofs": assessment["proofs"]})
             value = {
                 "final_url": home.final_url,
