@@ -22,6 +22,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import warnings  # noqa: E402
+
+from bs4 import XMLParsedAsHTMLWarning  # noqa: E402
+
+# Some company sites serve XML as text/html; parsing it leniently is intended, the warning is noise.
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+
 from norway_company_agent.batch import profiles_from_bulk, profiles_from_live_registry, read_organisation_inputs  # noqa: E402
 from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
@@ -81,7 +88,7 @@ def main() -> None:
     parser.add_argument("--checkpoint-dir", help="Default: <report>.checkpoints/ next to --report")
     parser.add_argument("--resume", action="store_true", help="Accepted for the evaluator contract; rerunning the same --run-id always resumes")
     parser.add_argument("--modules", help="Accepted for the evaluator contract; every module always runs")
-    parser.add_argument("--jobs-lookback-days", type=int, default=int(env("JOBS_LOOKBACK_DAYS", "60")),
+    parser.add_argument("--jobs-lookback-days", type=int, default=int(env("JOBS_LOOKBACK_DAYS", "120")),
                         help="How far back the NAV public job feed is read for still-active ads")
     parser.add_argument("--no-jobs", action="store_true", help="Skip the NAV job-feed connector")
     parser.add_argument("organisations_positional", nargs="?", help=argparse.SUPPRESS)

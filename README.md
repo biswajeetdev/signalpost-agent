@@ -33,7 +33,7 @@ deep-link to the source. The agent publishes only ads that are ACTIVE at run tim
 run (an ad that becomes inactive disappears and shows as a refresh change), links `application_url`
 to the source, and stores no contact persons. It uses NAV's published public token by default; an
 operator can supply their own consumer token server-side via `SIGNALPOST_NAV_FEED_TOKEN`. The feed read
-(~5 s per page, ~2 pages per look-back day, default 60 days) runs in the background; companies
+(~5 s per page, ~2 pages per look-back day, default 120 days) runs in the background; companies
 processed before it finishes are filled after the batch, within `--max-minutes`. `--no-jobs` disables it.
 
 ## Evaluator command (clean clone, no setup beyond `uv sync`)

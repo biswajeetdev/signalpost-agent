@@ -52,6 +52,19 @@ class SiteActivityTest(unittest.TestCase):
         self.assertEqual(len(claims), 3)
         self.assertEqual([p for p in validate_envelope(envelope) if "public_activity" in p], [])
 
+    def test_rejects_home_sections_page_titles_and_boilerplate(self):
+        html = """<html><head><title>Blog - Acme</title></head><body>
+        <article><h2><a href="/">Home - Acme</a></h2><time datetime="2026-09-01">x</time></article>
+        <article><h2><a href="/blog-2/">Blog - Acme</a></h2><time datetime="2026-09-02">x</time></article>
+        <article><h2><a href="/in-the-news/">In the news</a></h2><time datetime="2026-09-03">x</time></article>
+        <article><h2><a href="/agbs-2025/">AGBs 2025</a></h2><time datetime="2026-09-04">x</time></article>
+        <article><h2><a href="/a/">Same label</a></h2><time datetime="2026-09-05">x</time></article>
+        <article><h2><a href="/b/">Same label</a></h2><time datetime="2026-09-06">x</time></article>
+        <article><h2><a href="/blog/ny-kontrakt">Ny kontrakt signert</a></h2><time datetime="2026-09-07">x</time></article>
+        </body></html>"""
+        record = site_activity({"status": "available"}, page("https://acme.no/", html), None, None, NOW)
+        self.assertEqual([item["url"] for item in record["value"]["items"]], ["https://acme.no/blog/ny-kontrakt"])
+
     def test_no_verified_site_is_not_available(self):
         record = site_activity({"status": "ambiguous"}, None, None, None, NOW)
         self.assertEqual(record["status"], "not_available")

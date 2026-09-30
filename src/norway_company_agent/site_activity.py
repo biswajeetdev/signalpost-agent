@@ -113,6 +113,44 @@ def dated_articles(page_url: str, html: str, now: datetime | None = None) -> lis
     return sorted(items.values(), key=lambda item: item["date"], reverse=True)
 
 
+SECTION_SEGMENTS = {"blog", "blogg", "news", "nyheter", "aktuelt", "artikler", "presse", "press", "media", "nytt",
+                    "in-the-news", "newsroom", "aktuelt-arkiv", "arkiv", "archive", "home", "hjem", "index.php"}
+
+
+BOILERPLATE_TITLE = re.compile(
+    r"\b(agbs?|vilkår|salgsbetingelser|terms|conditions|privacy|personvern|cookies?|datenschutz|impressum|"
+    r"åpningstider|opening hours|kontakt( oss)?|contact( us)?|om oss|about( us)?)\b"
+)
+
+
+def _norm(url: str | None) -> str:
+    parsed = urllib.parse.urlparse(str(url or ""))
+    return f"{parsed.netloc.lower().removeprefix('www.')}{parsed.path.rstrip('/')}"
+
+
+def _page_title(html: str) -> str:
+    match = re.search(r"<title[^>]*>(.*?)</title>", html or "", re.I | re.S)
+    return " ".join(match.group(1).split()).casefold() if match else ""
+
+
+def is_article(item: Mapping[str, Any], listing_urls: set[str], page_titles: set[str]) -> bool:
+    """An individual article: not the home page, not a listing page read here, not a section root
+    (/blog/, /news/, /blog-2/ ...), and not titled with a read page's own <title>."""
+    url = str(item.get("url") or "")
+    if _norm(url) in listing_urls:
+        return False
+    segments = [part for part in urllib.parse.urlparse(url).path.split("/") if part]
+    if not segments:
+        return False
+    last = re.sub(r"[-_]?\d+$", "", segments[-1].casefold())
+    if len(segments) == 1 and last in SECTION_SEGMENTS:
+        return False
+    title = " ".join(str(item.get("title") or "").split()).casefold()
+    if BOILERPLATE_TITLE.search(title):
+        return False
+    return title not in page_titles
+
+
 def site_activity(
     website: Mapping[str, Any],
     home: Any,
@@ -139,10 +177,19 @@ def site_activity(
             if page.status == 200 and page.html and page.final_url and _same_host(home.final_url, page.final_url):
                 pages.append(page)
     items: dict[str, dict[str, Any]] = {}
+    listing_urls = {_norm(page.final_url) for page in pages}
+    page_titles = {_page_title(page.html) for page in pages} - {""}
     for page in pages:
         for item in dated_articles(page.final_url, page.html, now):
+            if not is_article(item, listing_urls, page_titles):
+                continue
             items.setdefault(item["url"], {**item, "source_url": page.final_url, "retrieved_at": page.retrieved_at, "content_sha256": page.content_sha256})
-    ordered = sorted(items.values(), key=lambda item: item["date"], reverse=True)[:MAX_ITEMS]
+    # A title repeated across different URLs is a template/section label, not an article.
+    title_counts: dict[str, int] = {}
+    for item in items.values():
+        title_counts[item["title"].casefold()] = title_counts.get(item["title"].casefold(), 0) + 1
+    unique = [item for item in items.values() if title_counts[item["title"].casefold()] == 1]
+    ordered = sorted(unique, key=lambda item: item["date"], reverse=True)[:MAX_ITEMS]
     if not ordered:
         return evidence("public_activity", "not_available", SOURCE_CLASS, home.final_url, retrieved_at=home.retrieved_at, content_sha256=home.content_sha256,
                         note=note or f"No dated articles on the verified site ({len(pages)} page(s) read)")
