@@ -35,7 +35,7 @@ REGISTRY_FIELDS = (
 REGISTRY_FLAGS = (("bankrupt", "konkurs"), ("under_liquidation", "underAvvikling"))
 ADDRESS_PARTS = ("adresse", "postnummer", "poststed", "kommune")
 FINANCIAL_FIELDS = ("revenue", "operating_result", "profit_before_tax", "annual_result", "assets", "equity", "debt")
-STRONG_WEBSITE_PROOFS = {"organisation_number", "registry_email", "registry_phone"}
+STRONG_WEBSITE_PROOFS = {"organisation_number", "subunit_organisation_number", "registry_email", "registry_phone"}
 
 
 def availability(record: Mapping[str, Any] | None) -> str:

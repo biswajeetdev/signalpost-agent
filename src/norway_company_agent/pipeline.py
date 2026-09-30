@@ -86,6 +86,20 @@ CONTACT_COLUMNS = (
 )
 
 
+def with_subunits(row: Mapping[str, Any], locations: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Registry row plus the entity's registered subunits (same legal entity) for website discovery:
+    their numbers are identity proofs on a site, their websites and names are candidates only."""
+    items = ((locations or {}).get("value") or {}).get("locations") or [] if (locations or {}).get("status") == "available" else []
+    if not isinstance(row, dict) or not items:
+        return dict(row) if isinstance(row, dict) else {}
+    return {
+        **row,
+        "_subunit_numbers": [str(item.get("organisation_number")) for item in items if item.get("organisation_number")],
+        "_subunit_websites": [str(item.get("website")) for item in items if item.get("website")],
+        "_subunit_names": [str(item.get("name")) for item in items if item.get("name") and str(item.get("name")).strip().upper() != str(row.get("navn") or "").strip().upper()],
+    }
+
+
 def fill_registry_contacts(records: dict[str, Any], org: str, fetch: Callable[[str], FetchResult]) -> None:
     """A bulk file without Brønnøysund contact columns (e.g. the flat company list) leaves the identity
     gate without the registry email/phone proofs; fill only the absent columns from the live entity."""
@@ -126,7 +140,7 @@ def enrich_company(
     records.update(cache.module_records(org, fetch=fetcher))
     official, _ = fetch_official_modules(org, {"financials"}, fetcher=fetcher)
     records.update(official)
-    registry_row = (records.get("registry") or {}).get("value") or {}
+    registry_row = with_subunits((records.get("registry") or {}).get("value") or {}, records.get("locations"))
 
     def add_jobs() -> None:
         records["jobs"] = company_jobs(

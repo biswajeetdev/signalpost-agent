@@ -9,7 +9,8 @@ from typing import Any, Iterable, Mapping
 from .candidates import FILLER_TOKENS, FOLDS, LEGAL_FORM_TOKENS, fold_name
 
 # An identifier the official registry holds for exactly this entity, found on the site itself.
-STRONG_PROOFS = frozenset({"organisation_number", "registry_email", "registry_phone"})
+# A registered subunit (underenhet) is a business unit of the same legal entity, so its number ties too.
+STRONG_PROOFS = frozenset({"organisation_number", "subunit_organisation_number", "registry_email", "registry_phone"})
 # A phone registered for this many entities belongs to an accountant or administrator.
 SHARED_PHONE_THRESHOLD = 5
 METHOD = "registry_identifier_on_site_v3"
@@ -47,6 +48,7 @@ def registry_identifiers(row: Mapping[str, Any]) -> dict[str, Any]:
         "organisation_number": re.sub(r"\D", "", str(row.get("organisasjonsnummer") or row.get("organisation_number") or "")),
         "email": email if "@" in email else "",
         "phones": sorted(phones),
+        "subunit_numbers": sorted({re.sub(r"\D", "", str(number)) for number in row.get("_subunit_numbers") or []} - {""}),
     }
 
 
@@ -63,6 +65,10 @@ def page_proof_spans(identifiers: Mapping[str, Any], page_html: str, *, shared_p
     org = identifiers.get("organisation_number") or ""
     if len(org) == 9 and (match := _digits_pattern(org).search(text)):
         spans["organisation_number"] = _claim_span(text, match)
+    for number in identifiers.get("subunit_numbers") or []:
+        if len(number) == 9 and number != org and (match := _digits_pattern(number).search(text)):
+            spans["subunit_organisation_number"] = _claim_span(text, match)
+            break
     email = identifiers.get("email") or ""
     if email and (match := re.search(r"(?<![\w.+-])" + re.escape(email) + r"(?![\w-])", lowered)):
         spans["registry_email"] = _claim_span(lowered, match)

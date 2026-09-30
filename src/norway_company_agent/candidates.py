@@ -102,6 +102,9 @@ def website_candidates(row: Mapping[str, Any], shared_counts: Mapping[str, int],
                 found[domain]["name_form"] = name_form
 
     add(registered_domain(row.get("hjemmeside") or row.get("website")), "registry_website")
+    # Websites registered on the entity's own subunits (same legal entity; still need site proof).
+    for website in row.get("_subunit_websites") or []:
+        add(registered_domain(website), "subunit_registry_website")
     mail = email_domain(row.get("epostadresse"))
     if mail and mail not in FREE_MAIL_DOMAINS:
         shared = shared_counts.get(mail, 0) >= SHARED_DOMAIN_THRESHOLD
@@ -113,6 +116,10 @@ def website_candidates(row: Mapping[str, Any], shared_counts: Mapping[str, int],
     for suffix in ("no", "com"):
         for label in full[:full_limit]:
             add(f"{label}.{suffix}", "name_guess", name_form="full")
+    # Trading names of registered subunits often differ from the legal name.
+    for subunit_name in (row.get("_subunit_names") or [])[:3]:
+        for label in _label_forms(str(subunit_name))[0][:2]:
+            add(f"{label}.no", "subunit_name_guess", name_form="subunit_full")
     for label in partial[:partial_limit]:
         add(f"{label}.no", "name_guess", name_form="partial")
     return list(found.values())

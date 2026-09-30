@@ -21,6 +21,10 @@ from .website import USER_AGENT, assert_public_url
 MAX_PAGE_BYTES = 1_500_000
 MAX_REDIRECTS = 5
 CONTACT_TERMS = ("kontakt", "contact", "om-oss", "om_oss", "about")
+# Norwegian sites usually print "Org.nr" on legal pages; read them after contact/about pages.
+LEGAL_TERMS = ("personvern", "privacy", "vilkar", "vilkår", "salgsbetingelser", "kjopsbetingelser", "kjøpsbetingelser",
+               "betingelser", "terms", "cookie", "impressum", "juridisk")
+PROOF_PAGE_LIMIT = 3
 REGISTRY_SOURCE = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv"
 METHOD = "registry_candidates_with_site_proof_v3"
 
@@ -132,9 +136,10 @@ def make_site_fetchers(
     return fetch, robots_allowed
 
 
-def contact_links(base_url: str, html: str, limit: int = 2) -> list[str]:
-    """Same-host contact/about links, contact first."""
+def contact_links(base_url: str, html: str, limit: int = PROOF_PAGE_LIMIT) -> list[str]:
+    """Same-host proof-page links: contact first, then about, then legal (privacy/terms) pages."""
     base = urllib.parse.urlparse(base_url)
+    terms = CONTACT_TERMS + LEGAL_TERMS
     ranked: dict[str, int] = {}
     for anchor in BeautifulSoup(html, "lxml").select("a[href]"):
         url = urllib.parse.urljoin(base_url, str(anchor.get("href") or "").strip())
@@ -142,12 +147,23 @@ def contact_links(base_url: str, html: str, limit: int = 2) -> list[str]:
         if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != base.netloc.lower():
             continue
         haystack = (parsed.path + " " + anchor.get_text(" ", strip=True)).casefold()
-        rank = next((index for index, term in enumerate(CONTACT_TERMS) if term in haystack), None)
+        rank = next((index for index, term in enumerate(terms) if term in haystack), None)
         clean = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path or "/", "", "", ""))
         if rank is None or clean.rstrip("/") == base_url.rstrip("/"):
             continue
         ranked[clean] = min(rank, ranked.get(clean, rank))
-    return [url for url, _ in sorted(ranked.items(), key=lambda item: (item[1], item[0]))[:limit]]
+
+    def category(rank: int) -> int:  # 0 contact, 1 about, 2 legal
+        return 0 if rank < 2 else 1 if rank < len(CONTACT_TERMS) else 2
+
+    ordered = sorted(ranked.items(), key=lambda item: (item[1], item[0]))
+    picked: list[str] = []
+    for wanted in (0, 1, 2):  # best link of each kind first, so legal pages are not crowded out
+        best = next((url for url, rank in ordered if category(rank) == wanted and url not in picked), None)
+        if best:
+            picked.append(best)
+    picked += [url for url, _ in ordered if url not in picked]
+    return picked[:limit]
 
 
 def _page_record(page: Page, spans: dict[str, str], name_span: str | None) -> dict[str, Any]:
@@ -214,12 +230,20 @@ def discover_website(
                 break
             if domain in seen_domains:
                 continue
-            host = next((name for name in (domain, "www." + domain) if resolver(name)), None)
-            if not host:
+            hosts = [name for name in (domain, "www." + domain) if resolver(name)]
+            if not hosts:
                 attempts.append({**candidate, "outcome": "no_dns"})
                 continue
-            base_url = f"https://{host}/"
-            allowed = robots_allowed(base_url)
+            # Small sites often serve only one of bare/www, or only plain HTTP (expired or missing TLS).
+            base_url, allowed = "", None
+            for scheme in ("https", "http"):
+                for host in hosts:
+                    base_url = f"{scheme}://{host}/"
+                    allowed = robots_allowed(base_url)
+                    if allowed is not None:
+                        break
+                if allowed is not None:
+                    break
             if allowed is None:
                 attempts.append({**candidate, "outcome": "unreachable", "url": base_url})
                 continue
