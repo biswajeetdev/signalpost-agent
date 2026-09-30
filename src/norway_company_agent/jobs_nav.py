@@ -19,7 +19,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 from .budget import BudgetExhausted
 from .evidence import evidence, utc_now
-from .http import FetchResult, fetch_json
+from .http import FetchResult, fetch_json, read_bounded
 from .proof import name_key
 
 FEED_ROOT = "https://pam-stilling-feed.nav.no"
@@ -37,7 +37,7 @@ def _public_token(on_attempt: Callable[[], None] | None = None) -> str | None:
     request = urllib.request.Request(TOKEN_URL, headers={"User-Agent": "builderr-signalpost-poc/0.1 (+https://builderr.ai)"})
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
-            text = response.read().decode("utf-8", "replace")
+            text = read_bounded(response, 100_000).decode("utf-8", "replace")
     except Exception:
         return None
     match = re.search(r"eyJ[\w\-]+\.[\w\-]+\.[\w\-]+", text)

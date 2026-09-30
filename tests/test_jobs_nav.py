@@ -84,6 +84,27 @@ class NavJobsTest(unittest.TestCase):
         self.assertEqual([p for p in validate_envelope(envelope) if "job_posting" in p], [])
 
 
+class BoundedReadTest(unittest.TestCase):
+    def test_trickling_body_is_abandoned(self):
+        from norway_company_agent.http import SlowResponse, read_bounded
+
+        class Trickle:
+            def read(self, size):
+                import time
+                time.sleep(0.02)
+                return b"x"
+
+        with self.assertRaises(SlowResponse):
+            read_bounded(Trickle(), 10_000, max_seconds=0.1)
+
+    def test_normal_body_and_limit(self):
+        import io
+
+        from norway_company_agent.http import read_bounded
+        self.assertEqual(read_bounded(io.BytesIO(b"abcdef"), 4), b"abcd")
+        self.assertEqual(read_bounded(io.BytesIO(b"abc"), 100), b"abc")
+
+
 class DeferredFillTest(unittest.TestCase):
     def test_deferred_jobs_are_filled_after_the_batch(self):
         from norway_company_agent.budget import RequestBudget

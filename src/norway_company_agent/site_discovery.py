@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from .budget import BudgetExhausted, RequestBudget, RobotsCache
 from .candidates import SHARED_DOMAIN_THRESHOLD, full_name_labels, registered_domain, website_candidates
 from .evidence import utc_now
+from .http import read_bounded
 from .proof import STRONG_PROOFS, assess_site_identity, legal_name_span, name_key, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
@@ -82,7 +83,7 @@ def make_site_fetchers(
         retrieved_at = utc_now()
         try:
             with open_url(url, "text/html,application/xhtml+xml", "site_page") as response:
-                raw = response.read(MAX_PAGE_BYTES + 1)
+                raw = read_bounded(response, MAX_PAGE_BYTES + 1)
                 final_url = response.geturl()
                 if "html" not in response.headers.get("content-type", "").lower():
                     return Page(url, final_url, response.status, retrieved_at=retrieved_at, error="non-HTML response")
@@ -99,7 +100,7 @@ def make_site_fetchers(
         parser = urllib.robotparser.RobotFileParser()
         try:
             with open_url(origin + "/robots.txt", "text/plain", "robots") as response:
-                parser.parse(response.read(500_000).decode("utf-8", errors="replace").splitlines())
+                parser.parse(read_bounded(response, 500_000, 10.0).decode("utf-8", errors="replace").splitlines())
         except BudgetExhausted:
             raise
         except urllib.error.HTTPError as exc:
