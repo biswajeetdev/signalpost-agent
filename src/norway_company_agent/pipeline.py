@@ -17,6 +17,8 @@ from .cached_official import OfficialCache
 from .contract import MODULES, build_envelope, validate_envelope
 from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
+from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
+from .site_activity import site_activity
 from .official import _reserve_history_slot, fetch_official_modules
 from .refresh import carry_forward, diff_profile
 from .site_discovery import Page, discover_website, make_site_fetchers
@@ -78,7 +80,10 @@ def social_profiles(website: Mapping[str, Any], home: Page | None) -> dict[str, 
     )
 
 
-CONTACT_COLUMNS = ("epostadresse", "telefon", "mobil", "hjemmeside")
+CONTACT_COLUMNS = (
+    "epostadresse", "telefon", "mobil", "hjemmeside",
+    "forretningsadresse.adresse", "forretningsadresse.postnummer", "forretningsadresse.poststed", "forretningsadresse.kommune",
+)
 
 
 def fill_registry_contacts(records: dict[str, Any], org: str, fetch: Callable[[str], FetchResult]) -> None:
@@ -111,6 +116,7 @@ def enrich_company(
     official_fetcher: Callable[[RequestBudget, str], Callable[[str], FetchResult]] = budgeted_official_fetcher,
     site_fetchers: Callable[..., Any] = make_site_fetchers,
     resolver: Callable[[str], bool] | None = None,
+    jobs_index: NavJobIndex | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     org = profile["organisation_number"]
     started = time.monotonic()
@@ -120,13 +126,30 @@ def enrich_company(
     records.update(cache.module_records(org, fetch=fetcher))
     official, _ = fetch_official_modules(org, {"financials"}, fetcher=fetcher)
     records.update(official)
+    registry_row = (records.get("registry") or {}).get("value") or {}
+
+    def add_jobs() -> None:
+        records["jobs"] = company_jobs(
+            org, str(registry_row.get("navn") or profile.get("name") or ""), records.get("locations"), jobs_index,
+            spend=lambda: budget.spend(org, "jobs_detail"),
+            wait_seconds=budget.seconds_left() - settings.min_seconds_for_discovery,
+        )
+
+    # With the feed index already read, jobs go first so NAV-listed employer homepages become website
+    # candidates; while it is still being read in the background, website discovery does not wait for it.
+    jobs_first = jobs_index is not None and jobs_index.ready.is_set()
+    if jobs_first:
+        add_jobs()
+        homepages = employer_homepages(records["jobs"])
+        if homepages and isinstance(registry_row, dict):
+            registry_row = {**registry_row, "_nav_employer_homepages": homepages}
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
         records["website"] = evidence("website", "failed", "website_candidate_search", REGISTRY_SOURCE, note="Skipped: run wall-clock budget nearly exhausted")
     else:
         fetch, robots_allowed = site_fetchers(budget, org, allowance=settings.discovery_allowance, robots=robots)
         records["website"], home = discover_website(
-            (records.get("registry") or {}).get("value") or {},
+            registry_row,
             shared_domains=shared["domains"],
             shared_phones=shared["phones"],
             fetch=fetch,
@@ -136,6 +159,14 @@ def enrich_company(
             **({"resolver": resolver} if resolver else {}),
         )
     records["social_profiles"] = social_profiles(records["website"], home)
+    if records["website"].get("status") == "available" and home is not None and budget.seconds_left() > settings.min_seconds_for_discovery:
+        # A few requests beyond discovery: one news/press index on the verified site (plus its robots.txt).
+        activity_fetch, activity_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)
+        records["public_activity"] = site_activity(records["website"], home, activity_fetch, activity_robots)
+    else:
+        records["public_activity"] = site_activity(records["website"], None, None, None)
+    if jobs_index is not None and not jobs_first:
+        add_jobs()
     # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,
     # and only while the remaining paced backlog fits the time budget.
     if budget.take_paced_slot(HISTORY_SECONDS):

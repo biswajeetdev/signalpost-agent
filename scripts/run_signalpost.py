@@ -26,6 +26,7 @@ from norway_company_agent.batch import profiles_from_bulk, profiles_from_live_re
 from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
 from norway_company_agent.chunked import run_chunked  # noqa: E402
+from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
 from norway_company_agent.pipeline import RunSettings  # noqa: E402
 
 
@@ -43,6 +44,11 @@ def read_previous(path: str | None) -> dict[str, dict]:
         return {}
     rows = [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
     return {row["organisation_number"]: row for row in rows}
+
+
+def build_jobs_index(budget: RequestBudget, lookback_days: int) -> NavJobIndex:
+    """Read the NAV feed once per run, in the background; any failure leaves a failed index, never a failed run."""
+    return NavJobIndex(lookback_days=lookback_days, spend=lambda purpose: budget.spend("_run", purpose)).build_in_background()
 
 
 def env(name: str, default: str | None = None) -> str | None:
@@ -73,6 +79,9 @@ def main() -> None:
     parser.add_argument("--checkpoint-dir", help="Default: <report>.checkpoints/ next to --report")
     parser.add_argument("--resume", action="store_true", help="Accepted for the evaluator contract; rerunning the same --run-id always resumes")
     parser.add_argument("--modules", help="Accepted for the evaluator contract; every module always runs")
+    parser.add_argument("--jobs-lookback-days", type=int, default=int(env("JOBS_LOOKBACK_DAYS", "60")),
+                        help="How far back the NAV public job feed is read for still-active ads")
+    parser.add_argument("--no-jobs", action="store_true", help="Skip the NAV job-feed connector")
     parser.add_argument("organisations_positional", nargs="?", help=argparse.SUPPRESS)
     args, unknown = parser.parse_known_args()
     if unknown:
@@ -94,8 +103,10 @@ def main() -> None:
     args.expected_count = args.expected_count or len(organisations)
     if len(organisations) != args.expected_count:
         raise SystemExit(f"Expected {args.expected_count} organisations, received {len(organisations)}")
-    budget = RequestBudget(args.max_requests or 12 * len(organisations), args.max_minutes * 60)
+    # 12 per company, plus room for the one-off NAV feed read (~4 pages per look-back day).
+    budget = RequestBudget(args.max_requests or 12 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
     budget.paced_pending = len(organisations)
+    jobs_index = None if args.no_jobs else build_jobs_index(budget, args.jobs_lookback_days)
     # No bulk supplied: the batch file itself is the registry source when it carries company rows,
     # otherwise the live entity endpoint fills each registry row (see profiles_from_live_registry).
     profiles, registry = profiles_from_bulk(args.bulk, organisations) if args.bulk else profiles_from_live_registry(organisations)
@@ -117,7 +128,11 @@ def main() -> None:
         checkpoint_dir=checkpoint_dir,
         chunk_size=args.chunk_size,
         chunk_retries=args.chunk_retries,
+        jobs_index=jobs_index,
     )
+    if jobs_index is not None:
+        report["jobs_feed"] = {"state": jobs_index.state, "pages": jobs_index.pages, "active_ads": jobs_index.active_ads,
+                               "lookback_days": jobs_index.lookback_days, "note": jobs_index.note}
     report = {"run_id": args.run_id, "expected_count": args.expected_count, "registry": registry, **report}
     report["validation"]["exact_expected_count"] = len(envelopes) == args.expected_count
     report["validation"]["input_order"] = [item["organisation_number"] for item in envelopes] == organisations

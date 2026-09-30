@@ -22,7 +22,8 @@ _STATUS_TO_STATE = {
     "source_error": "failed",
     "not_fetched": "failed",
 }
-MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles")
+MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles", "jobs", "public_activity")
+OPTIONAL_MODULES = frozenset({"jobs", "public_activity"})
 REGISTRY_FIELDS = (
     ("legal_name", "navn"),
     ("legal_form", "organisasjonsform.kode"),
@@ -84,19 +85,28 @@ def _registry(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
         envelope.unavailable("legal_identity", record, state)
         return
     raw = record.get("value") or {}
+    live = record.get("contact_fields_source") or {}
+    live_record = {"source_url": live.get("url"), "source_class": "official_registry_live", "retrieved_at": live.get("retrieved_at"),
+                   "content_sha256": live.get("content_sha256"), "source_row_key": record.get("source_row_key")} if live else None
+
+    def source_for(column: str) -> Mapping[str, Any]:
+        """Columns filled from the live entity endpoint cite it, not the bulk snapshot."""
+        return live_record if live_record and column in (live.get("fields") or []) else record
+
     for field, column in REGISTRY_FIELDS:
         value = str(raw.get(column) or "").strip()
         if not value:
-            envelope.claim(field, None, "not_available", [envelope.cite(record, f"{column}: (empty)")], note="Empty in the official registry snapshot")
+            envelope.claim(field, None, "not_available", [envelope.cite(source_for(column), f"{column}: (empty)")], note="Empty in the official registry snapshot")
             continue
         typed: Any = int(value) if field == "registered_employees" and value.isdigit() else value
-        envelope.claim(field, typed, "available", [envelope.cite(record, f"{column}: {value}")], confidence=1.0)
+        envelope.claim(field, typed, "available", [envelope.cite(source_for(column), f"{column}: {value}")], confidence=1.0)
     address = {part: str(raw.get(f"forretningsadresse.{part}") or "").strip() or None for part in ADDRESS_PARTS}
+    address_source = source_for("forretningsadresse.adresse")
     if address["adresse"] or address["poststed"]:
         span = ", ".join(value for value in address.values() if value)
-        envelope.claim("business_address", address, "available", [envelope.cite(record, f"forretningsadresse: {span}")], confidence=1.0)
+        envelope.claim("business_address", address, "available", [envelope.cite(address_source, f"forretningsadresse: {span}")], confidence=1.0)
     else:
-        envelope.claim("business_address", None, "not_available", [envelope.cite(record, "forretningsadresse: (empty)")])
+        envelope.claim("business_address", None, "not_available", [envelope.cite(address_source, "forretningsadresse: (empty)")])
     for field, column in REGISTRY_FLAGS:
         value = str(raw.get(column) or "").strip().lower()
         if value in {"true", "false"}:
@@ -203,6 +213,138 @@ def _social(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
         )
 
 
+def _jobs(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
+    if record is None:  # connector not run in this configuration
+        return
+    state = availability(record)
+    ads = ((record or {}).get("value") or {}).get("ads") or []
+    if state != "available" or not ads:
+        envelope.unavailable("job_posting", record, "not_available" if state == "available" else state)
+        return
+    for ad in ads:
+        ad_record = {"source_url": ad.get("source_url"), "source_class": "nav_public_job_feed", "retrieved_at": ad.get("retrieved_at"),
+                     "content_sha256": ad.get("content_sha256"), "method": "employer_organisation_number_match"}
+        envelope.claim(
+            "job_posting",
+            {key: ad.get(key) for key in ("title", "url", "application_url", "published", "expires", "positions", "occupations", "work_locations", "employer_name", "employer_organisation_number")},
+            "available",
+            [envelope.cite(ad_record, ad.get("claim_span"))],
+            confidence=0.99,
+            effective_at=ad.get("published"),
+            relation="registered_subunit_employer" if ad.get("employer_is_subunit") else "exact_employer",
+        )
+
+
+def _activity(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
+    if record is None:
+        return
+    state = availability(record)
+    items = ((record or {}).get("value") or {}).get("items") or []
+    if state != "available" or not items:
+        envelope.unavailable("public_activity", record, "not_available" if state == "available" else state)
+        return
+    for item in items:
+        page_record = {"source_url": item.get("source_url"), "source_class": "company_owned_website", "retrieved_at": item.get("retrieved_at"),
+                       "content_sha256": item.get("content_sha256"), "method": item.get("extraction")}
+        envelope.claim(
+            "public_activity",
+            {"title": item.get("title"), "url": item.get("url"), "date": item.get("date"), "kind": "company_site_article"},
+            "available",
+            [envelope.cite(page_record, item.get("claim_span"))],
+            confidence=0.9,
+            effective_at=item.get("date"),
+            relation="published_on_verified_company_website",
+        )
+
+
+def _nok(amount: Any) -> str:
+    try:
+        value = float(amount)
+    except (TypeError, ValueError):
+        return str(amount)
+    for size, unit in ((1e9, "bn"), (1e6, "m"), (1e3, "k")):
+        if abs(value) >= size:
+            return f"NOK {value / size:.1f}{unit}"
+    return f"NOK {value:.0f}"
+
+
+def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, Any]] = ()) -> dict[str, Any]:
+    """Decision-useful summary restating only available claims; every point cites their evidence ids."""
+    available: dict[str, list[Mapping[str, Any]]] = {}
+    for claim in claims:
+        if claim.get("availability") == "available":
+            available.setdefault(str(claim["field"]), []).append(claim)
+
+    def first(field: str) -> Mapping[str, Any] | None:
+        return (available.get(field) or [None])[0]
+
+    def ids(*items: Mapping[str, Any] | None) -> list[str]:
+        return sorted({evidence_id for item in items if item for evidence_id in item.get("evidence_ids") or []})
+
+    points: list[dict[str, Any]] = []
+    name, form, industry, address = first("legal_name"), first("legal_form"), first("industry"), first("business_address")
+    if name:
+        text = f"{name['value']}"
+        if form:
+            text += f" ({form['value']})"
+        if industry:
+            text += f" operates in {str(industry['value']).lower()}"
+        if address and isinstance(address.get("value"), dict):
+            place = address["value"].get("poststed") or address["value"].get("kommune")
+            if place:
+                text += f", registered in {str(place).title()}"
+        points.append({"topic": "identity", "text": text + ".", "evidence_ids": ids(name, form, industry, address)})
+    for flag, label in (("bankrupt", "is registered as bankrupt"), ("under_liquidation", "is registered as under liquidation")):
+        claim = first(flag)
+        if claim and claim.get("value") is True:
+            points.append({"topic": "risk", "text": f"The company {label}.", "evidence_ids": ids(claim)})
+    leaders = [claim for claim in available.get("role", []) if isinstance(claim.get("value"), dict) and str(claim["value"].get("role") or "").lower() in {"daglig leder", "styrets leder", "ceo", "chair", "dagl", "leder"}]
+    if leaders:
+        def holder(value: Any) -> str:
+            return ", ".join(map(str, value)) if isinstance(value, list) else str(value)
+
+        described = "; ".join(f"{claim['value'].get('role')}: {holder(claim['value'].get('name'))}" for claim in leaders[:3])
+        points.append({"topic": "leadership", "text": f"Leadership in the official register — {described}.", "evidence_ids": ids(*leaders[:3])})
+    revenue, result, equity = first("financials.revenue"), first("financials.annual_result"), first("financials.equity")
+    figures = [(label, claim) for label, claim in (("revenue", revenue), ("annual result", result), ("equity", equity)) if claim]
+    if figures:
+        period = ((figures[0][1].get("reporting_period") or {}).get("end") or "")[:4]
+        described = ", ".join(f"{label} {_nok((claim.get('value') or {}).get('amount'))}" for label, claim in figures)
+        points.append({"topic": "financials", "text": f"Latest filed accounts{f' ({period})' if period else ''}: {described}.", "evidence_ids": ids(*(claim for _, claim in figures))})
+    employees = first("registered_employees")
+    if employees:
+        points.append({"topic": "size", "text": f"{employees['value']} employees registered in the official register.", "evidence_ids": ids(employees)})
+    workplaces = available.get("registered_workplace", [])
+    if workplaces:
+        points.append({"topic": "locations", "text": f"{len(workplaces)} registered workplace(s).", "evidence_ids": ids(*workplaces[:5])})
+    website = first("official_website")
+    if website:
+        points.append({"topic": "web", "text": f"Verified official website: {website['value']}.", "evidence_ids": ids(website)})
+    jobs = available.get("job_posting", [])
+    if jobs:
+        titles = ", ".join(str((claim.get("value") or {}).get("title")) for claim in jobs[:3])
+        points.append({"topic": "hiring", "text": f"Hiring: {len(jobs)} active job ad(s) on NAV naming this entity as employer ({titles}).", "evidence_ids": ids(*jobs[:3])})
+    activity = available.get("public_activity", [])
+    if activity:
+        latest = activity[0].get("value") or {}
+        points.append({"topic": "activity", "text": f"Most recent dated activity on its website: \"{latest.get('title')}\" ({latest.get('date')}).", "evidence_ids": ids(activity[0])})
+    changes = list(changes)
+    if changes:
+        points.append({"topic": "changes", "text": f"{len(changes)} material change(s) since the previous run.", "evidence_ids": []})
+    unknowns = [label for field, label in (
+        ("official_website", "no verified official website"),
+        ("financials.revenue", "no revenue figure in the latest filed accounts"),
+        ("job_posting", "no active job ads found"),
+        ("public_activity", "no dated public activity found"),
+    ) if field not in available]
+    return {
+        "text": " ".join(point["text"] for point in points),
+        "points": points,
+        "unknowns": unknowns,
+        "method": "deterministic template over available claims; no model",
+    }
+
+
 def build_envelope(
     profile: Mapping[str, Any],
     *,
@@ -213,6 +355,7 @@ def build_envelope(
     changes: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     records = profile.get("evidence") or {}
+    changes = list(changes)
     envelope = _Envelope()
     _registry(envelope, records.get("registry"))
     _financials(envelope, records.get("financials"))
@@ -221,14 +364,17 @@ def build_envelope(
     _listed(envelope, records.get("locations"), module="locations", key="locations", field="registered_workplace", span=lambda item: f"Underenhet {item.get('organisation_number')} {item.get('name')}")
     _website(envelope, records.get("website"), records.get("registry"))
     _social(envelope, records.get("social_profiles"))
+    _jobs(envelope, records.get("jobs"))
+    _activity(envelope, records.get("public_activity"))
     return {
         "organisation_number": profile["organisation_number"],
         "legal_name": profile.get("name"),
         "run": {"run_id": run_id, "started_at": started_at, "completed_at": completed_at, "terminal_status": "completed"},
-        "modules": {module: availability(records.get(module)) for module in MODULES},
+        "modules": {module: availability(records.get(module)) for module in MODULES if module in records or module not in OPTIONAL_MODULES},
         "claims": envelope.claims,
         "evidence": sorted(envelope.evidence.values(), key=lambda item: item["id"]),
         "changes": list(changes),
+        "summary": synthesis(envelope.claims, changes),
         "errors": envelope.errors,
         "operations": dict(operations),
     }

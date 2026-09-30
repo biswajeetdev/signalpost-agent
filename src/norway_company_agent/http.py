@@ -27,7 +27,7 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def fetch_json(url: str, *, timeout: float = 20.0, attempts: int = 3, on_attempt: Callable[[], None] | None = None) -> FetchResult:
+def fetch_json(url: str, *, timeout: float = 20.0, attempts: int = 3, on_attempt: Callable[[], None] | None = None, headers: dict[str, str] | None = None) -> FetchResult:
     """`on_attempt` runs before every attempt (retries included), e.g. to charge a request budget."""
     last_error = "request failed"
     for attempt in range(attempts):
@@ -36,7 +36,7 @@ def fetch_json(url: str, *, timeout: float = 20.0, attempts: int = 3, on_attempt
         started = time.monotonic()
         request = urllib.request.Request(
             url,
-            headers={"Accept": "application/json", "User-Agent": "builderr-signalpost-poc/0.1 (+https://builderr.ai)"},
+            headers={"Accept": "application/json", "User-Agent": "builderr-signalpost-poc/0.1 (+https://builderr.ai)", **(headers or {})},
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
