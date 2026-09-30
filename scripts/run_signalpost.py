@@ -69,10 +69,10 @@ def main() -> None:
     parser.add_argument("--run-id", default=env("RUN_ID"))
     parser.add_argument("--expected-count", type=int, default=int(env("EXPECTED_COUNT", "0")), help="0: take the batch size")
     parser.add_argument("--previous-profiles", default=env("PREVIOUS_PROFILES"), help="Profiles JSONL from the previous run, for change detection")
-    parser.add_argument("--max-requests", type=int, default=int(env("MAX_REQUESTS", "0")), help="0: 12 per company")
+    parser.add_argument("--max-requests", type=int, default=int(env("MAX_REQUESTS", "0")), help="0: 20 per company")
     parser.add_argument("--max-minutes", type=float, default=float(env("MAX_MINUTES", "45")))
     parser.add_argument("--workers", type=int, default=int(env("WORKERS", "8")))
-    parser.add_argument("--discovery-allowance", type=int, default=14)
+    parser.add_argument("--discovery-allowance", type=int, default=24)
     parser.add_argument("--disable-unique-name-rule", action="store_true")
     parser.add_argument("--chunk-size", "--checkpoint-every", type=int, default=50, help="Organisations per checkpointed chunk")
     parser.add_argument("--chunk-retries", type=int, default=1, help="Extra attempts for a chunk before it falls back to failed envelopes")
@@ -103,8 +103,8 @@ def main() -> None:
     args.expected_count = args.expected_count or len(organisations)
     if len(organisations) != args.expected_count:
         raise SystemExit(f"Expected {args.expected_count} organisations, received {len(organisations)}")
-    # 12 per company, plus room for the one-off NAV feed read (~4 pages per look-back day).
-    budget = RequestBudget(args.max_requests or 12 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
+    # 20 per company, plus room for the one-off NAV feed read (~4 pages per look-back day).
+    budget = RequestBudget(args.max_requests or 20 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
     budget.paced_pending = len(organisations)
     jobs_index = None if args.no_jobs else build_jobs_index(budget, args.jobs_lookback_days)
     # No bulk supplied: the batch file itself is the registry source when it carries company rows,
