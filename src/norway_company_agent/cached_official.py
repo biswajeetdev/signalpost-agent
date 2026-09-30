@@ -52,7 +52,7 @@ class OfficialCache:
     def name_keys(self) -> "_ShareCounts":
         return _ShareCounts(self, "name_keys")
 
-    def module_records(self, org: str, modules: set[str] | None = None) -> dict[str, dict[str, Any]]:
+    def module_records(self, org: str, modules: set[str] | None = None, fetch: Any = None) -> dict[str, dict[str, Any]]:
         records = {}
         for module, table, source_class, url, snapshot_name, empty_note in CACHED_MODULES:
             if modules is not None and module not in modules:
@@ -83,3 +83,80 @@ class _ShareCounts:
 
     def get(self, value: str, default: int = 0) -> int:
         return self._cache.share_count(self._table, value) or default
+
+
+# Shipped with the code: registry-wide share counts for identifiers held by 2+ entities (administrator
+# email domains and phones, namesake legal names), built by scripts/export_shared_identifiers.py from
+# the Brønnøysund entity bulk snapshot. Needed by the website identity gate on a clean clone.
+SHARED_SNAPSHOT = Path(__file__).resolve().parents[2] / "data" / "shared-identifiers.json.gz"
+
+
+class _SharedOnly:
+    """Counts for shared identifiers only. An absent key is unshared: `absent` is 0 for domains and
+    phones; 1 for name keys, because the company's own legal name is always in the registry once."""
+
+    def __init__(self, counts: dict[str, int], absent: int) -> None:
+        self._counts = counts
+        self._absent = absent
+
+    def get(self, value: str, default: int = 0) -> int:
+        count = self._counts.get(value)
+        if count is not None:
+            return count
+        return self._absent if value else default
+
+
+class LiveOfficialCache:
+    """Fallback when no built cache is supplied: roles and workplaces come from the live per-entity
+    Brønnøysund endpoints (charged to the run budget), share counts from the shipped snapshot."""
+
+    def __init__(self, shared_path: str | Path = SHARED_SNAPSHOT) -> None:
+        import gzip
+
+        with gzip.open(shared_path, "rt", encoding="utf-8") as handle:
+            body = json.load(handle)
+        self.snapshots = {
+            "shared_identifiers": {k: body["snapshot"][k] for k in ("source_url", "sha256", "retrieved_at", "rows")},
+            "roles": {"source_url": BRREG_ROLES, "sha256": "live", "retrieved_at": None, "rows": None},
+            "locations": {"source_url": BRREG_SUBUNITS, "sha256": "live", "retrieved_at": None, "rows": None},
+        }
+        self._domains = _SharedOnly(body["email_domains"], 0)
+        self._phones = _SharedOnly(body["phones"], 0)
+        self._names = _SharedOnly(body["name_keys"], 1)
+
+    def shared_domains(self) -> _SharedOnly:
+        return self._domains
+
+    def shared_phones(self) -> _SharedOnly:
+        return self._phones
+
+    def name_keys(self) -> _SharedOnly:
+        return self._names
+
+    def module_records(self, org: str, modules: set[str] | None = None, fetch: Any = None) -> dict[str, dict[str, Any]]:
+        from .official import fetch_official_modules
+
+        wanted = {"roles", "locations"} if modules is None else {"roles", "locations"} & set(modules)
+        if not wanted:
+            return {}
+        records, _ = fetch_official_modules(org, wanted, **({"fetcher": fetch} if fetch else {}))
+        return records
+
+
+def open_official_cache(path: str | Path | None) -> OfficialCache | LiveOfficialCache:
+    """Accept whatever the evaluator supplies: a built cache file, a directory holding one, a missing or
+    empty path. Anything that is not a readable built cache falls back to live official endpoints."""
+    candidates: list[Path] = []
+    if path:
+        given = Path(path)
+        candidates += [given / "official.sqlite", given / "cache" / "official.sqlite"] if given.is_dir() else [given]
+    candidates.append(Path(__file__).resolve().parents[2] / "cache" / "official.sqlite")
+    for candidate in candidates:
+        if candidate.is_file() and candidate.stat().st_size > 0:
+            try:
+                cache = OfficialCache(candidate)
+                if {"roles", "locations", "shared_identifiers"} <= set(cache.snapshots):
+                    return cache
+            except sqlite3.Error:
+                continue
+    return LiveOfficialCache()

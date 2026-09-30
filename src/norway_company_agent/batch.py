@@ -22,20 +22,60 @@ TERMINAL_STATES = {
 }
 
 
+ORG_KEYS = (
+    "organisation_number", "organization_number", "organisasjonsnummer", "orgnr", "org_nr",
+    "org_number", "orgNumber", "organisationNumber", "organizationNumber", "org", "id",
+)
+LIST_KEYS = ("organisation_numbers", "organization_numbers", "organisations", "organizations", "companies", "orgs", "items", "batch", "data")
+
+
+def _org_from(value: Any) -> Any:
+    if isinstance(value, dict):
+        for key in ORG_KEYS:
+            if value.get(key) not in (None, ""):
+                return value[key]
+        return None
+    return value
+
+
 def read_organisation_inputs(path: str | Path) -> list[dict[str, Any]]:
-    source = Path(path)
-    text = source.read_text(encoding="utf-8")
+    """The evaluator-supplied batch: JSON (list or wrapping object), JSONL, CSV with a header, or plain
+    text with one number per line; gzip or not. Order is preserved; a header line is skipped."""
+    import csv
+    import io
+
+    from .sampling import open_text
+
+    with open_text(path) as handle:
+        text = handle.read()
+    stripped = text.lstrip()
     values: list[Any]
-    if source.suffix == ".json":
-        body = json.loads(text)
-        values = body if isinstance(body, list) else body.get("organisation_numbers", [])
-    elif source.suffix == ".jsonl":
+    if stripped.startswith("[") or (stripped.startswith("{") and not _looks_jsonl(stripped)):
+        body = json.loads(stripped)
+        if isinstance(body, dict):
+            values = next((body[key] for key in LIST_KEYS if isinstance(body.get(key), list)), [body] if _org_from(body) else [])
+        else:
+            values = body
+    elif stripped.startswith("{"):
         values = [json.loads(line) for line in text.splitlines() if line.strip()]
     else:
-        values = [line.strip() for line in text.splitlines() if line.strip()]
+        lines = [line for line in text.splitlines() if line.strip()]
+        first = lines[0] if lines else ""
+        if any(separator in first for separator in (",", ";", "\t")) or not any(ch.isdigit() for ch in first):
+            dialect = csv.Sniffer().sniff(first, delimiters=",;\t") if any(s in first for s in ",;\t") else csv.excel
+            reader = list(csv.reader(io.StringIO("\n".join(lines)), dialect=dialect))
+            header = [cell.strip() for cell in reader[0]] if reader else []
+            column = next((header.index(key) for key in ORG_KEYS if key in header), None)
+            if column is not None:
+                values = [row[column] for row in reader[1:] if len(row) > column]
+            else:
+                # No recognised header: take the first cell of each row, skipping a non-numeric header.
+                values = [row[0] for row in reader if row and sum(ch.isdigit() for ch in row[0]) >= 9]
+        else:
+            values = [line.strip() for line in lines]
     records = []
     for value in values:
-        org = value.get("organisation_number") if isinstance(value, dict) else value
+        org = _org_from(value)
         org = "".join(character for character in str(org or "") if character.isdigit())
         if len(org) != 9:
             raise ValueError(f"Invalid Norwegian organisation number: {value!r}")
@@ -49,6 +89,15 @@ def read_organisation_inputs(path: str | Path) -> list[dict[str, Any]]:
     if len(orgs) != len(set(orgs)):
         raise ValueError("Organisation-number input contains duplicates")
     return records
+
+
+def _looks_jsonl(text: str) -> bool:
+    first_line = text.split("\n", 1)[0]
+    try:
+        json.loads(first_line)
+    except json.JSONDecodeError:
+        return False
+    return "\n" in text.strip()
 
 
 def read_organisation_numbers(path: str | Path) -> list[str]:
@@ -107,6 +156,48 @@ def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) ->
     return [found[org] for org in requested], {
         "registry_snapshot_sha256": snapshot_sha256,
         "registry_rows_scanned": scanned,
+        "requested": len(requested),
+        "selected": len(requested) - len(missing),
+        "absent_from_snapshot": missing,
+    }
+
+
+def profiles_from_live_registry(organisation_numbers: Iterable[str], workers: int = 8) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Registry rows from the live per-entity endpoint, for runs where no bulk snapshot is supplied."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from .http import fetch_json
+    from .official import BRREG_ENTITY
+    from .sampling import flatten_registry_object, normalize_row
+
+    requested = list(organisation_numbers)
+
+    def one(org: str) -> dict[str, Any]:
+        result = fetch_json(BRREG_ENTITY.format(org=org), attempts=3)
+        if result.status == 200 and isinstance(result.body, dict):
+            profile = normalize_row(flatten_registry_object(result.body))
+            raw = profile.pop("raw", {})
+            profile.pop("csv_row_misaligned", None)
+            profile["organisation_number"] = org
+            profile["evidence"] = {
+                "registry": evidence("registry", "available", "official_registry_live", result.url, value=raw,
+                                     retrieved_at=result.retrieved_at, content_sha256=result.content_sha256, source_row_key=org),
+            }
+            profile["evidence"]["accounting_obligation"] = accounting_obligation_assessment(profile)
+            return profile
+        state = "not_found" if result.status in {404, 410} else "source_error"
+        return {"organisation_number": org, "evidence": {"registry": evidence(
+            "registry", state, "official_registry_live", result.url, retrieved_at=result.retrieved_at,
+            source_row_key=org, note=result.error or f"HTTP {result.status}")}}
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        profiles = list(pool.map(one, requested))
+    digest = hashlib.sha256("".join(str((p["evidence"]["registry"].get("content_sha256") or "")) for p in profiles).encode()).hexdigest()
+    missing = [p["organisation_number"] for p in profiles if p["evidence"]["registry"]["status"] != "available"]
+    return profiles, {
+        "registry_snapshot_sha256": digest,
+        "registry_source": "live",
+        "registry_rows_scanned": len(requested),
         "requested": len(requested),
         "selected": len(requested) - len(missing),
         "absent_from_snapshot": missing,

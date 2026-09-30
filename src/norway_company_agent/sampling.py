@@ -144,12 +144,140 @@ def deterministic_financial_filer_sample(
     return selected, metadata
 
 
+# Flat company-list keys (the Builderr universe JSONL shape) mapped onto Brønnøysund CSV column names,
+# so every bulk format yields the same registry row downstream.
+FLAT_TO_BRREG = {
+    "organisation_number": "organisasjonsnummer",
+    "name": "navn",
+    "legal_form": "organisasjonsform.kode",
+    "employees": "antallAnsatte",
+    "bankrupt": "konkurs",
+    "liquidating": "underAvvikling",
+    "municipality": "forretningsadresse.kommune",
+    "municipality_number": "forretningsadresse.kommunenummer",
+    "industry_code": "naeringskode1.kode",
+    "industry_label": "naeringskode1.beskrivelse",
+    "website": "hjemmeside",
+    "latest_submitted_accounts": "sisteInnsendteAarsregnskap",
+    "email": "epostadresse",
+    "phone": "telefon",
+    "mobile": "mobil",
+}
+
+
+def open_text(path: str | Path):
+    """Open a text file whether or not it is gzip-compressed (sniffed from the magic bytes, not the name)."""
+    with open(path, "rb") as probe:
+        magic = probe.read(2)
+    if magic == b"\x1f\x8b":
+        return gzip.open(path, "rt", encoding="utf-8-sig", newline="")
+    return open(path, "r", encoding="utf-8-sig", newline="")
+
+
+def _scalar(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list):
+        return "\n".join(_scalar(item) for item in value)
+    return str(value)
+
+
+def flatten_registry_object(item: dict[str, Any]) -> dict[str, str]:
+    """Nested Brønnøysund JSON, or a flat company-list row, as CSV-style dotted string columns."""
+    if "organisasjonsnummer" not in item and "organisation_number" in item:
+        row = {FLAT_TO_BRREG.get(key, key): _scalar(value) for key, value in item.items() if not isinstance(value, dict)}
+        return row
+    row: dict[str, str] = {}
+
+    def walk(prefix: str, value: Any) -> None:
+        if isinstance(value, dict):
+            for key, inner in value.items():
+                if key == "links" or key == "_links":
+                    continue
+                walk(f"{prefix}.{key}" if prefix else key, inner)
+        else:
+            row[prefix] = _scalar(value)
+
+    walk("", item)
+    return row
+
+
+def _iter_json_values(handle, chunk_size: int = 1 << 20) -> Iterable[dict[str, Any]]:
+    """Stream objects from a JSON array, a JSON object wrapping one, or JSONL, without loading it whole."""
+    import json
+
+    decoder = json.JSONDecoder()
+    buffer = handle.read(chunk_size).lstrip()
+    if buffer.startswith("{"):
+        # Either JSONL or one wrapping object. Try JSONL first: a first line that parses on its own.
+        first_line, _, _ = buffer.partition("\n")
+        try:
+            json.loads(first_line)
+            is_jsonl = True
+        except json.JSONDecodeError:
+            is_jsonl = False
+        if is_jsonl:
+            rest = buffer
+            while True:
+                lines = rest.split("\n")
+                rest = lines.pop()
+                for line in lines:
+                    if line.strip():
+                        yield json.loads(line)
+                chunk = handle.read(chunk_size)
+                if not chunk:
+                    if rest.strip():
+                        yield json.loads(rest)
+                    return
+                rest += chunk
+        body = json.loads(buffer + handle.read())
+        embedded = body.get("_embedded") if isinstance(body.get("_embedded"), dict) else body
+        for key in ("enheter", "companies", "organisations", "organizations", "items", "data"):
+            if isinstance(embedded.get(key), list):
+                yield from embedded[key]
+                return
+        yield body
+        return
+    if not buffer.startswith("["):
+        raise ValueError("Unrecognised JSON bulk layout")
+    buffer = buffer[1:]
+    while True:
+        while True:
+            buffer = buffer.lstrip().lstrip(",").lstrip()
+            if not buffer or buffer[0] == "]":
+                break
+            try:
+                item, end = decoder.raw_decode(buffer)
+            except json.JSONDecodeError:
+                break
+            yield item
+            buffer = buffer[end:]
+        chunk = handle.read(chunk_size)
+        if not chunk:
+            return
+        buffer += chunk
+
+
 def iter_bulk(path: str | Path) -> Iterable[dict[str, Any]]:
-    with gzip.open(path, "rt", encoding="utf-8-sig", newline="") as handle:
+    """Registry rows from the evaluator-supplied bulk file: gzip or plain; CSV, JSON array or JSONL;
+    Brønnøysund column names, nested Brønnøysund JSON, or the flat company-list shape."""
+    with open_text(path) as handle:
         sample = handle.read(8192)
         handle.seek(0)
+        if sample.lstrip().startswith(("[", "{")):
+            for item in _iter_json_values(handle):
+                if not isinstance(item, dict):
+                    continue
+                record = normalize_row(flatten_registry_object(item))
+                if len(record["organisation_number"]) == 9:
+                    yield record
+            return
         dialect = csv.Sniffer().sniff(sample, delimiters=";,\t")
         for row in csv.DictReader(handle, dialect=dialect):
+            if "organisasjonsnummer" not in row and "Organisasjonsnummer" not in row:
+                row = {FLAT_TO_BRREG.get(key, key) if key is not None else None: value for key, value in row.items()}
             record = normalize_row(row)
             if len(record["organisation_number"]) == 9:
                 yield record

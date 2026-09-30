@@ -76,6 +76,28 @@ def social_profiles(website: Mapping[str, Any], home: Page | None) -> dict[str, 
     )
 
 
+CONTACT_COLUMNS = ("epostadresse", "telefon", "mobil", "hjemmeside")
+
+
+def fill_registry_contacts(records: dict[str, Any], org: str, fetch: Callable[[str], FetchResult]) -> None:
+    """A bulk file without Brønnøysund contact columns (e.g. the flat company list) leaves the identity
+    gate without the registry email/phone proofs; fill only the absent columns from the live entity."""
+    registry = records.get("registry") or {}
+    row = registry.get("value")
+    if registry.get("status") != "available" or not isinstance(row, dict) or all(key in row for key in CONTACT_COLUMNS):
+        return
+    from .official import BRREG_ENTITY
+    from .sampling import flatten_registry_object
+
+    result = fetch(BRREG_ENTITY.format(org=org))
+    if result.status != 200 or not isinstance(result.body, dict):
+        return
+    live = flatten_registry_object(result.body)
+    filled = {key: live.get(key, "") for key in CONTACT_COLUMNS if key not in row}
+    row.update(filled)
+    registry["contact_fields_source"] = {"url": result.url, "retrieved_at": result.retrieved_at, "content_sha256": result.content_sha256, "fields": sorted(filled)}
+
+
 def enrich_company(
     profile: dict[str, Any],
     *,
@@ -91,8 +113,10 @@ def enrich_company(
     org = profile["organisation_number"]
     started = time.monotonic()
     records = profile.setdefault("evidence", {})
-    records.update(cache.module_records(org))
-    official, _ = fetch_official_modules(org, set(LIVE_OFFICIAL_MODULES), fetcher=official_fetcher(budget, org))
+    fetcher = official_fetcher(budget, org)
+    fill_registry_contacts(records, org, fetcher)
+    records.update(cache.module_records(org, fetch=fetcher))
+    official, _ = fetch_official_modules(org, set(LIVE_OFFICIAL_MODULES), fetcher=fetcher)
     records.update(official)
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
