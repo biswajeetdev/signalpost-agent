@@ -80,6 +80,13 @@ def make_site_fetchers(
         return opener.open(urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept}), timeout=timeout)
 
     def fetch(url: str) -> Page:
+        """One retry for a transient failure (connection error, timeout, 5xx), charged like any request.
+        DNS failures, URL-guard refusals and slow-trickle bodies are not retried."""
+        page = fetch_once(url)
+        transient = page.status >= 500 or (page.status == 0 and page.error and not page.error.startswith(("URLError: <urlopen error [Errno 8]", "SlowResponse", "ValueError", "UnsafeURL")))
+        return fetch_once(url) if transient else page
+
+    def fetch_once(url: str) -> Page:
         retrieved_at = utc_now()
         try:
             with open_url(url, "text/html,application/xhtml+xml", "site_page") as response:
