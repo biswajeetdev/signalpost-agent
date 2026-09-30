@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 from typing import Any, Callable, Iterable, Mapping
 
+from .budget import BudgetExhausted
 from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
 from .proof import name_key
@@ -25,6 +26,7 @@ TOKEN_URL = FEED_ROOT + "/api/publicToken"
 FEED_URL = FEED_ROOT + "/api/v1/feed"
 SOURCE_CLASS = "nav_public_job_feed"
 MAX_ADS_PER_COMPANY = 25
+MAX_DETAIL_FETCHES_PER_COMPANY = 30
 
 
 def _public_token(on_attempt: Callable[[], None] | None = None) -> str | None:
@@ -159,7 +161,9 @@ def company_jobs(
     """Evidence record for the company's active NAV ads, matched by employer organisation number."""
     if index is not None and not index.ready.is_set() and index.state == "not_built":
         if wait_seconds is not None and not index.ready.wait(max(wait_seconds, 0.0)):
-            return evidence("jobs", "failed", SOURCE_CLASS, FEED_URL, note="NAV job feed read did not finish within the run time budget")
+            record = evidence("jobs", "failed", SOURCE_CLASS, FEED_URL, note="Deferred: NAV job feed still being read; filled after the batch if it finishes in time")
+            record["deferred"] = True
+            return record
     if index is None or index.state != "available":
         return evidence("jobs", "failed", SOURCE_CLASS, FEED_URL, note=(index.note if index else None) or "NAV job feed not read in this run")
     subunits = _subunit_numbers(locations)
@@ -171,10 +175,17 @@ def company_jobs(
             candidates[entry["uuid"]] = entry
     ads: list[dict[str, Any]] = []
     rejected = 0
-    for entry in sorted(candidates.values(), key=lambda item: str(item.get("sistEndret") or ""), reverse=True):
-        if len(ads) >= MAX_ADS_PER_COMPANY:
+    budget_note = None
+    ordered = sorted(candidates.values(), key=lambda item: str(item.get("sistEndret") or ""), reverse=True)
+    for attempt, entry in enumerate(ordered):
+        # Cap detail fetches, not only accepted ads: a generic name key must not drain the company allowance.
+        if len(ads) >= MAX_ADS_PER_COMPANY or attempt >= MAX_DETAIL_FETCHES_PER_COMPANY:
             break
-        result = index.detail(entry, spend)
+        try:
+            result = index.detail(entry, spend)
+        except BudgetExhausted:
+            budget_note = "request budget exhausted before every candidate ad was checked"
+            break
         body = result.body if isinstance(result.body, dict) else {}
         content = body.get("ad_content") or {}
         employer = content.get("employer") or {}
@@ -209,6 +220,10 @@ def company_jobs(
     note_parts = [f"NAV feed read {index.pages} pages from a {index.lookback_days}-day look-back ({index.active_ads} active ads)"]
     if rejected:
         note_parts.append(f"{rejected} name-matched ads rejected: employer organisation number did not match")
+    if budget_note:
+        note_parts.append(budget_note)
+        if not ads:
+            return evidence("jobs", "failed", SOURCE_CLASS, FEED_URL, note="; ".join(note_parts), retrieved_at=index.built_at)
     if not ads:
         return evidence("jobs", "not_available", SOURCE_CLASS, FEED_URL, note="; ".join(note_parts + ["no active ad names this entity as employer"]), retrieved_at=index.built_at)
     return evidence("jobs", "available", SOURCE_CLASS, FEED_URL, value={"ads": ads}, note="; ".join(note_parts), retrieved_at=index.built_at)

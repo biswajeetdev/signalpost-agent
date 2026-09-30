@@ -84,5 +84,25 @@ class NavJobsTest(unittest.TestCase):
         self.assertEqual([p for p in validate_envelope(envelope) if "job_posting" in p], [])
 
 
+class DeferredFillTest(unittest.TestCase):
+    def test_deferred_jobs_are_filled_after_the_batch(self):
+        from norway_company_agent.budget import RequestBudget
+        from norway_company_agent.pipeline import fill_deferred_jobs
+
+        index = NavJobIndex(token="t", fetcher=FakeFeed([[feed_item("a", "Acme Bygg AS")]], {"a": detail("a", "912345678")}))
+        waiting = company_jobs("912345678", "ACME BYGG AS", None, index, wait_seconds=0.0)
+        self.assertTrue(waiting["deferred"])
+        profile = {"organisation_number": "912345678", "name": "ACME BYGG AS",
+                   "evidence": {"registry": {"status": "available", "value": {"navn": "ACME BYGG AS"}}, "jobs": waiting}}
+        envelope = build_envelope(profile, run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0})
+        self.assertEqual(envelope["modules"]["jobs"], "failed")
+        index.build()
+        envelopes, profiles = [envelope], [profile]
+        self.assertEqual(fill_deferred_jobs(envelopes, profiles, jobs_index=index, budget=RequestBudget(100, 600)), 1)
+        self.assertEqual(envelopes[0]["modules"]["jobs"], "available")
+        self.assertEqual(envelopes[0]["run"]["run_id"], "r")
+        self.assertEqual([p for p in validate_envelope(envelopes[0]) if "job" in p], [])
+
+
 if __name__ == "__main__":
     unittest.main()

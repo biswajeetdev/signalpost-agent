@@ -132,7 +132,7 @@ def enrich_company(
         records["jobs"] = company_jobs(
             org, str(registry_row.get("navn") or profile.get("name") or ""), records.get("locations"), jobs_index,
             spend=lambda: budget.spend(org, "jobs_detail"),
-            wait_seconds=budget.seconds_left() - settings.min_seconds_for_discovery,
+            wait_seconds=0.0,  # never block a worker on the feed; fill_deferred_jobs completes it after the batch
         )
 
     # With the feed index already read, jobs go first so NAV-listed employer homepages become website
@@ -222,6 +222,40 @@ def run_batch(
         changes = diff_profile(dict(previous[org]), carry_forward(previous[org], enriched)) if previous and org in previous else []
         envelopes.append(build_envelope(enriched, run_id=run_id, started_at=started_at, completed_at=completed_at, operations=operations, changes=changes))
     return envelopes, [results[profile["organisation_number"]][0] for profile in profiles], batch_report(envelopes, budget, started_at, completed_at)
+
+
+def fill_deferred_jobs(
+    envelopes: list[dict[str, Any]],
+    profiles: list[dict[str, Any]],
+    *,
+    jobs_index: NavJobIndex,
+    budget: RequestBudget,
+    margin_seconds: float = 30.0,
+) -> int:
+    """Companies processed before the NAV feed index was ready carry a deferred jobs record. Wait for
+    the index only as long as the time budget allows, then fill those records and rebuild just their
+    envelopes (same run metadata, operations and changes). Returns the number of envelopes rebuilt."""
+    deferred = [index for index, profile in enumerate(profiles) if ((profile.get("evidence") or {}).get("jobs") or {}).get("deferred")]
+    if not deferred:
+        return 0
+    jobs_index.ready.wait(max(budget.seconds_left() - margin_seconds, 0.0))
+    for position in deferred:
+        profile, envelope = profiles[position], envelopes[position]
+        org = profile["organisation_number"]
+        records = profile["evidence"]
+        registry_row = (records.get("registry") or {}).get("value") or {}
+        if jobs_index.ready.is_set():
+            try:
+                records["jobs"] = company_jobs(org, str(registry_row.get("navn") or profile.get("name") or ""), records.get("locations"), jobs_index,
+                                               spend=lambda org=org: budget.spend(org, "jobs_detail"))
+            except BudgetExhausted as exc:
+                records["jobs"] = evidence("jobs", "failed", "nav_public_job_feed", "https://pam-stilling-feed.nav.no/api/v1/feed", note=f"Run budget exhausted before job ads were checked: {exc}")
+        else:
+            records["jobs"] = evidence("jobs", "failed", "nav_public_job_feed", "https://pam-stilling-feed.nav.no/api/v1/feed", note="NAV job feed read did not finish within the run time budget")
+        run = envelope.get("run") or {}
+        envelopes[position] = build_envelope(profile, run_id=run.get("run_id"), started_at=run.get("started_at"), completed_at=run.get("completed_at"),
+                                             operations={**(envelope.get("operations") or {}), "requests": budget.by_company[org]}, changes=envelope.get("changes") or [])
+    return len(deferred)
 
 
 def batch_report(envelopes: Iterable[Mapping[str, Any]], budget: RequestBudget, started_at: str, completed_at: str) -> dict[str, Any]:

@@ -27,6 +27,7 @@ from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
 from norway_company_agent.chunked import run_chunked  # noqa: E402
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
+from norway_company_agent.pipeline import batch_report, fill_deferred_jobs  # noqa: E402
 from norway_company_agent.viewer import render  # noqa: E402
 from norway_company_agent.pipeline import RunSettings  # noqa: E402
 
@@ -132,8 +133,14 @@ def main() -> None:
         jobs_index=jobs_index,
     )
     if jobs_index is not None:
+        rebuilt = fill_deferred_jobs(envelopes, enriched, jobs_index=jobs_index, budget=budget)
+        if rebuilt:
+            # Envelopes changed after the chunks: recompute the envelope-derived report parts.
+            refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
+            for key in ("module_states", "available_claims", "validation", "unique_organisations"):
+                report[key] = refreshed[key]
         report["jobs_feed"] = {"state": jobs_index.state, "pages": jobs_index.pages, "active_ads": jobs_index.active_ads,
-                               "lookback_days": jobs_index.lookback_days, "note": jobs_index.note}
+                               "lookback_days": jobs_index.lookback_days, "deferred_then_filled": rebuilt, "note": jobs_index.note}
     report = {"run_id": args.run_id, "expected_count": args.expected_count, "registry": registry, **report}
     report["validation"]["exact_expected_count"] = len(envelopes) == args.expected_count
     report["validation"]["input_order"] = [item["organisation_number"] for item in envelopes] == organisations
