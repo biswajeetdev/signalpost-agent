@@ -1,0 +1,1 @@
+1,000-company timing run on submission/entry-companies.jsonl from a clean clone at the pinned v4 commit 05acd25 (2026-10-01): 1000/1000 envelopes, validation passed, 2,580 s wall clock, 10,712 requests, no cache supplied.
