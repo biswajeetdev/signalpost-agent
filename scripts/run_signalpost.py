@@ -27,6 +27,7 @@ from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
 from norway_company_agent.chunked import run_chunked  # noqa: E402
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
+from norway_company_agent.viewer import render  # noqa: E402
 from norway_company_agent.pipeline import RunSettings  # noqa: E402
 
 
@@ -144,6 +145,12 @@ def main() -> None:
     )
     write_jsonl(Path(args.profiles_output), enriched)
     write_jsonl(Path(args.output), envelopes)
+    try:  # human-readable companion; never affects the run's exit status
+        html_path = output.with_suffix(".html")
+        html_path.write_text(render(envelopes, run_id=args.run_id, generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds")), encoding="utf-8")
+        report["viewer"] = str(html_path)
+    except Exception as exc:
+        print(f"warning: viewer not written: {exc}", file=sys.stderr)
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)
     Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: report[key] for key in ("run_id", "envelopes", "module_states", "operations", "validation")}, ensure_ascii=False, indent=2))
