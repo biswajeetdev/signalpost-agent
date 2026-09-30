@@ -1,4 +1,4 @@
-# Signalpost agent — agent-v3
+# Signalpost agent — agent-v4
 
 A Norwegian company research agent for the Builderr Signalpost challenge. Give it organisation
 numbers; it returns exactly one terminal contract envelope per input, with a source, retrieval
@@ -18,7 +18,7 @@ tie to this exact entity. Parent, group, administrator and similarly named sites
 | Filed annual-account years and official PDF copies | Brønnøysund `aarsregnskap/kopi` API, live, paced | Returned for the organisation |
 | Roles (board, CEO, auditor, …) | Brønnøysund `roller/totalbestand` bulk, declared local cache | Active roles only; birth dates never stored |
 | Registered workplaces | Brønnøysund `underenheter` bulk, declared local cache | Subunits whose parent is the organisation |
-| Official website | Registry-declared site plus request-free domain candidates | Organisation number, registry email or registry phone on the site, or a registry-declared/unique full-legal-name domain carrying the legal name |
+| Official website | Registry-declared site, subunit-declared sites, registry email domain, legal and subunit trading-name domains (tried as https/http, bare/www) | The entity's or one of its subunits' organisation number, the registry email or registry phone on the site; or a registry-declared site carrying the legal name; or a `.no` domain equal to a unique (5+ character) legal name carrying it. Outside `.no` the name rule also needs the registered street and postcode on the site. Never published: parked/for-sale pages, or a page naming another entity's organisation number and none of ours |
 | Social profiles | Links on the verified company website only | Never matched by name similarity |
 | Job postings (hiring) | NAV public job-vacancy feed (arbeidsplassen.nav.no API), read once per run | The ad is ACTIVE and its employer organisation number is the entity or one of its registered subunits; name matches only select candidates |
 | Dated public activity | Verified company website: home page and one same-host news/press page, robots.txt honoured | The item has a machine-readable date (JSON-LD `datePublished` or `<time datetime>`) and a same-host URL |
