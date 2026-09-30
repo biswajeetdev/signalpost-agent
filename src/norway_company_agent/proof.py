@@ -49,7 +49,24 @@ def registry_identifiers(row: Mapping[str, Any]) -> dict[str, Any]:
         "email": email if "@" in email else "",
         "phones": sorted(phones),
         "subunit_numbers": sorted({re.sub(r"\D", "", str(number)) for number in row.get("_subunit_numbers") or []} - {""}),
+        "postcode": re.sub(r"\D", "", str(row.get("forretningsadresse.postnummer") or ""))[:4],
+        "street": str(row.get("forretningsadresse.adresse") or "").split("\n")[0].strip(),
     }
+
+
+def address_span(identifiers: Mapping[str, Any], page_html: str) -> str | None:
+    """The registered business address on the page: the street name and the 4-digit postcode.
+    Not an identity proof on its own (a building houses many entities); a Norway tie for the name rule."""
+    postcode, street = identifiers.get("postcode") or "", identifiers.get("street") or ""
+    words = [word for word in re.findall(r"[a-zæøå]{3,}", street.casefold()) if word not in {"postboks", "gate", "vei", "veien", "gata"}]
+    if len(postcode) != 4 or not words:
+        return None
+    text = " ".join(re.sub(r"<[^>]+>", " ", html_lib.unescape(page_html or "")).split())
+    folded = text.casefold()
+    code = re.search(r"(?<!\d)" + postcode + r"(?!\d)", folded)
+    if not code or words[0] not in folded:
+        return None
+    return text[max(0, code.start() - 80): code.end() + 40]
 
 
 def _claim_span(text: str, match: re.Match[str], context: int = 60) -> str:

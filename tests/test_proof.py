@@ -25,7 +25,7 @@ class ProofTest(unittest.TestCase):
         self.ids = registry_identifiers(ROW)
 
     def test_identifiers_are_normalised(self) -> None:
-        self.assertEqual(self.ids, {"organisation_number": "985589003", "email": "post@arkjv.no", "phones": ["57698950"], "subunit_numbers": []})
+        self.assertEqual({k: self.ids[k] for k in ("organisation_number", "email", "phones", "subunit_numbers")}, {"organisation_number": "985589003", "email": "post@arkjv.no", "phones": ["57698950"], "subunit_numbers": []})
         self.assertEqual(normalise_phone("+47 915 00 000"), "91500000")
         self.assertEqual(normalise_phone("123"), "")
 

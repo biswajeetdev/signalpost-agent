@@ -16,7 +16,7 @@ from .budget import BudgetExhausted, RequestBudget, RobotsCache
 from .candidates import SHARED_DOMAIN_THRESHOLD, full_name_labels, registered_domain, website_candidates
 from .evidence import utc_now
 from .http import read_bounded
-from .proof import STRONG_PROOFS, assess_site_identity, legal_name_span, name_key, page_proof_spans, registry_identifiers
+from .proof import STRONG_PROOFS, address_span, assess_site_identity, legal_name_span, name_key, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
 MAX_PAGE_BYTES = 1_500_000
@@ -330,11 +330,19 @@ def discover_website(
             if shared_domains.get(final_domain, 0) >= SHARED_DOMAIN_THRESHOLD:
                 relation = "administrator_or_group"
             registry_declared = candidate["source"] == "registry_website"
-            # Registry uniqueness says nothing about global .com names: the name rule is for .no only.
-            full_name_domain = final_domain.split(".")[0] in full_labels and final_domain.endswith(".no")
+            # Registry uniqueness says nothing about global names outside .no (Norid registers .no only to
+            # Norwegian holders): elsewhere the name rule also needs the registered address on the site, and
+            # the site's own domain printed on the page does not count as the name.
+            is_no = final_domain.endswith(".no")
+            label_match = final_domain.split(".")[0] in full_labels
+            name_html = (lambda html: html) if is_no else (lambda html: without_domain_mentions(html, final_domain))
+            address = address_span(identifiers, home.html)
+            full_name_domain = label_match and (is_no or bool(address))
             name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
             spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
-            name_span = legal_name_span(legal_name, without_domain_mentions(home.html, final_domain))
+            if address:
+                spans["registry_address"] = address
+            name_span = legal_name_span(legal_name, name_html(home.html))
             found = set(spans)
             proof_pages = [_page_record(home, spans, name_span)]
             own_numbers = {identifiers.get("organisation_number") or "", *(identifiers.get("subunit_numbers") or [])} - {""}
@@ -347,12 +355,16 @@ def discover_website(
                     if page.error or registered_domain(page.final_url) != final_domain:
                         continue
                     page_spans = page_proof_spans(identifiers, page.html, shared_phones=shared_phones)
-                    page_name = legal_name_span(legal_name, without_domain_mentions(page.html, final_domain))
+                    if not address and (page_address := address_span(identifiers, page.html)):
+                        address = page_spans["registry_address"] = page_address
+                        full_name_domain = label_match and (is_no or bool(address))
+                        name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
+                    page_name = legal_name_span(legal_name, name_html(page.html))
                     foreign |= foreign_org_numbers(page.html, own_numbers)
                     proof_pages.append(_page_record(page, page_spans, page_name))
                     found |= set(page_spans)
                     name_span = name_span or page_name
-                    if found & STRONG_PROOFS or (name_suffices and name_span):
+                    if found & STRONG_PROOFS or (name_suffices and name_span and not foreign):
                         break
             assessment = assess_site_identity(
                 found,

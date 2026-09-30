@@ -103,9 +103,22 @@ class PrecisionGateTest(unittest.TestCase):
         self.assertNotEqual(record["status"], "available")
         self.assertIn("parked", [a["outcome"] for a in record["attempts"]])
 
-    def test_domain_mention_is_not_the_legal_name(self):
-        record = self._discover("BRANDSUITE AS", "brandsuite.no", "<p>www.brandsuite.no</p>" + self.LONG)
+    def test_domain_mention_is_not_the_legal_name_outside_no(self):
+        record = self._discover("BRANDSUITE AS", "brandsuite.com", "<p>www.brandsuite.com</p>" + self.LONG)
         self.assertNotEqual(record["status"], "available")
+
+    def test_com_name_rule_needs_registered_address(self):
+        row_extra = {"forretningsadresse.adresse": "Storgata 12", "forretningsadresse.postnummer": "0155"}
+        page = "<h1>Norus Renewables AS</h1><p>Storgata 12, 0155 Oslo</p>" + self.LONG
+        from norway_company_agent.proof import name_key
+        row = {"organisasjonsnummer": "912345678", "navn": "NORUS RENEWABLES AS", "epostadresse": "", "telefon": "", "mobil": "", **row_extra}
+        fetch = lambda url: Page(url, url, 200, page, "a" * 64, "t")  # noqa: E731
+        record, _ = discover_website(row, shared_domains={}, shared_phones={}, fetch=fetch, robots_allowed=lambda url: True,
+                                     resolver=lambda host: host in {"norusrenewables.com"}, name_keys={name_key(row["navn"]): 1}, max_hosts=6)
+        self.assertEqual(record["status"], "available")
+        self.assertIn("registry_address", record["value"]["identity_assessment"]["proofs"])
+        without = self._discover("NORUS RENEWABLES AS", "norusrenewables.com", "<h1>Norus Renewables AS</h1>" + self.LONG)
+        self.assertNotEqual(without["status"], "available")
 
     def test_name_rule_does_not_apply_to_com(self):
         record = self._discover("DUERTEX AS", "duertex.com", "<h1>DUERTEX</h1><p>The worlds most comfortable pants</p>" + self.LONG)
