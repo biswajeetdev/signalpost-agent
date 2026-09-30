@@ -21,12 +21,38 @@ tie to this exact entity. Parent, group, administrator and similarly named sites
 | Official website | Registry-declared site plus request-free domain candidates | Organisation number, registry email or registry phone on the site, or a registry-declared/unique full-legal-name domain carrying the legal name |
 | Social profiles | Links on the verified company website only | Never matched by name similarity |
 
-## Setup
-
-Requires Python 3.12+ and [`uv`](https://docs.astral.sh/uv/). Dependencies are pinned in `uv.lock`.
+## Evaluator command (clean clone, no setup beyond `uv sync`)
 
 ```bash
 uv sync
+uv run python scripts/run_signalpost.py \
+  --organisations <evaluator batch> \
+  --bulk <evaluator registry snapshot> \
+  --output out/envelopes.jsonl \
+  --profiles-output out/profiles.jsonl \
+  --report out/report.json \
+  --run-id <run id> \
+  --expected-count <batch size>
+```
+
+- `--organisations`: JSON (list or wrapping object), JSONL, CSV with a header, or text; gzip or not;
+  keys such as `organisation_number`, `organisasjonsnummer` or `orgnr`.
+- `--bulk`: the frozen registry snapshot in any of Brønnøysund CSV, Brønnøysund JSON, or the flat
+  company-list JSONL; gzip or not. Optional: without it, registry rows come from the live entity API.
+- `--cache`: optional. A built cache file or a directory holding `official.sqlite` is used when
+  present; otherwise roles and workplaces come from the live per-entity Brønnøysund endpoints and the
+  website identity gate uses the shipped share-count snapshot `data/shared-identifiers.json.gz`.
+- The reference-contract flags `--workers`, `--checkpoint-every`, `--resume` and `--modules` are
+  accepted; unknown flags are ignored with a warning. Every path can also come from a
+  `SIGNALPOST_*` environment variable (for example `SIGNALPOST_ORGANISATIONS`, `SIGNALPOST_CACHE`).
+- No secrets or API keys are read. 100-company smoke test from a clean clone:
+  `submission/smoke-100-v2/` (100/100 envelopes, validation passed, 264 s, 906 requests).
+
+## Optional declared cache
+
+The command does not need this. Building it trades a one-off download for fewer live requests.
+
+```bash
 mkdir -p cache
 
 # Public Brønnøysund bulk downloads (NLOD 2.0). The CSV endpoints serve gzip; keep the .gz names.
@@ -60,8 +86,9 @@ uv run python scripts/run_signalpost.py \
   --expected-count 100
 ```
 
-Defaults match the locked daily budget: `--max-requests 2000`, `--max-minutes 45`, 8 workers,
-14 website requests per company. Every attempt, retry, robots.txt fetch and redirect hop is charged
+Defaults: `--max-requests` 12 per company, `--max-minutes 45`, 8 workers, 14 website requests per
+company. The rate-limited annual-account copy endpoint (one call per 2.1 s run-wide) is called last
+and only while the remaining backlog fits `--max-minutes`, so the run finishes inside its budget. Every attempt, retry, robots.txt fetch and redirect hop is charged
 to the budget. Near the wall-clock limit website discovery is skipped and marked `failed`, so every
 input still gets its envelope. The command exits non-zero if validation fails, the envelope count
 differs from `--expected-count`, or envelopes are out of input order.
