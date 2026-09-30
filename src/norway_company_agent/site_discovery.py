@@ -120,20 +120,37 @@ def make_site_fetchers(
                 parser.disallow_all = True
             else:
                 parser.allow_all = True
-        except Exception:
+        except Exception as exc:
             # Connection, TLS or timeout failure: the host cannot serve pages either.
             parser.unreachable = True  # type: ignore[attr-defined]
+            parser.unreachable_reason = f"{type(exc).__name__}: {exc}"  # type: ignore[attr-defined]
         return parser
 
-    def robots_allowed(url: str) -> bool | None:
+    def _parser(url: str) -> Any:
         parsed = urllib.parse.urlparse(url)
         origin = f"{parsed.scheme}://{parsed.netloc}"
-        parser = robots.get(origin, lambda: load_robots(origin))
+        return robots.get(origin, lambda: load_robots(origin))
+
+    def robots_allowed(url: str) -> bool | None:
+        parser = _parser(url)
         if getattr(parser, "unreachable", False):
             return None
         return parser.can_fetch(USER_AGENT, url)  # type: ignore[attr-defined]
 
+    # Why an origin was unreachable, so discovery can skip fallbacks that cannot help (see _fallback_kind).
+    robots_allowed.unreachable_reason = lambda url: str(getattr(_parser(url), "unreachable_reason", ""))  # type: ignore[attr-defined]
     return fetch, robots_allowed
+
+
+def _fallback_kind(reason: str) -> str:
+    """Classify an unreachable origin: 'timeout' (host effectively dead: try nothing else), 'tls'
+    (certificate/TLS problem: plain HTTP may work), or 'other' (refused, reset: try the next host)."""
+    lowered = reason.lower()
+    if "timed out" in lowered or "timeout" in lowered:
+        return "timeout"
+    if "ssl" in lowered or "certificate" in lowered or "tls" in lowered:
+        return "tls"
+    return "other"
 
 
 def contact_links(base_url: str, html: str, limit: int = PROOF_PAGE_LIMIT) -> list[str]:
@@ -235,15 +252,24 @@ def discover_website(
                 attempts.append({**candidate, "outcome": "no_dns"})
                 continue
             # Small sites often serve only one of bare/www, or only plain HTTP (expired or missing TLS).
-            base_url, allowed = "", None
-            for scheme in ("https", "http"):
+            # Fallbacks are tried only when the failure says they can help, so dead hosts stay cheap.
+            reason_of = getattr(robots_allowed, "unreachable_reason", None)
+            base_url, allowed, tls_failed = "", None, False
+            for host in hosts:
+                base_url = f"https://{host}/"
+                allowed = robots_allowed(base_url)
+                if allowed is not None:
+                    break
+                kind = _fallback_kind(reason_of(base_url)) if reason_of else "other"
+                tls_failed = tls_failed or kind == "tls"
+                if kind == "timeout":
+                    break
+            if allowed is None and (tls_failed or reason_of is None):
                 for host in hosts:
-                    base_url = f"{scheme}://{host}/"
+                    base_url = f"http://{host}/"
                     allowed = robots_allowed(base_url)
                     if allowed is not None:
                         break
-                if allowed is not None:
-                    break
             if allowed is None:
                 attempts.append({**candidate, "outcome": "unreachable", "url": base_url})
                 continue

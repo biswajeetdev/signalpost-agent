@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from norway_company_agent.budget import RequestBudget, RobotsCache  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
+from norway_company_agent.pipeline import with_subunits  # noqa: E402
 from norway_company_agent.site_discovery import discover_website, make_site_fetchers  # noqa: E402
 
 
@@ -41,7 +42,7 @@ def main() -> None:
 
     def run(row: dict) -> tuple[str, dict]:
         org = row["organisation_number"]
-        registry = (row["evidence"].get("registry") or {}).get("value") or {}
+        registry = with_subunits((row["evidence"].get("registry") or {}).get("value") or {}, row["evidence"].get("locations"))
         fetch, allowed = make_site_fetchers(budget, org, allowance=args.allowance, robots=robots)
         record, _ = discover_website(registry, shared_domains=shared["domains"], shared_phones=shared["phones"],
                                      fetch=fetch, robots_allowed=allowed, name_keys=shared["names"])

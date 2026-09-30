@@ -58,5 +58,31 @@ class FallbackTest(unittest.TestCase):
         self.assertEqual(tried[:4], ["https://acmeholding.no/", "https://www.acmeholding.no/", "http://acmeholding.no/", "http://www.acmeholding.no/"])
 
 
+class CheapFallbackTest(unittest.TestCase):
+    def _run(self, reason):
+        tried = []
+
+        def robots(url):
+            tried.append(url)
+            return True if url.startswith("http://") else None
+
+        robots.unreachable_reason = lambda url: reason
+        fetch = lambda url: Page(url, url, 200, "<p>ACME HOLDING AS org.nr 912 345 678</p>", "a" * 64, "t")  # noqa: E731
+        record, _ = discover_website(ROW, shared_domains={}, shared_phones={}, fetch=fetch, robots_allowed=robots,
+                                     resolver=lambda host: host in {"acmeholding.no", "www.acmeholding.no"}, max_hosts=1)
+        return tried, record
+
+    def test_timeout_stops_trying_variants(self):
+        tried, record = self._run("URLError: <urlopen error timed out>")
+        self.assertEqual(tried[0], "https://acmeholding.no/")
+        self.assertFalse(any(url.startswith("http://") for url in tried))
+        self.assertNotIn("https://www.acmeholding.no/", tried)
+
+    def test_tls_failure_falls_back_to_http(self):
+        tried, record = self._run("URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]>")
+        self.assertIn("http://acmeholding.no/", tried)
+        self.assertEqual(record["status"], "available")
+
+
 if __name__ == "__main__":
     unittest.main()
