@@ -1,4 +1,4 @@
-# Signalpost agent — agent-v1
+# Signalpost agent — agent-v3
 
 A Norwegian company research agent for the Builderr Signalpost challenge. Give it organisation
 numbers; it returns exactly one terminal contract envelope per input, with a source, retrieval
@@ -20,6 +20,21 @@ tie to this exact entity. Parent, group, administrator and similarly named sites
 | Registered workplaces | Brønnøysund `underenheter` bulk, declared local cache | Subunits whose parent is the organisation |
 | Official website | Registry-declared site plus request-free domain candidates | Organisation number, registry email or registry phone on the site, or a registry-declared/unique full-legal-name domain carrying the legal name |
 | Social profiles | Links on the verified company website only | Never matched by name similarity |
+| Job postings (hiring) | NAV public job-vacancy feed (arbeidsplassen.nav.no API), read once per run | The ad is ACTIVE and its employer organisation number is the entity or one of its registered subunits; name matches only select candidates |
+| Dated public activity | Verified company website: home page and one same-host news/press page, robots.txt honoured | The item has a machine-readable date (JSON-LD `datePublished` or `<time datetime>`) and a same-host URL |
+| Summary | Deterministic template over the envelope's available claims | Every sentence cites the evidence ids it restates; unknowns listed; no model |
+
+Each run also writes `<output>.html`, a self-contained searchable viewer: per-company summary, every
+claim with its state, and a link to each claim's source (hover shows the supporting span).
+
+**NAV job feed terms.** Used under NAV's API terms (https://arbeidsplassen.nav.no/vilkar-api): free for
+anyone; republished ads must be removed when inactive and updated when changed, and applications must
+deep-link to the source. The agent publishes only ads that are ACTIVE at run time, re-reads them every
+run (an ad that becomes inactive disappears and shows as a refresh change), links `application_url`
+to the source, and stores no contact persons. It uses NAV's published public token by default; an
+operator can supply their own consumer token server-side via `SIGNALPOST_NAV_FEED_TOKEN`. The feed read
+(~5 s per page, ~2 pages per look-back day, default 60 days) runs in the background; companies
+processed before it finishes are filled after the batch, within `--max-minutes`. `--no-jobs` disables it.
 
 ## Evaluator command (clean clone, no setup beyond `uv sync`)
 
@@ -144,19 +159,21 @@ latest accounts for 997 companies, 872 registered workplaces, 225 verified offic
 
 - **Models:** none. No LLM or ML model runs in the evaluator command.
 - **Third-party paid APIs:** none. **Expected cost per 100-company run: USD 0.**
-- **Secrets:** none required; the command reads no API keys or environment secrets.
-- **Measured load:** 100 companies took 599 requests in about 4 minutes. The 1,000-company entry run
-  took 5,745 requests (about 575 per 100 companies) in 40 minutes, runtime p50 17 s and p95 40 s per
-  company. Most of that time is Brønnøysund's filing-years pacing (one request start per 2.1 s), so a
-  daily 100-company batch stays well inside the 2,000-request / 45-minute budget.
+- **Secrets:** none required. Optional: `SIGNALPOST_NAV_FEED_TOKEN` (an operator's own NAV consumer
+  token) replaces NAV's published public token.
+- **Load:** see the smoke-test report under `submission/` for the measured requests and runtime at the
+  pinned commit. Brønnøysund's filing-years endpoint is paced at one request start per 2.1 s run-wide
+  and is called only while its backlog fits `--max-minutes`.
 
 ## Source rights and safe handling
 
 - **Brønnøysundregistrene** (entity, subunit and role bulk data; accounts API): open data under the
   Norwegian Licence for Open Government Data (NLOD 2.0). Person data is used only in the
   company-role context; birth dates are discarded.
-- **Company websites:** only the company's own public pages (home page and at most two same-host
-  contact/about pages per candidate host, at most four hosts). robots.txt is fetched and honoured
+- **NAV job-vacancy feed** (pam-stilling-feed.nav.no): NAV's public API under its terms of use (see
+  above); only active ads, re-read every run, no contact persons stored.
+- **Company websites:** only the company's own public pages (home page and a few same-host
+  contact/about pages per candidate host, at most four hosts; on a verified site, one news/press page). robots.txt is fetched and honoured
   per host, 401/403 on robots.txt means disallow. User agent:
   `builderr-signalpost-poc/0.1 (+https://builderr.ai)`.
 - **URL safety:** every URL and every redirect hop passes a public-address guard (no private,

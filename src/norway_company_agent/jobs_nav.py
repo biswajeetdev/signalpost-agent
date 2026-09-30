@@ -8,6 +8,7 @@ subunits, as employer by organisation number. Name similarity alone never publis
 """
 from __future__ import annotations
 
+import os
 import re
 import threading
 import urllib.request
@@ -89,7 +90,8 @@ class NavJobIndex:
         return {"Authorization": f"Bearer {self._token}"}
 
     def build(self) -> "NavJobIndex":
-        token = self._token or _public_token(lambda: self._spend("jobs_feed"))
+        # An operator-issued NAV consumer token (server-side env var) takes precedence over the public one.
+        token = self._token or os.environ.get("SIGNALPOST_NAV_FEED_TOKEN") or _public_token(lambda: self._spend("jobs_feed"))
         if not token:
             self.state, self.note = "failed", "NAV public feed token unavailable"
             return self
