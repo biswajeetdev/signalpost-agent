@@ -109,6 +109,9 @@ def website_candidates(row: Mapping[str, Any], shared_counts: Mapping[str, int],
     if mail and mail not in FREE_MAIL_DOMAINS:
         shared = shared_counts.get(mail, 0) >= SHARED_DOMAIN_THRESHOLD
         add(mail, "registry_email_domain", "administrator_or_group" if shared else "candidate")
+    # Search-API results (only when a key is configured): nominations, still need site proof.
+    for domain in row.get("_search_domains") or []:
+        add(domain, "search_result")
     # Homepages NAV lists on job ads whose employer organisation number is this entity (still need site proof).
     for homepage in row.get("_nav_employer_homepages") or []:
         add(registered_domain(homepage), "nav_employer_homepage")

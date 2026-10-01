@@ -20,6 +20,7 @@ from .http import FetchResult, fetch_json
 from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
 from .site_activity import site_activity
 from .site_jobs import site_postings
+from .search_candidates import search_domains, search_key
 from .proof import STRONG_PROOFS
 from .official import _reserve_history_slot, fetch_official_modules
 from .refresh import carry_forward, diff_profile
@@ -204,6 +205,14 @@ def enrich_company(
         homepages = employer_homepages(records["jobs"])
         if homepages and isinstance(registry_row, dict):
             registry_row = {**registry_row, "_nav_employer_homepages": homepages}
+    api_key = search_key()
+    if api_key and isinstance(registry_row, dict) and not registry_row.get("hjemmeside") and budget.seconds_left() > settings.min_seconds_for_discovery:
+        try:
+            found = search_domains(registry_row, api_key, spend=lambda: budget.spend(org, "search_api"))
+        except BudgetExhausted:
+            found = []
+        if found:
+            registry_row = {**registry_row, "_search_domains": found}
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
         records["website"] = evidence("website", "failed", "website_candidate_search", REGISTRY_SOURCE, note="Skipped: run wall-clock budget nearly exhausted")
