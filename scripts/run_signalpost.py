@@ -34,7 +34,8 @@ from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
 from norway_company_agent.chunked import run_chunked  # noqa: E402
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
-from norway_company_agent.pipeline import batch_report, fill_deferred_jobs  # noqa: E402
+from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
+from norway_company_agent.pipeline import batch_report, budgeted_official_fetcher, finalize_deferred  # noqa: E402
 from norway_company_agent.viewer import render  # noqa: E402
 from norway_company_agent.pipeline import RunSettings  # noqa: E402
 
@@ -116,6 +117,8 @@ def main() -> None:
     budget = RequestBudget(args.max_requests or 20 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
     budget.paced_pending = len(organisations)
     jobs_index = None if args.no_jobs else build_jobs_index(budget, args.jobs_lookback_days)
+    # The paced filing-history endpoint gets its own thread from second 0 (input order), so workers never queue on it.
+    history = HistoryPrefetcher(organisations, budget, budgeted_official_fetcher).start()
     # No bulk supplied: the batch file itself is the registry source when it carries company rows,
     # otherwise the live entity endpoint fills each registry row (see profiles_from_live_registry).
     profiles, registry = profiles_from_bulk(args.bulk, organisations) if args.bulk else profiles_from_live_registry(organisations)
@@ -138,16 +141,18 @@ def main() -> None:
         chunk_size=args.chunk_size,
         chunk_retries=args.chunk_retries,
         jobs_index=jobs_index,
+        history_prefetch=history,
     )
+    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index)
+    if any(rebuilt.values()):
+        # Envelopes changed after the chunks: recompute the envelope-derived report parts.
+        refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
+        for key in ("module_states", "available_claims", "validation", "unique_organisations"):
+            report[key] = refreshed[key]
+    report["history_stream"] = {"fetched": len(history.results), "of": len(organisations), "filled_after_batch": rebuilt["history"]}
     if jobs_index is not None:
-        rebuilt = fill_deferred_jobs(envelopes, enriched, jobs_index=jobs_index, budget=budget)
-        if rebuilt:
-            # Envelopes changed after the chunks: recompute the envelope-derived report parts.
-            refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
-            for key in ("module_states", "available_claims", "validation", "unique_organisations"):
-                report[key] = refreshed[key]
         report["jobs_feed"] = {"state": jobs_index.state, "pages": jobs_index.pages, "active_ads": jobs_index.active_ads,
-                               "lookback_days": jobs_index.lookback_days, "deferred_then_filled": rebuilt, "note": jobs_index.note}
+                               "lookback_days": jobs_index.lookback_days, "deferred_then_filled": rebuilt["jobs"], "note": jobs_index.note}
     report = {"run_id": args.run_id, "expected_count": args.expected_count, "registry": registry, **report}
     report["validation"]["exact_expected_count"] = len(envelopes) == args.expected_count
     report["validation"]["input_order"] = [item["organisation_number"] for item in envelopes] == organisations

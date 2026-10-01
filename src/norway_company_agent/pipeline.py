@@ -179,6 +179,7 @@ def enrich_company(
     resolver: Callable[[str], bool] | None = None,
     jobs_index: NavJobIndex | None = None,
     previous_profile: Mapping[str, Any] | None = None,
+    history_prefetch: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     org = profile["organisation_number"]
     started = time.monotonic()
@@ -247,7 +248,12 @@ def enrich_company(
         add_jobs()
     # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,
     # and only while the remaining paced backlog fits the time budget.
-    if budget.take_paced_slot(HISTORY_SECONDS):
+    if history_prefetch is not None:
+        # Fetched on the prefetch thread; never wait for it here (see finalize_deferred).
+        records["financial_history"] = history_prefetch.record(org) or {
+            **evidence("financial_history", "failed", "official_annual_account_copies", HISTORY_URL.format(org=org),
+                       note="Deferred: filled from the paced history stream after the batch"), "deferred": True}
+    elif budget.take_paced_slot(HISTORY_SECONDS):
         history, _ = fetch_official_modules(org, {"financial_history"}, fetcher=fetcher)
         records.update(history)
     else:
@@ -336,6 +342,40 @@ def fill_deferred_jobs(
         envelopes[position] = build_envelope(profile, run_id=run.get("run_id"), started_at=run.get("started_at"), completed_at=run.get("completed_at"),
                                              operations={**(envelope.get("operations") or {}), "requests": budget.by_company[org]}, changes=envelope.get("changes") or [])
     return len(deferred)
+
+
+def finalize_deferred(
+    envelopes: list[dict[str, Any]],
+    profiles: list[dict[str, Any]],
+    *,
+    budget: RequestBudget,
+    history_prefetch: Any = None,
+    jobs_index: NavJobIndex | None = None,
+    margin_seconds: float = 30.0,
+) -> dict[str, int]:
+    """Fill records deferred during the batch (paced filing history, NAV jobs) within the time left, then
+    rebuild only the affected envelopes. Returns counts of rebuilt envelopes per source."""
+    counts = {"history": 0, "jobs": 0}
+    if history_prefetch is not None:
+        history_prefetch.done.wait(max(budget.seconds_left() - margin_seconds, 0.0))
+        history_prefetch.stop()
+        for position, profile in enumerate(profiles):
+            records = profile.get("evidence") or {}
+            if (records.get("financial_history") or {}).get("deferred"):
+                records["financial_history"] = history_prefetch.final_record(profile["organisation_number"])
+                counts["history"] += 1
+                _rebuild(envelopes, profiles, position, budget)
+    if jobs_index is not None:
+        counts["jobs"] = fill_deferred_jobs(envelopes, profiles, jobs_index=jobs_index, budget=budget)
+    return counts
+
+
+def _rebuild(envelopes: list[dict[str, Any]], profiles: list[dict[str, Any]], position: int, budget: RequestBudget) -> None:
+    envelope, profile = envelopes[position], profiles[position]
+    run = envelope.get("run") or {}
+    envelopes[position] = build_envelope(profile, run_id=run.get("run_id"), started_at=run.get("started_at"), completed_at=run.get("completed_at"),
+                                         operations={**(envelope.get("operations") or {}), "requests": budget.by_company[profile["organisation_number"]]},
+                                         changes=envelope.get("changes") or [])
 
 
 def batch_report(envelopes: Iterable[Mapping[str, Any]], budget: RequestBudget, started_at: str, completed_at: str) -> dict[str, Any]:
