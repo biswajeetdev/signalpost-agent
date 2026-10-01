@@ -54,6 +54,24 @@ def registry_identifiers(row: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+_NO_PHONE = re.compile(r"(?:\+|00)47[\s.\-]?\d{2}[\s.\-]?\d{2}[\s.\-]?\d{2}[\s.\-]?\d{2}(?!\d)")
+_NO_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.no\b", re.I)
+_NO_LANG = re.compile(r"<html[^>]*\blang=[\"']?(?:no|nb|nn)(?:[-_][a-z]{2})?[\"'\s>]", re.I)
+
+
+def norway_span(page_html: str) -> str | None:
+    """A Norway tie on the page: a +47 phone number, an email at a .no domain, or the page declared
+    Norwegian. Not an identity proof; used with the unique-legal-name rule outside .no."""
+    html = page_html or ""
+    if match := _NO_LANG.search(html):
+        return match.group(0)[:120]
+    text = " ".join(re.sub(r"<[^>]+>", " ", html_lib.unescape(html)).split())
+    for pattern in (_NO_PHONE, _NO_EMAIL):
+        if match := pattern.search(text):
+            return text[max(0, match.start() - 60): match.end() + 30]
+    return None
+
+
 def address_span(identifiers: Mapping[str, Any], page_html: str) -> str | None:
     """The registered business address on the page: the street name and the 4-digit postcode.
     Not an identity proof on its own (a building houses many entities); a Norway tie for the name rule."""

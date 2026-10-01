@@ -81,7 +81,7 @@ def main() -> None:
     parser.add_argument("--max-requests", type=int, default=int(env("MAX_REQUESTS", "0")), help="0: 20 per company")
     parser.add_argument("--max-minutes", type=float, default=float(env("MAX_MINUTES", "45")))
     parser.add_argument("--workers", type=int, default=int(env("WORKERS", "8")))
-    parser.add_argument("--discovery-allowance", type=int, default=24)
+    parser.add_argument("--discovery-allowance", type=int, default=32)
     parser.add_argument("--disable-unique-name-rule", action="store_true")
     parser.add_argument("--chunk-size", "--checkpoint-every", type=int, default=50, help="Organisations per checkpointed chunk")
     parser.add_argument("--chunk-retries", type=int, default=1, help="Extra attempts for a chunk before it falls back to failed envelopes")

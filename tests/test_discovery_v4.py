@@ -128,6 +128,17 @@ class PrecisionGateTest(unittest.TestCase):
         record = self._discover("BQL AS", "bql.no", "<h1>BQL</h1><p>Bergen Quiltelag</p>" + self.LONG)
         self.assertNotEqual(record["status"], "available")
 
+    def test_com_name_rule_accepts_norwegian_contact_tie(self):
+        record = self._discover("NORUS RENEWABLES AS", "norusrenewables.com", "<h1>Norus Renewables AS</h1><p>Ring oss: +47 22 33 44 55</p>" + self.LONG)
+        self.assertEqual(record["status"], "available")
+        self.assertIn("norway_contact", record["value"]["identity_assessment"]["proofs"])
+        lang = self._discover("NORUS RENEWABLES AS", "norusrenewables.com", '<html lang="nb"><h1>Norus Renewables AS</h1>' + self.LONG)
+        self.assertEqual(lang["status"], "available")
+
+    def test_com_name_rule_rejects_foreign_contact(self):
+        record = self._discover("DUERTEX AS", "duertex.com", '<html lang="en"><h1>DUERTEX</h1><p>Call +1 604 555 0101, hello@duertex.com</p>' + self.LONG)
+        self.assertNotEqual(record["status"], "available")
+
     def test_foreign_org_number_blocks_name_rule(self):
         record = self._discover("PDIMPORT AS", "pdimport.no", "<p>PDIMPORT AS Org. nr. 930692522</p>" + self.LONG)
         self.assertNotEqual(record["status"], "available")

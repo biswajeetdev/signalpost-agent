@@ -16,7 +16,7 @@ from .budget import BudgetExhausted, RequestBudget, RobotsCache
 from .candidates import SHARED_DOMAIN_THRESHOLD, full_name_labels, registered_domain, website_candidates
 from .evidence import utc_now
 from .http import read_bounded
-from .proof import STRONG_PROOFS, address_span, assess_site_identity, legal_name_span, name_key, page_proof_spans, registry_identifiers
+from .proof import STRONG_PROOFS, address_span, assess_site_identity, legal_name_span, name_key, norway_span, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
 MAX_PAGE_BYTES = 1_500_000
@@ -170,6 +170,16 @@ def foreign_org_numbers(html: str, own: set[str]) -> set[str]:
     text = " ".join(re.sub(r"<[^>]+>", " ", html or "").split())
     found = {re.sub(r"\D", "", match.group(1)) for match in ORG_NUMBER_MENTION.finditer(text)}
     return {number for number in found if len(number) == 9} - own
+
+
+def norway_tie(identifiers: Mapping[str, Any], html: str) -> tuple[str, str] | None:
+    """(proof label, span) tying a non-.no site to Norway: the registered street and postcode, else a
+    +47 phone, a .no email or a Norwegian page language. Used only with the unique-legal-name rule."""
+    if span := address_span(identifiers, html):
+        return "registry_address", span
+    if span := norway_span(html):
+        return "norway_contact", span
+    return None
 
 
 def without_domain_mentions(html: str, domain: str) -> str:
@@ -336,12 +346,12 @@ def discover_website(
             is_no = final_domain.endswith(".no")
             label_match = final_domain.split(".")[0] in full_labels
             name_html = (lambda html: html) if is_no else (lambda html: without_domain_mentions(html, final_domain))
-            address = address_span(identifiers, home.html)
+            address = norway_tie(identifiers, home.html)
             full_name_domain = label_match and (is_no or bool(address))
             name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
             spans = page_proof_spans(identifiers, home.html, shared_phones=shared_phones)
             if address:
-                spans["registry_address"] = address
+                spans[address[0]] = address[1]
             name_span = legal_name_span(legal_name, name_html(home.html))
             found = set(spans)
             proof_pages = [_page_record(home, spans, name_span)]
@@ -355,8 +365,9 @@ def discover_website(
                     if page.error or registered_domain(page.final_url) != final_domain:
                         continue
                     page_spans = page_proof_spans(identifiers, page.html, shared_phones=shared_phones)
-                    if not address and (page_address := address_span(identifiers, page.html)):
-                        address = page_spans["registry_address"] = page_address
+                    if not address and (page_address := norway_tie(identifiers, page.html)):
+                        address = page_address
+                        page_spans[page_address[0]] = page_address[1]
                         full_name_domain = label_match and (is_no or bool(address))
                         name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
                     page_name = legal_name_span(legal_name, name_html(page.html))
