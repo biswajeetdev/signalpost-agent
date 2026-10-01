@@ -19,6 +19,7 @@ from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
 from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
 from .site_activity import site_activity
+from .site_jobs import site_postings
 from .official import _reserve_history_slot, fetch_official_modules
 from .refresh import carry_forward, diff_profile
 from .site_discovery import Page, discover_website, make_site_fetchers
@@ -84,6 +85,18 @@ CONTACT_COLUMNS = (
     "epostadresse", "telefon", "mobil", "hjemmeside",
     "forretningsadresse.adresse", "forretningsadresse.postnummer", "forretningsadresse.poststed", "forretningsadresse.kommune",
 )
+
+
+def careers_record(home: Page | None, fetch: Any, robots_allowed: Any) -> dict[str, Any]:
+    """Evidence record for postings listed on the verified company website (home + one careers page)."""
+    if home is None:
+        return evidence("site_jobs", "not_available", "company_owned_website", REGISTRY_SOURCE, note="No verified company website to read job postings from")
+    postings, note = site_postings(home, fetch, robots_allowed)
+    if not postings:
+        return evidence("site_jobs", "not_available", "company_owned_website", home.final_url, retrieved_at=home.retrieved_at,
+                        content_sha256=home.content_sha256, note=note or "No job postings listed on the verified site")
+    return evidence("site_jobs", "available", "company_owned_website", home.final_url, value={"ads": postings},
+                    retrieved_at=home.retrieved_at, content_sha256=home.content_sha256, note=note)
 
 
 def with_subunits(row: Mapping[str, Any], locations: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -177,8 +190,12 @@ def enrich_company(
         # A few requests beyond discovery: one news/press index on the verified site (plus its robots.txt).
         activity_fetch, activity_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)
         records["public_activity"] = site_activity(records["website"], home, activity_fetch, activity_robots)
+        # And one careers page on the verified site: postings the company itself lists.
+        jobs_fetch, jobs_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)
+        records["site_jobs"] = careers_record(home, jobs_fetch, jobs_robots)
     else:
         records["public_activity"] = site_activity(records["website"], None, None, None)
+        records["site_jobs"] = careers_record(None, None, None)
     if jobs_index is not None and not jobs_first:
         add_jobs()
     # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,

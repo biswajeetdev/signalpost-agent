@@ -22,8 +22,8 @@ _STATUS_TO_STATE = {
     "source_error": "failed",
     "not_fetched": "failed",
 }
-MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles", "jobs", "public_activity")
-OPTIONAL_MODULES = frozenset({"jobs", "public_activity"})
+MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles", "jobs", "site_jobs", "public_activity")
+OPTIONAL_MODULES = frozenset({"jobs", "site_jobs", "public_activity"})
 REGISTRY_FIELDS = (
     ("legal_name", "navn"),
     ("legal_form", "organisasjonsform.kode"),
@@ -235,6 +235,24 @@ def _jobs(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
         )
 
 
+def _site_jobs(envelope: _Envelope, record: Mapping[str, Any] | None, seen_urls: set[str]) -> None:
+    """Postings the verified company website lists (JobPosting data or links to individual ads)."""
+    for ad in ((record or {}).get("value") or {}).get("ads") or []:
+        if availability(record) != "available" or ad.get("url") in seen_urls:
+            continue
+        page_record = {"source_url": ad.get("source_url"), "source_class": "company_owned_website", "retrieved_at": ad.get("retrieved_at"),
+                       "content_sha256": ad.get("content_sha256"), "method": ad.get("extraction")}
+        envelope.claim(
+            "job_posting",
+            {key: ad.get(key) for key in ("title", "url", "published", "expires")},
+            "available",
+            [envelope.cite(page_record, ad.get("claim_span"))],
+            confidence=0.95,
+            effective_at=ad.get("published"),
+            relation="listed_on_verified_company_website",
+        )
+
+
 def _activity(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
     if record is None:
         return
@@ -364,7 +382,13 @@ def build_envelope(
     _listed(envelope, records.get("locations"), module="locations", key="locations", field="registered_workplace", span=lambda item: f"Underenhet {item.get('organisation_number')} {item.get('name')}")
     _website(envelope, records.get("website"), records.get("registry"))
     _social(envelope, records.get("social_profiles"))
-    _jobs(envelope, records.get("jobs"))
+    site_jobs = records.get("site_jobs")
+    site_has_ads = availability(site_jobs) == "available" and bool(((site_jobs or {}).get("value") or {}).get("ads"))
+    nav_record = records.get("jobs")
+    if site_has_ads and availability(nav_record) != "available":
+        nav_record = None  # the site's own postings answer the hiring question; no contradictory "not found" claim
+    _jobs(envelope, nav_record)
+    _site_jobs(envelope, site_jobs, {str(c["value"].get("url")) for c in envelope.claims if c["field"] == "job_posting" and isinstance(c.get("value"), dict)})
     _activity(envelope, records.get("public_activity"))
     return {
         "organisation_number": profile["organisation_number"],
