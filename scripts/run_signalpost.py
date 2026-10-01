@@ -81,10 +81,12 @@ def main() -> None:
     parser.add_argument("--previous-profiles", default=env("PREVIOUS_PROFILES"), help="Profiles JSONL from the previous run, for change detection")
     parser.add_argument("--max-requests", type=int, default=int(env("MAX_REQUESTS", "0")), help="0: 20 per company")
     parser.add_argument("--max-minutes", type=float, default=float(env("MAX_MINUTES", "45")))
-    parser.add_argument("--workers", type=int, default=int(env("WORKERS", "8")))
+    parser.add_argument("--workers", type=int, default=int(env("WORKERS", "16")))
     parser.add_argument("--discovery-allowance", type=int, default=32)
+    parser.add_argument("--company-seconds", type=float, default=float(env("COMPANY_SECONDS", "90")),
+                        help="Wall-clock cap on one company's website requests (0 disables)")
     parser.add_argument("--disable-unique-name-rule", action="store_true")
-    parser.add_argument("--chunk-size", "--checkpoint-every", type=int, default=50, help="Organisations per checkpointed chunk")
+    parser.add_argument("--chunk-size", "--checkpoint-every", type=int, default=100, help="Organisations per checkpointed chunk")
     parser.add_argument("--chunk-retries", type=int, default=1, help="Extra attempts for a chunk before it falls back to failed envelopes")
     parser.add_argument("--checkpoint-dir", help="Default: <report>.checkpoints/ next to --report")
     parser.add_argument("--resume", action="store_true", help="Accepted for the evaluator contract; rerunning the same --run-id always resumes")
@@ -116,6 +118,7 @@ def main() -> None:
     # 20 per company, plus room for the one-off NAV feed read (~4 pages per look-back day).
     budget = RequestBudget(args.max_requests or 20 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
     budget.paced_pending = len(organisations)
+    budget.company_seconds = args.company_seconds or None
     jobs_index = None if args.no_jobs else build_jobs_index(budget, args.jobs_lookback_days)
     # The paced filing-history endpoint gets its own thread from second 0 (input order), so workers never queue on it.
     history = HistoryPrefetcher(organisations, budget, budgeted_official_fetcher).start()

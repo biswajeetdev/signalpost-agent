@@ -33,6 +33,10 @@ class RequestBudget:
         self.by_purpose: Counter[str] = Counter()
         # Companies still due a call to a paced (rate-limited) endpoint; set by the runner.
         self.paced_pending = 0
+        # Wall-clock cap on one company's non-essential (website) requests, so one slow site cannot hold a
+        # whole chunk; official registry calls are exempt. None disables it.
+        self.company_seconds: float | None = None
+        self._company_started: dict[str, float] = {}
         self._lock = threading.Lock()
 
     def take_paced_slot(self, seconds_per_call: float, margin_seconds: float = 90.0) -> bool:
@@ -63,6 +67,12 @@ class RequestBudget:
                 raise BudgetExhausted("run wall-clock budget exhausted")
             if allowance is not None and not essential and self.by_company[company] >= allowance:
                 raise BudgetExhausted(f"company allowance exhausted ({allowance})")
+            if not essential and self.company_seconds is not None:
+                # The clock starts at the company's first website request (official calls, including the
+                # history prefetch that runs ahead of workers, never start or stop it).
+                started = self._company_started.setdefault(company, self.clock())
+                if self.clock() - started > self.company_seconds:
+                    raise BudgetExhausted(f"company time allowance exhausted ({self.company_seconds:.0f}s)")
             self.used += 1
             self.by_company[company] += 1
             self.by_purpose[purpose] += 1
