@@ -20,6 +20,7 @@ from .http import FetchResult, fetch_json
 from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
 from .site_activity import site_activity
 from .site_jobs import site_postings
+from .proof import STRONG_PROOFS
 from .official import _reserve_history_slot, fetch_official_modules
 from .refresh import carry_forward, diff_profile
 from .site_discovery import Page, discover_website, make_site_fetchers
@@ -87,6 +88,38 @@ CONTACT_COLUMNS = (
 )
 
 
+TRANSIENT_OUTCOMES = frozenset({"unreachable", "fetch_failed"})
+
+
+def carry_unreachable_site(previous: Mapping[str, Any] | None, current: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """A site verified in the previous run that this run could not reach (network failure, not a failed
+    identity check) keeps its last supported verification, with the failure exposed in the note; the
+    playbook's 'failed refreshes keep the last known supported value'. Returns (website, social_profiles)."""
+    prior = ((previous or {}).get("evidence") or {})
+    prior_site = prior.get("website") or {}
+    if current.get("status") == "available" or prior_site.get("status") != "available":
+        return None
+    prior_value = prior_site.get("value") or {}
+    domain = str(prior_value.get("registered_domain") or "")
+    attempts = [attempt for attempt in current.get("attempts") or [] if domain and domain in {attempt.get("domain"), attempt.get("final_domain")}]
+    if not attempts or any(attempt.get("outcome") not in TRANSIENT_OUTCOMES for attempt in attempts):
+        return None  # judged this run, or no longer a candidate under the current rules: the current verdict stands
+    proofs = set(((prior_value.get("identity_assessment") or {}).get("proofs")) or [])
+    still_valid = bool(proofs & STRONG_PROOFS) or "registry_declared_website" in proofs or (
+        "unique_legal_name_domain" in proofs and domain.endswith(".no"))
+    if not still_valid:
+        return None  # the earlier proof would not pass today's identity rules
+    outcome = attempts[-1].get("outcome")
+    note = (f"Carried forward: verified {str(prior_site.get('retrieved_at'))[:10]}; this run could not reach "
+            f"{domain} ({outcome}). Last supported value kept, failure exposed.")
+    website = {**prior_site, "note": note, "carried_forward": True, "refresh_attempts": current.get("attempts") or []}
+    social = {**(prior.get("social_profiles") or {}), "carried_forward": True}
+    if social.get("status") is None:
+        social = {"field": "social_profiles", "status": "not_available", "source_type": "company_owned_website", "source_class": "company_owned_website",
+                  "source_url": prior_site.get("source_url"), "retrieved_at": prior_site.get("retrieved_at"), "note": "Carried forward with the website"}
+    return website, social
+
+
 def careers_record(home: Page | None, fetch: Any, robots_allowed: Any) -> dict[str, Any]:
     """Evidence record for postings listed on the verified company website (home + one careers page)."""
     if home is None:
@@ -144,6 +177,7 @@ def enrich_company(
     site_fetchers: Callable[..., Any] = make_site_fetchers,
     resolver: Callable[[str], bool] | None = None,
     jobs_index: NavJobIndex | None = None,
+    previous_profile: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     org = profile["organisation_number"]
     started = time.monotonic()
@@ -185,7 +219,11 @@ def enrich_company(
             name_keys=shared["names"] if settings.unique_name_rule else None,
             **({"resolver": resolver} if resolver else {}),
         )
-    records["social_profiles"] = social_profiles(records["website"], home)
+    carried = carry_unreachable_site(previous_profile, records["website"])
+    if carried:
+        records["website"], records["social_profiles"] = carried
+    else:
+        records["social_profiles"] = social_profiles(records["website"], home)
     if records["website"].get("status") == "available" and home is not None and budget.seconds_left() > settings.min_seconds_for_discovery:
         # A few requests beyond discovery: one news/press index on the verified site (plus its robots.txt).
         activity_fetch, activity_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)
@@ -238,7 +276,9 @@ def run_batch(
 
     def work(profile: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         try:
-            return enrich_company(profile, cache=cache, budget=budget, robots=robots, settings=settings, shared=shared, **enrich_overrides)
+            prior = (previous or {}).get(profile["organisation_number"])
+            return enrich_company(profile, cache=cache, budget=budget, robots=robots, settings=settings, shared=shared,
+                                  previous_profile=prior, **enrich_overrides)
         except Exception as exc:  # every input still ends in a terminal envelope
             return _mark_failed(profile, exc), {"requests": budget.by_company[profile["organisation_number"]], "runtime_ms": 0, "third_party_cost_usd": 0}
 
