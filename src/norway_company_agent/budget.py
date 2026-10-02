@@ -67,7 +67,9 @@ class RequestBudget:
                 raise BudgetExhausted("run wall-clock budget exhausted")
             if allowance is not None and not essential and self.by_company[company] >= allowance:
                 raise BudgetExhausted(f"company allowance exhausted ({allowance})")
-            if not essential and self.company_seconds is not None:
+            # Only per-company website requests (those with an allowance) are time-capped; run-level readers
+            # such as the NAV feed ('_run') and job-detail lookups are not company website work.
+            if not essential and allowance is not None and self.company_seconds is not None:
                 # The clock starts at the company's first website request (official calls, including the
                 # history prefetch that runs ahead of workers, never start or stop it).
                 started = self._company_started.setdefault(company, self.clock())
