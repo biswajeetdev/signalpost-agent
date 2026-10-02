@@ -13,6 +13,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import json
 import os
 import sys
@@ -34,6 +35,7 @@ from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
 from norway_company_agent.chunked import run_chunked  # noqa: E402
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
+from norway_company_agent.guardrails import check_run, enforce_site_basis  # noqa: E402
 from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
 from norway_company_agent.pipeline import batch_report, budgeted_official_fetcher, finalize_deferred  # noqa: E402
 from norway_company_agent.viewer import render  # noqa: E402
@@ -94,6 +96,8 @@ def main() -> None:
     parser.add_argument("--jobs-lookback-days", type=int, default=int(env("JOBS_LOOKBACK_DAYS", "120")),
                         help="How far back the NAV public job feed is read for still-active ads")
     parser.add_argument("--no-jobs", action="store_true", help="Skip the NAV job-feed connector")
+    parser.add_argument("--chunk-seconds", type=float, default=float(env("CHUNK_SECONDS", "480")),
+                        help="Watchdog limit per chunk; unfinished companies get failed envelopes (0 disables)")
     parser.add_argument("organisations_positional", nargs="?", help=argparse.SUPPRESS)
     args, unknown = parser.parse_known_args()
     if unknown:
@@ -110,6 +114,9 @@ def main() -> None:
     if args.chunk_retries < 0:
         raise SystemExit(f"--chunk-retries must be >= 0, got {args.chunk_retries}")
 
+    # Diagnostic fail-safe: if the run is still alive 10 minutes past its time limit, dump every thread's
+    # stack to stderr (the output-writing path itself is bounded; this only explains an impossible hang).
+    faulthandler.dump_traceback_later(args.max_minutes * 60 + 600, exit=False)
     inputs = read_organisation_inputs(args.organisations)
     organisations = [item["organisation_number"] for item in inputs]
     args.expected_count = args.expected_count or len(organisations)
@@ -129,6 +136,7 @@ def main() -> None:
         discovery_allowance=args.discovery_allowance,
         unique_name_rule=not args.disable_unique_name_rule,
         workers=args.workers,
+        chunk_seconds=args.chunk_seconds or None,
     )
     report_path = Path(args.report)
     checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else report_path.with_name(report_path.stem + ".checkpoints")
@@ -156,7 +164,19 @@ def main() -> None:
     if jobs_index is not None:
         report["jobs_feed"] = {"state": jobs_index.state, "pages": jobs_index.pages, "active_ads": jobs_index.active_ads,
                                "lookback_days": jobs_index.lookback_days, "deferred_then_filled": rebuilt["jobs"], "note": jobs_index.note}
+    # Guard rail enforcement: a published website without an allowed identity basis is never released
+    # (exact-company precision outranks recall); it is downgraded to ambiguous before output.
+    demoted = enforce_site_basis(envelopes, enriched, budget)
+    if demoted:
+        refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
+        for key in ("module_states", "available_claims", "validation", "unique_organisations"):
+            report[key] = refreshed[key]
     report = {"run_id": args.run_id, "expected_count": args.expected_count, "registry": registry, **report}
+    report["guardrails"] = {**check_run(envelopes, enriched, organisations), "websites_demoted": demoted}
+    for line in report["guardrails"]["contract_failures"]:
+        print(f"GUARDRAIL CONTRACT: {line}", file=sys.stderr)
+    for line in report["guardrails"]["warnings"]:
+        print(f"guardrail warning: {line}", file=sys.stderr)
     report["validation"]["exact_expected_count"] = len(envelopes) == args.expected_count
     report["validation"]["input_order"] = [item["organisation_number"] for item in envelopes] == organisations
     report["validation"]["passed"] = (
@@ -176,7 +196,10 @@ def main() -> None:
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)
     Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: report[key] for key in ("run_id", "envelopes", "module_states", "operations", "validation")}, ensure_ascii=False, indent=2))
-    raise SystemExit(0 if report["validation"]["passed"] else 1)
+    # Fail-safe exit: all output is on disk; never let a stuck background thread hold the process open.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0 if report["validation"]["passed"] else 1)
 
 
 if __name__ == "__main__":

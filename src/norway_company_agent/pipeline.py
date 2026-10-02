@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 import time
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping
 
@@ -42,6 +43,10 @@ class RunSettings:
     # Below this much wall clock, discovery is skipped so every company still gets an envelope.
     min_seconds_for_discovery: float = 120.0
     workers: int = 8
+    # Watchdog limit for one chunk (None: only the run deadline applies), and the time kept free at the
+    # end of the run to fill deferred records and write output.
+    chunk_seconds: float | None = None
+    output_margin_seconds: float = 90.0
 
 
 def budgeted_official_fetcher(budget: RequestBudget, company: str) -> Callable[[str], FetchResult]:
@@ -297,9 +302,25 @@ def run_batch(
         except Exception as exc:  # every input still ends in a terminal envelope
             return _mark_failed(profile, exc), {"requests": budget.by_company[profile["organisation_number"]], "runtime_ms": 0, "third_party_cost_usd": 0}
 
-    with ThreadPoolExecutor(max_workers=settings.workers) as pool:
-        for profile, operations in pool.map(work, profiles):
-            results[profile["organisation_number"]] = (profile, operations)
+    # Watchdog: a chunk never runs past its own limit or the run deadline (minus a margin to write output).
+    # Companies still unfinished then get an honest failed envelope from a copy of their input, and the
+    # pool is released without waiting; stuck threads cannot hold the run (the runner exits hard).
+    limit = budget.seconds_left() - settings.output_margin_seconds
+    if settings.chunk_seconds:
+        limit = min(limit, settings.chunk_seconds)
+    pool = ThreadPoolExecutor(max_workers=settings.workers)
+    futures = {pool.submit(work, profile): profile for profile in profiles}
+    done, pending = wait(futures, timeout=max(limit, 1.0))
+    for future in done:
+        profile, operations = future.result()
+        results[profile["organisation_number"]] = (profile, operations)
+    for future in pending:
+        original = futures[future]
+        org = original["organisation_number"]
+        future.cancel()
+        stalled = _mark_failed(deepcopy(original), TimeoutError(f"chunk watchdog: unfinished after {max(limit, 1.0):.0f}s"))
+        results[org] = (stalled, {"requests": budget.by_company[org], "runtime_ms": int(max(limit, 1.0) * 1000), "third_party_cost_usd": 0, "watchdog": True})
+    pool.shutdown(wait=not pending, cancel_futures=True)
     completed_at = utc_now()
     envelopes = []
     for profile in profiles:
