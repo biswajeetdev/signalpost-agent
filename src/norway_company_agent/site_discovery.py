@@ -46,6 +46,18 @@ Fetch = Callable[[str], Page]
 RobotsCheck = Callable[[str], "bool | None"]
 
 
+def _parallel_resolved(resolver: Callable[[str], bool], hosts: list[str], workers: int = 8) -> Callable[[str], bool]:
+    """Resolve `hosts` concurrently with `resolver`; return a lookup that falls back to `resolver` for others."""
+    unique = list(dict.fromkeys(host for host in hosts if host))
+    if len(unique) < 2:
+        return resolver
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=min(workers, len(unique))) as pool:
+        answers = dict(zip(unique, pool.map(lambda host: bool(resolver(host)), unique)))
+    return lambda host: answers[host] if host in answers else resolver(host)
+
+
 def dns_resolves(host: str) -> bool:
     try:
         socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
@@ -290,8 +302,12 @@ def discover_website(
     seen_domains: set[str] = set()
     fallback: dict[str, Any] | None = None
     hosts_fetched = 0
+    candidates = website_candidates(row, shared_domains)
+    # Resolve every candidate host (bare and www) in parallel up front: most name guesses do not exist,
+    # and resolving them one after another was a large share of each company's time.
+    resolver = _parallel_resolved(resolver, [name for candidate in candidates for name in (candidate["domain"], "www." + candidate["domain"])])
     try:
-        for candidate in website_candidates(row, shared_domains):
+        for candidate in candidates:
             domain = candidate["domain"]
             if hosts_fetched >= max_hosts:
                 break
