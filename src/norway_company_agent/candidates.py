@@ -8,6 +8,10 @@ from typing import Any, Iterable, Mapping
 
 import tldextract
 
+# Offline public-suffix lookup from the snapshot bundled with tldextract: the default extractor fetches
+# the list from GitHub at first use, a runtime network dependency an evaluator machine may not allow.
+OFFLINE_TLD = tldextract.TLDExtract(suffix_list_urls=(), cache_dir=None)
+
 # Consumer and ISP mail hosts: an address here says nothing about the company's own domain.
 FREE_MAIL_DOMAINS = frozenset("""
 gmail.com googlemail.com hotmail.com hotmail.no outlook.com outlook.no live.com live.no msn.com
@@ -28,7 +32,7 @@ def registered_domain(value: str | None) -> str:
     if not value:
         return ""
     host = value.split("@")[-1] if "@" in value and "//" not in value else urllib.parse.urlparse(value if "//" in value else "//" + value).hostname or ""
-    return tldextract.extract(host).top_domain_under_public_suffix or ""
+    return OFFLINE_TLD(host).top_domain_under_public_suffix or ""
 
 
 def email_domain(email: str | None) -> str:

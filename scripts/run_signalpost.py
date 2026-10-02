@@ -33,7 +33,7 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 from norway_company_agent.batch import profiles_from_bulk, profiles_from_live_registry, read_organisation_inputs  # noqa: E402
 from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
-from norway_company_agent.chunked import run_chunked  # noqa: E402
+from norway_company_agent.chunked import run_chunked, wait_for_source  # noqa: E402
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
 from norway_company_agent.guardrails import check_run, enforce_site_basis  # noqa: E402
 from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
@@ -126,6 +126,9 @@ def main() -> None:
     budget = RequestBudget(args.max_requests or 20 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
     budget.paced_pending = len(organisations)
     budget.company_seconds = args.company_seconds or None
+    # Start-up gate: do not burn the batch during a network outage; wait (bounded) for the official API.
+    if not wait_for_source(budget, max_wait=180.0):
+        print("warning: official API unreachable after 180 s; continuing so every company still gets an envelope", file=sys.stderr)
     jobs_index = None if args.no_jobs else build_jobs_index(budget, args.jobs_lookback_days)
     # The paced filing-history endpoint gets its own thread from second 0 (input order), so workers never queue on it.
     history = HistoryPrefetcher(organisations, budget, budgeted_official_fetcher).start()

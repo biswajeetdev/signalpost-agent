@@ -29,6 +29,42 @@ CHECKPOINT_VERSION = 3  # bump whenever profiles, changes or envelopes change me
 T = TypeVar("T")
 
 
+OUTAGE_SHARE = 0.5           # share of companies whose official lookups all failed on network errors
+MAX_OUTAGE_WAITS = 4         # per chunk
+OUTAGE_MIN_SECONDS_LEFT = 300.0
+NETWORK_ERROR_MARKERS = ("URLError", "TimeoutError", "timed out", "HTTP 5", "SlowResponse", "ConnectionError", "RemoteDisconnected", "OSError")
+OFFICIAL_LOOKUPS = ("financials", "roles", "locations")
+PROBE_URL = "https://data.brreg.no/enhetsregisteret/api/enheter/923609016"
+
+
+def outage_share(profiles: list[dict[str, Any]]) -> float:
+    """Share of companies where every official lookup failed with a network-type error (not budget/time)."""
+    if not profiles:
+        return 0.0
+    hit = 0
+    for profile in profiles:
+        records = profile.get("evidence") or {}
+        lookups = [records.get(module) or {} for module in OFFICIAL_LOOKUPS]
+        if lookups and all(record.get("status") in {"source_error", "failed"} and any(marker in str(record.get("note") or "") for marker in NETWORK_ERROR_MARKERS)
+                           for record in lookups):
+            hit += 1
+    return hit / len(profiles)
+
+
+def wait_for_source(budget: RequestBudget, *, max_wait: float, probe: Any = None, sleep: Any = time.sleep) -> bool:
+    """Poll the official API until it answers (or max_wait passes). Returns True when it is reachable."""
+    from .http import fetch_json
+
+    probe = probe or (lambda: fetch_json(PROBE_URL, attempts=1, timeout=10).status == 200)
+    waited, step = 0.0, 15.0
+    while waited <= max_wait:
+        if probe():
+            return True
+        sleep(step)
+        waited += step
+    return False
+
+
 def divide(items: Sequence[T], size: int) -> list[list[T]]:
     if size < 1:
         raise ValueError(f"chunk size must be >= 1, got {size}")
@@ -232,6 +268,7 @@ def run_chunked(
         started_at = utc_now()
         attempts_allowed = 1 + chunk_retries
         attempt = 0
+        outage_waits = 0
         envelopes: list[dict[str, Any]] = []
         enriched: list[dict[str, Any]] = []
         problems: list[str] = []
@@ -247,6 +284,13 @@ def run_chunked(
                 envelopes, enriched = [], []
                 problems = [f"{type(exc).__name__}: {str(exc)[:200]}"]
             if not problems:
+                # Circuit breaker: most official lookups failing on network errors is an outage, not data.
+                # Wait for the source to answer again and re-run the chunk while time allows.
+                if outage_share(enriched) > OUTAGE_SHARE and outage_waits < MAX_OUTAGE_WAITS and budget.seconds_left() > OUTAGE_MIN_SECONDS_LEFT:
+                    outage_waits += 1
+                    stats["outage_retries"] += 1
+                    wait_for_source(budget, max_wait=min(60.0 * outage_waits, budget.seconds_left() - OUTAGE_MIN_SECONDS_LEFT))
+                    continue
                 break
             can_retry = attempt < attempts_allowed and budget.seconds_left() > settings.min_seconds_for_discovery and budget.remaining() > budget.reserve
             if not can_retry:
@@ -296,6 +340,7 @@ def run_chunked(
         "retried": stats["retried"],
         "fallback": stats["fallback"],
         "resumed": stats["resumed"],
+        "outage_retries": stats["outage_retries"],
         "fallback_organisations": fallback_organisations,
     }
     return all_envelopes, all_profiles, report

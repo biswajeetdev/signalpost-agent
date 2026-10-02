@@ -77,7 +77,9 @@ def normalize_homepage(value: str | None) -> str | None:
 
 def _registered_domain(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
-    ext = tldextract.extract(parsed.hostname or "")
+    from .candidates import OFFLINE_TLD  # bundled suffix list; no runtime download
+
+    ext = OFFLINE_TLD(parsed.hostname or "")
     return ext.top_domain_under_public_suffix
 
 
