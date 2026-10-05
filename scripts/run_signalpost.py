@@ -143,13 +143,14 @@ def main() -> None:
     )
     report_path = Path(args.report)
     checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else report_path.with_name(report_path.stem + ".checkpoints")
+    previous = read_previous(args.previous_profiles)
     envelopes, enriched, report = run_chunked(
         profiles,
         cache=open_official_cache(args.cache),
         budget=budget,
         run_id=args.run_id,
         settings=settings,
-        previous=read_previous(args.previous_profiles),
+        previous=previous,
         registry_sha256=registry["registry_snapshot_sha256"],
         checkpoint_dir=checkpoint_dir,
         chunk_size=args.chunk_size,
@@ -157,7 +158,7 @@ def main() -> None:
         jobs_index=jobs_index,
         history_prefetch=history,
     )
-    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index)
+    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index, previous=previous)
     if any(rebuilt.values()):
         # Envelopes changed after the chunks: recompute the envelope-derived report parts.
         refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])

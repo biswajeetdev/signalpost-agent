@@ -48,6 +48,28 @@ class HistoryPrefetchTest(unittest.TestCase):
         self.assertEqual(counts["history"], 1)
         self.assertEqual(profile["evidence"]["financial_history"]["status"], "available")
 
+    def test_refresh_diff_sees_the_filled_history_not_the_placeholder(self):
+        import copy
+        from norway_company_agent.refresh import diff_profile
+
+        def deferred_profile():
+            return {"organisation_number": "912345678", "evidence": {"financial_history": {"field": "financial_history", "status": "failed", "deferred": True,
+                    "source_url": "https://x", "source_class": "official_annual_account_copies", "retrieved_at": "t", "note": "Deferred"}}}
+
+        first = deferred_profile()
+        prefetch = HistoryPrefetcher(["912345678"], RequestBudget(100, 600), fetcher_for([]), seconds_per_call=0, margin_seconds=0).start()
+        finalize_deferred([build_envelope(first, run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0})], [first],
+                          budget=RequestBudget(100, 600), history_prefetch=prefetch)
+        previous = {"912345678": copy.deepcopy(first)}
+        second = deferred_profile()
+        batch_changes = diff_profile(copy.deepcopy(first), second)  # what the batch-time diff records
+        self.assertTrue(any(change["field"] == "financial_history.years" for change in batch_changes))
+        envelope = build_envelope(second, run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0}, changes=batch_changes)
+        envelopes = [envelope]
+        prefetch = HistoryPrefetcher(["912345678"], RequestBudget(100, 600), fetcher_for([]), seconds_per_call=0, margin_seconds=0).start()
+        finalize_deferred(envelopes, [second], budget=RequestBudget(100, 600), history_prefetch=prefetch, previous=previous)
+        self.assertEqual([change["field"] for change in envelopes[0]["changes"]], [])
+
 
 if __name__ == "__main__":
     unittest.main()

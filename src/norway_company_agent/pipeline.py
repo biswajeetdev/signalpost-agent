@@ -348,6 +348,7 @@ def fill_deferred_jobs(
     jobs_index: NavJobIndex,
     budget: RequestBudget,
     margin_seconds: float = 30.0,
+    previous: Mapping[str, dict[str, Any]] | None = None,
 ) -> int:
     """Companies processed before the NAV feed index was ready carry a deferred jobs record. Wait for
     the index only as long as the time budget allows, then fill those records and rebuild just their
@@ -369,9 +370,7 @@ def fill_deferred_jobs(
                 records["jobs"] = evidence("jobs", "failed", "nav_public_job_feed", "https://pam-stilling-feed.nav.no/api/v1/feed", note=f"Run budget exhausted before job ads were checked: {exc}")
         else:
             records["jobs"] = evidence("jobs", "failed", "nav_public_job_feed", "https://pam-stilling-feed.nav.no/api/v1/feed", note="NAV job feed read did not finish within the run time budget")
-        run = envelope.get("run") or {}
-        envelopes[position] = build_envelope(profile, run_id=run.get("run_id"), started_at=run.get("started_at"), completed_at=run.get("completed_at"),
-                                             operations={**(envelope.get("operations") or {}), "requests": budget.by_company[org]}, changes=envelope.get("changes") or [])
+        _rebuild(envelopes, profiles, position, budget, previous)
     return len(deferred)
 
 
@@ -383,6 +382,7 @@ def finalize_deferred(
     history_prefetch: Any = None,
     jobs_index: NavJobIndex | None = None,
     margin_seconds: float = 30.0,
+    previous: Mapping[str, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
     """Fill records deferred during the batch (paced filing history, NAV jobs) within the time left, then
     rebuild only the affected envelopes. Returns counts of rebuilt envelopes per source."""
@@ -395,18 +395,23 @@ def finalize_deferred(
             if (records.get("financial_history") or {}).get("deferred"):
                 records["financial_history"] = history_prefetch.final_record(profile["organisation_number"])
                 counts["history"] += 1
-                _rebuild(envelopes, profiles, position, budget)
+                _rebuild(envelopes, profiles, position, budget, previous)
     if jobs_index is not None:
-        counts["jobs"] = fill_deferred_jobs(envelopes, profiles, jobs_index=jobs_index, budget=budget)
+        counts["jobs"] = fill_deferred_jobs(envelopes, profiles, jobs_index=jobs_index, budget=budget, previous=previous)
     return counts
 
 
-def _rebuild(envelopes: list[dict[str, Any]], profiles: list[dict[str, Any]], position: int, budget: RequestBudget) -> None:
+def _rebuild(envelopes: list[dict[str, Any]], profiles: list[dict[str, Any]], position: int, budget: RequestBudget,
+             previous: Mapping[str, dict[str, Any]] | None = None) -> None:
+    """Rebuild one envelope after a deferred record was filled. Changes are diffed again against the
+    previous profile: the batch-time diff saw the deferred placeholder, not the filled record."""
     envelope, profile = envelopes[position], profiles[position]
+    org = profile["organisation_number"]
+    changes = diff_profile(dict(previous[org]), carry_forward(previous[org], profile)) if previous and org in previous else envelope.get("changes") or []
     run = envelope.get("run") or {}
     envelopes[position] = build_envelope(profile, run_id=run.get("run_id"), started_at=run.get("started_at"), completed_at=run.get("completed_at"),
-                                         operations={**(envelope.get("operations") or {}), "requests": budget.by_company[profile["organisation_number"]]},
-                                         changes=envelope.get("changes") or [])
+                                         operations={**(envelope.get("operations") or {}), "requests": budget.by_company[org]},
+                                         changes=changes)
 
 
 def batch_report(envelopes: Iterable[Mapping[str, Any]], budget: RequestBudget, started_at: str, completed_at: str) -> dict[str, Any]:
