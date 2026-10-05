@@ -77,11 +77,13 @@ class NavJobsTest(unittest.TestCase):
         index, _ = built([[feed_item("a", "Acme Bygg AS")]], {"a": detail("a", "912345678")})
         profile = {"organisation_number": "912345678", "evidence": {"jobs": company_jobs("912345678", "ACME BYGG AS", None, index)}}
         envelope = build_envelope(profile, run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0})
-        jobs = [claim for claim in envelope["claims"] if claim["field"] == "job_posting"]
+        jobs = [claim for claim in envelope["claims"] if claim["field"] == "hiring_signal"]
         self.assertEqual(len(jobs), 1)
         self.assertEqual(jobs[0]["relation"], "exact_employer")
+        self.assertEqual(jobs[0]["signal_type"], "job_posting")
+        self.assertIsInstance(jobs[0]["value"], str)
         self.assertEqual(envelope["modules"]["jobs"], "available")
-        self.assertEqual([p for p in validate_envelope(envelope) if "job_posting" in p], [])
+        self.assertEqual([p for p in validate_envelope(envelope) if "hiring_signal" in p], [])
 
 
 class BoundedReadTest(unittest.TestCase):

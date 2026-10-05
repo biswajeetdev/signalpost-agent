@@ -20,7 +20,7 @@ CONCLUSIVE_SITE_STATES = frozenset({"available", "not_available", "ambiguous"})
 SITE_MODULES = ("website", "social_profiles")
 SITE_FIELDS: dict[str, Callable[[dict[str, dict[str, Any]]], Any]] = {
     "website.official_url": lambda site: (site["website"].get("value") or {}).get("final_url") if site["website"].get("status") == "available" else None,
-    "social_profiles.urls": lambda site: sorted(str(item.get("url")) for item in (site["social_profiles"].get("value") or {}).get("profiles") or []),
+    "social_profiles.urls": lambda site: sorted(str(item.get("url")).lower() for item in (site["social_profiles"].get("value") or {}).get("profiles") or []),
 }
 
 

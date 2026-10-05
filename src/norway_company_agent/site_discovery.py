@@ -79,6 +79,9 @@ class _BudgetedRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+XML_PATH = re.compile(r"(sitemap[^/]*\.xml|/feed/?$|/rss/?$|\.rss$|/atom/?$|\.atom$|feed\.xml$|rss\.xml$)", re.I)
+
+
 def make_site_fetchers(
     budget: RequestBudget,
     company: str,
@@ -106,10 +109,12 @@ def make_site_fetchers(
     def fetch_once(url: str) -> Page:
         retrieved_at = utc_now()
         try:
-            with open_url(url, "text/html,application/xhtml+xml", "site_page") as response:
+            feed = bool(XML_PATH.search(urllib.parse.urlparse(url).path))  # sitemaps and RSS/Atom feeds for dated news
+            with open_url(url, "application/xml,text/xml,application/rss+xml,application/atom+xml" if feed else "text/html,application/xhtml+xml", "site_page") as response:
                 raw = read_bounded(response, MAX_PAGE_BYTES + 1)
                 final_url = response.geturl()
-                if "html" not in response.headers.get("content-type", "").lower():
+                content_type = response.headers.get("content-type", "").lower()
+                if "html" not in content_type and not (feed and "xml" in content_type):
                     return Page(url, final_url, response.status, retrieved_at=retrieved_at, error="non-HTML response")
                 html = raw[:MAX_PAGE_BYTES].decode("utf-8", errors="replace")
                 return Page(url, final_url, response.status, html, hashlib.sha256(raw).hexdigest(), retrieved_at)
@@ -393,12 +398,15 @@ def discover_website(
                     name_span = name_span or page_name
                     if found & STRONG_PROOFS or (name_suffices and name_span and not foreign):
                         break
+            # A group domain the register declares for this entity, named exactly after it: the declaration
+            # already rules out a foreign namesake, so the page need not also print a Norwegian address.
+            group_full_name = full_name_domain or (label_match and registry_declared and relation == "administrator_or_group")
             assessment = assess_site_identity(
                 found,
                 relation,
                 registry_declared=registry_declared,
                 name_on_site=bool(name_span),
-                full_name_domain=full_name_domain,
+                full_name_domain=group_full_name,
                 unique_legal_name=unique_name,
             )
             if foreign and not found & STRONG_PROOFS:

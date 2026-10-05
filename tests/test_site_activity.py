@@ -48,9 +48,10 @@ class SiteActivityTest(unittest.TestCase):
         self.assertEqual(len(record["value"]["items"]), 3)
         envelope = build_envelope({"organisation_number": "912345678", "evidence": {"public_activity": record}},
                                   run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0})
-        claims = [claim for claim in envelope["claims"] if claim["field"] == "public_activity"]
+        claims = [claim for claim in envelope["claims"] if claim["field"] == "dated_news"]
         self.assertEqual(len(claims), 3)
-        self.assertEqual([p for p in validate_envelope(envelope) if "public_activity" in p], [])
+        self.assertTrue(all(isinstance(c["value"], str) and c["value"].startswith("https://acme.no/") and c["published_at"] for c in claims))
+        self.assertEqual([p for p in validate_envelope(envelope) if "dated_news" in p], [])
 
     def test_rejects_home_sections_page_titles_and_boilerplate(self):
         html = """<html><head><title>Blog - Acme</title></head><body>

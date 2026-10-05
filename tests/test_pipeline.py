@@ -86,7 +86,7 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(fields["financials.filed_years"]["value"], ["2024", "2025"])
         self.assertEqual(fields["role"]["value"]["name"], "Kari Nordmann")
         socials = [claim["value"] for claim in first["claims"] if claim["field"] == "social_profile"]
-        self.assertEqual(socials, [{"platform": "facebook", "url": "https://facebook.com/arkjv"}])
+        self.assertEqual(socials, ["https://facebook.com/arkjv"])
         self.assertEqual(first["modules"]["locations"], "not_available")
         self.assertEqual(second["modules"]["website"], "not_available")
         self.assertEqual(second["modules"]["social_profiles"], "not_available")

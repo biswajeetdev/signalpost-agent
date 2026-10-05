@@ -40,9 +40,23 @@ class SiteJobsTest(unittest.TestCase):
         self.assertEqual(record["status"], "available")
         envelope = build_envelope({"organisation_number": "912345678", "evidence": {"site_jobs": record}},
                                   run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0})
-        jobs = [claim for claim in envelope["claims"] if claim["field"] == "job_posting"]
+        hiring = [claim for claim in envelope["claims"] if claim["field"] == "hiring_signal"]
+        jobs = [claim for claim in hiring if claim["signal_type"] == "job_posting"]
         self.assertEqual({claim["relation"] for claim in jobs}, {"listed_on_verified_company_website"})
-        self.assertEqual([p for p in validate_envelope(envelope) if "job" in p], [])
+        careers = [claim for claim in hiring if claim["signal_type"] == "careers_page"]
+        self.assertEqual([claim["value"] for claim in careers], ["https://acme.no/karriere"])
+        self.assertEqual([p for p in validate_envelope(envelope) if "hiring" in p], [])
+
+    def test_careers_link_to_recruitment_host_is_a_hiring_signal(self):
+        home = '<html><body><a href="https://acme.webcruiter.no/main/recruit/public/vacancies">Ledige stillinger</a>' \
+               '<a href="https://www.facebook.com/acme">Facebook</a></body></html>'
+        record = careers_record(page("https://acme.no/", home), lambda url: page(url, ""), lambda url: True)
+        self.assertEqual(record["value"]["careers_page"]["url"], "https://acme.webcruiter.no/main/recruit/public/vacancies")
+        self.assertIn("webcruiter", record["value"]["careers_page"]["claim_span"])
+
+    def test_privacy_and_news_paths_are_not_careers_pages(self):
+        home = '<html><body><a href="/personvern-jobbsokere">Personvern for jobbsøkere</a><a href="/nyheter/ny-jobb">Ny jobb</a></body></html>'
+        self.assertEqual(career_links("https://acme.no/", home), [])
 
     def test_no_site_is_not_available(self):
         self.assertEqual(careers_record(None, None, None)["status"], "not_available")

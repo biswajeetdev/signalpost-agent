@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 from .budget import BudgetExhausted
 from .evidence import evidence
+from .news_sources import deeper_articles
 
 NEWS_TERMS = ("nyheter", "aktuelt", "news", "presse", "press", "blogg", "blog", "artikler", "media", "nytt")
 ARTICLE_TYPES = {"NewsArticle", "BlogPosting", "Article", "PressRelease", "Report"}
@@ -36,12 +37,14 @@ def news_index_links(base_url: str, html: str, limit: int = 1) -> list[str]:
             continue
         parsed = urllib.parse.urlparse(url)
         haystack = (parsed.path + " " + anchor.get_text(" ", strip=True)).casefold()
-        if not any(re.search(r"(?<![a-z])" + term + r"(?![a-z])", haystack) for term in NEWS_TERMS):
+        rank = next((index for index, term in enumerate(NEWS_TERMS) if re.search(r"(?<![a-z])" + term + r"(?![a-z])", haystack)), None)
+        if rank is None:
             continue
         clean = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path or "/", "", "", ""))
         if clean.rstrip("/") == base_url.rstrip("/"):
             continue
-        found[clean] = len([part for part in parsed.path.split("/") if part])
+        key = (rank, len([part for part in parsed.path.split("/") if part]))
+        found[clean] = min(key, found.get(clean, key))
     return [url for url, _ in sorted(found.items(), key=lambda item: (item[1], item[0]))[:limit]]
 
 
@@ -184,6 +187,11 @@ def site_activity(
             if not is_article(item, listing_urls, page_titles):
                 continue
             items.setdefault(item["url"], {**item, "source_url": page.final_url, "retrieved_at": page.retrieved_at, "content_sha256": page.content_sha256})
+    if not items and fetch is not None and robots_allowed is not None:
+        # Listing pages without machine-readable dates: the site's feed, or articles that date themselves.
+        for item in deeper_articles(home, pages, fetch, robots_allowed, now):
+            if is_article(item, listing_urls, page_titles):
+                items.setdefault(item["url"], item)
     # A title repeated across different URLs is a template/section label, not an article.
     title_counts: dict[str, int] = {}
     for item in items.values():

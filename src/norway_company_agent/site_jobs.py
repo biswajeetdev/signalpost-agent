@@ -26,6 +26,12 @@ ATS_AD_PATTERNS = (
     re.compile(r"^https?://(?:[\w-]+\.)?recman\.(?:no|io)/job\.php\?job_id=\d+", re.I),
     re.compile(r"^https?://(?:[\w-]+\.)?hr-manager\.net/.*(?:ProjectId|projectId)=\d+", re.I),
 )
+# Recruitment hosts a company's own "careers"/"ledige stillinger" link may point to.
+ATS_HOSTS = re.compile(r"(?:^|\.)(?:webcruiter\.(?:no|com)|teamtailor\.com|jobylon\.com|reachmee\.com|easycruit\.com|recman\.(?:no|io)|"
+                       r"hr-manager\.net|jobbnorge\.no|varbi\.com|workday(?:jobs)?\.com|myworkdayjobs\.com|smartrecruiters\.com|"
+                       r"successfactors\.(?:eu|com)|talentech\.com|hrmanager\.no)$", re.I)
+# Paths that mention a careers term but are not a careers page (news items, privacy notices).
+NOT_CAREERS = ("personvern", "privacy", "cookie", "/nyheter/", "/news/", "/artikkel", "/article")
 MAX_POSTINGS = 15
 
 
@@ -34,21 +40,37 @@ def _same_host(base_url: str, url: str) -> bool:
     return strip(urllib.parse.urlparse(base_url).netloc) == strip(urllib.parse.urlparse(url).netloc)
 
 
-def career_links(base_url: str, html: str, limit: int = 1) -> list[str]:
-    """Same-host careers-page links, most specific term first."""
-    ranked: dict[str, int] = {}
+def _career_anchors(base_url: str, html: str, same_host: bool) -> dict[str, tuple[int, str]]:
+    """{clean url: (term rank, anchor html)} for careers links, same-host or on a careers/ATS host."""
+    ranked: dict[str, tuple[int, str]] = {}
     for anchor in BeautifulSoup(html, "lxml").select("a[href]"):
         url = urllib.parse.urljoin(base_url, str(anchor.get("href") or "").strip())
         parsed = urllib.parse.urlparse(url)
-        if parsed.scheme not in {"http", "https"} or not _same_host(base_url, url):
+        if parsed.scheme not in {"http", "https"} or _same_host(base_url, url) != same_host:
             continue
-        haystack = (parsed.path + " " + anchor.get_text(" ", strip=True)).casefold()
+        if not same_host and not ATS_HOSTS.search(parsed.netloc):
+            continue
+        haystack = (parsed.netloc + parsed.path + " " + anchor.get_text(" ", strip=True)).casefold()
         rank = next((index for index, term in enumerate(CAREER_TERMS) if term in haystack), None)
         clean = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path or "/", "", parsed.query, ""))
-        if rank is None or clean.rstrip("/") == base_url.rstrip("/"):
+        if rank is None or clean.rstrip("/") == base_url.rstrip("/") or any(term in parsed.path.casefold() for term in NOT_CAREERS):
             continue
-        ranked[clean] = min(rank, ranked.get(clean, rank))
-    return [url for url, _ in sorted(ranked.items(), key=lambda item: (item[1], item[0]))[:limit]]
+        if clean not in ranked or rank < ranked[clean][0]:
+            ranked[clean] = (rank, " ".join(str(anchor).split())[:300])
+    return ranked
+
+
+def career_links(base_url: str, html: str, limit: int = 1) -> list[str]:
+    """Same-host careers-page links, most specific term first."""
+    ranked = _career_anchors(base_url, html, same_host=True)
+    return [url for url, _ in sorted(ranked.items(), key=lambda item: (item[1][0], item[0]))[:limit]]
+
+
+def external_careers_link(base_url: str, html: str) -> tuple[str, str] | None:
+    """(url, anchor html) of a link from the verified site to its careers page on a recruitment host."""
+    ranked = _career_anchors(base_url, html, same_host=False)
+    best = sorted(ranked.items(), key=lambda item: (item[1][0], item[0]))[:1]
+    return (best[0][0], best[0][1][1]) if best else None
 
 
 def _date(value: Any) -> str | None:
@@ -107,14 +129,22 @@ def postings_on_page(page_url: str, html: str, now: datetime | None = None) -> l
     return list(found.values())[:MAX_POSTINGS]
 
 
-def site_postings(home: Any, fetch: Callable[[str], Any] | None, robots_allowed: Callable[[str], Any] | None, now: datetime | None = None) -> tuple[list[dict[str, Any]], str | None]:
-    """(postings, note) from the verified site's home page and its careers page."""
+def site_postings(home: Any, fetch: Callable[[str], Any] | None, robots_allowed: Callable[[str], Any] | None,
+                  now: datetime | None = None) -> tuple[list[dict[str, Any]], str | None, dict[str, Any] | None]:
+    """(postings, note, careers page) from the verified site's home page and its careers page."""
     if home is None or not getattr(home, "final_url", None):
-        return [], "No verified company website"
+        return [], "No verified company website", None
     pages = [home]
     note = None
+    careers: dict[str, Any] | None = None
+    links = career_links(home.final_url, home.html)
+    anchors = _career_anchors(home.final_url, home.html, same_host=True)
+    external = external_careers_link(home.final_url, home.html)
+    if external:
+        careers = {"url": external[0], "claim_span": external[1], "source_url": home.final_url, "retrieved_at": home.retrieved_at,
+                   "content_sha256": home.content_sha256, "extraction": "careers_link_to_recruitment_host"}
     if fetch is not None and robots_allowed is not None:
-        for link in career_links(home.final_url, home.html):
+        for link in links:
             try:
                 if robots_allowed(link) is not True:
                     note = f"Careers page {link} not fetched: robots.txt or host unreachable"
@@ -125,8 +155,11 @@ def site_postings(home: Any, fetch: Callable[[str], Any] | None, robots_allowed:
                 continue
             if page.status == 200 and page.html and page.final_url and _same_host(home.final_url, page.final_url):
                 pages.append(page)
+                if careers is None:
+                    careers = {"url": page.final_url, "claim_span": anchors[link][1], "source_url": home.final_url, "retrieved_at": page.retrieved_at,
+                               "content_sha256": page.content_sha256, "extraction": "careers_page_on_verified_site"}
     postings: dict[str, dict[str, Any]] = {}
     for page in pages:
         for item in postings_on_page(page.final_url, page.html, now):
             postings.setdefault(item["url"] + "#" + item["title"], {**item, "source_url": page.final_url, "retrieved_at": page.retrieved_at, "content_sha256": page.content_sha256})
-    return list(postings.values())[:MAX_POSTINGS], note
+    return list(postings.values())[:MAX_POSTINGS], note, careers

@@ -11,8 +11,8 @@ SECTIONS = (
     ("Financials", ("financials.",)),
     ("Leadership & workplaces", ("role", "roles", "registered_workplace", "locations")),
     ("Web & profiles", ("official_website", "social_profile", "social_profiles")),
-    ("Hiring", ("job_posting",)),
-    ("Activity", ("public_activity",)),
+    ("Hiring", ("hiring_signal", "job_posting")),
+    ("Activity", ("dated_news", "public_activity")),
 )
 STYLE = """
 :root{--bg:#f7f7f5;--fg:#1d1d1b;--muted:#6b6b66;--card:#fff;--line:#e4e3de;--ok:#1f7a4d;--no:#8a8a84;--warn:#a15c00;--bad:#b3261e;--link:#1a5fb4}
@@ -69,6 +69,16 @@ def _value(value: Any) -> str:
     return html.escape(text)
 
 
+def _claim_value(claim: Mapping[str, Any]) -> str:
+    """URL-valued external claims show their title or platform as the link text, plus any date."""
+    value = claim.get("value")
+    label = claim.get("title") or claim.get("platform")
+    if isinstance(value, str) and value.startswith(("http://", "https://")) and label:
+        extra = " · ".join(str(claim[key]) for key in ("published_at",) if claim.get(key))
+        return f'<a href="{html.escape(value)}" rel="noopener">{html.escape(str(label))}</a> {html.escape(extra)}'.rstrip()
+    return _value(value)
+
+
 def _sources(claim: Mapping[str, Any], evidence: Mapping[str, Mapping[str, Any]]) -> str:
     links = []
     for evidence_id in claim.get("evidence_ids") or []:
@@ -90,7 +100,7 @@ def company_card(envelope: Mapping[str, Any]) -> str:
         state = str(claim.get("availability"))
         note = f'<div class="src">{html.escape(str(claim.get("note")))}</div>' if claim.get("note") and state != "available" else ""
         row = (f'<tr><td class="f">{html.escape(str(claim.get("field")))}</td><td><span class="{html.escape(state)}">{"" if state == "available" else html.escape(state) + " "}</span>'
-               f'{_value(claim.get("value")) if state == "available" else ""}{note}<div class="src">{_sources(claim, evidence)}</div></td></tr>')
+               f'{_claim_value(claim) if state == "available" else ""}{note}<div class="src">{_sources(claim, evidence)}</div></td></tr>')
         grouped.setdefault(_section(str(claim.get("field"))), []).append(row)
     body = "".join(f"<h3>{html.escape(title)}</h3><table>{''.join(grouped[title])}</table>" for title, _ in (*SECTIONS, ("Other", ())) if title in grouped)
     unknowns = summary.get("unknowns") or []

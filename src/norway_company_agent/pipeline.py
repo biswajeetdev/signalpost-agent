@@ -62,12 +62,15 @@ def budgeted_official_fetcher(budget: RequestBudget, company: str) -> Callable[[
 
 
 def _link_span(html: str, url: str) -> str:
+    """The link exactly as the page writes it (the quoted URL containing the profile handle)."""
     handle = url.rstrip("/").rsplit("/", 1)[-1]
-    position = html.lower().find(handle.lower()) if handle else -1
-    if position < 0:
+    if not handle:
         return url
-    window = html[max(0, position - 120): position + len(handle) + 40]
-    return " ".join(re.sub(r"<[^>]*>?", " ", window).split())[:240] or url
+    host = url.split("/")[2].removeprefix("www.").split(".")[0]
+    for match in re.finditer(r"[\"']((?:https?:)?//[^\"'\s<>]*" + re.escape(handle) + r"[^\"'\s<>]*)[\"']", html, re.I):
+        if host in match.group(1).lower():
+            return match.group(0)[:240]
+    return url
 
 
 def social_profiles(website: Mapping[str, Any], home: Page | None) -> dict[str, Any]:
@@ -130,11 +133,11 @@ def careers_record(home: Page | None, fetch: Any, robots_allowed: Any) -> dict[s
     """Evidence record for postings listed on the verified company website (home + one careers page)."""
     if home is None:
         return evidence("site_jobs", "not_available", "company_owned_website", REGISTRY_SOURCE, note="No verified company website to read job postings from")
-    postings, note = site_postings(home, fetch, robots_allowed)
-    if not postings:
+    postings, note, careers = site_postings(home, fetch, robots_allowed)
+    if not postings and not careers:
         return evidence("site_jobs", "not_available", "company_owned_website", home.final_url, retrieved_at=home.retrieved_at,
-                        content_sha256=home.content_sha256, note=note or "No job postings listed on the verified site")
-    return evidence("site_jobs", "available", "company_owned_website", home.final_url, value={"ads": postings},
+                        content_sha256=home.content_sha256, note=note or "No job postings or careers page on the verified site")
+    return evidence("site_jobs", "available", "company_owned_website", home.final_url, value={"ads": postings, "careers_page": careers},
                     retrieved_at=home.retrieved_at, content_sha256=home.content_sha256, note=note)
 
 
@@ -239,9 +242,16 @@ def enrich_company(
         records["website"], records["social_profiles"] = carried
     else:
         records["social_profiles"] = social_profiles(records["website"], home)
+    if records["website"].get("status") == "available" and isinstance(records["website"].get("value"), dict):
+        # The starter kit's profile layout keeps company-linked profiles on the website record as well.
+        records["website"]["value"]["social_links"] = [
+            {"platform": item.get("platform"), "url": item.get("url")}
+            for item in ((records["social_profiles"].get("value") or {}).get("profiles") or [])
+        ] if records["social_profiles"].get("status") == "available" else []
     if records["website"].get("status") == "available" and home is not None and budget.seconds_left() > settings.min_seconds_for_discovery:
-        # A few requests beyond discovery: one news/press index on the verified site (plus its robots.txt).
-        activity_fetch, activity_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)
+        # A few requests beyond discovery: one news/press index on the verified site (plus its robots.txt),
+        # then, only if it shows no dates, the site's feed or sitemap and up to five article pages.
+        activity_fetch, activity_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 10, robots=robots)
         records["public_activity"] = site_activity(records["website"], home, activity_fetch, activity_robots)
         # And one careers page on the verified site: postings the company itself lists.
         jobs_fetch, jobs_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)

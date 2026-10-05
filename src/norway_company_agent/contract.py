@@ -196,19 +196,30 @@ def _website(envelope: _Envelope, record: Mapping[str, Any] | None, registry: Ma
     )
 
 
+def canonical_social_url(url: str, platform: str | None) -> str:
+    """Lower-case host and handle; YouTube paths keep their case (channel ids are case-sensitive)."""
+    parts = str(url).split("/", 3)
+    if len(parts) < 4:
+        return str(url).lower()
+    head = "/".join(parts[:3]).lower()
+    return f"{head}/{parts[3] if platform == 'youtube' else parts[3].lower()}"
+
+
 def _social(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
     state = availability(record)
     profiles = ((record or {}).get("value") or {}).get("profiles") or []
     if state != "available" or not profiles:
-        envelope.unavailable("social_profiles", record, "not_available" if state == "available" else state)
+        envelope.unavailable("social_profile", record, "not_available" if state == "available" else state)
         return
     for item in profiles:
         envelope.claim(
             "social_profile",
-            {"platform": item.get("platform"), "url": item.get("url")},
+            canonical_social_url(str(item.get("url")), item.get("platform")),
             "available",
             [envelope.cite(record, item.get("claim_span") or item.get("url"))],
             confidence=0.95,
+            platform=item.get("platform"),
+            signal_type="profile_handle",
             relation="linked_from_verified_company_website",
         )
 
@@ -219,37 +230,64 @@ def _jobs(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
     state = availability(record)
     ads = ((record or {}).get("value") or {}).get("ads") or []
     if state != "available" or not ads:
-        envelope.unavailable("job_posting", record, "not_available" if state == "available" else state)
+        envelope.unavailable("hiring_signal", record, "not_available" if state == "available" else state)
         return
     for ad in ads:
         ad_record = {"source_url": ad.get("source_url"), "source_class": "nav_public_job_feed", "retrieved_at": ad.get("retrieved_at"),
                      "content_sha256": ad.get("content_sha256"), "method": "employer_organisation_number_match"}
         envelope.claim(
-            "job_posting",
-            {key: ad.get(key) for key in ("title", "url", "application_url", "published", "expires", "positions", "occupations", "work_locations", "employer_name", "employer_organisation_number")},
+            "hiring_signal",
+            ad.get("url") or ad.get("source_url"),
             "available",
             [envelope.cite(ad_record, ad.get("claim_span"))],
             confidence=0.99,
+            signal_type="job_posting",
+            title=ad.get("title"),
+            published_at=ad.get("published"),
+            expires_at=ad.get("expires"),
+            posting={key: ad.get(key) for key in ("application_url", "positions", "occupations", "work_locations", "employer_name", "employer_organisation_number") if ad.get(key)},
             effective_at=ad.get("published"),
             relation="registered_subunit_employer" if ad.get("employer_is_subunit") else "exact_employer",
         )
 
 
 def _site_jobs(envelope: _Envelope, record: Mapping[str, Any] | None, seen_urls: set[str]) -> None:
-    """Postings the verified company website lists (JobPosting data or links to individual ads)."""
-    for ad in ((record or {}).get("value") or {}).get("ads") or []:
-        if availability(record) != "available" or ad.get("url") in seen_urls:
+    """The verified company website's careers page, and postings it lists (JobPosting data or ad links)."""
+    if availability(record) != "available":
+        return
+    value = (record or {}).get("value") or {}
+    for ad in value.get("ads") or []:
+        if ad.get("url") in seen_urls:
             continue
+        seen_urls.add(ad.get("url"))
         page_record = {"source_url": ad.get("source_url"), "source_class": "company_owned_website", "retrieved_at": ad.get("retrieved_at"),
                        "content_sha256": ad.get("content_sha256"), "method": ad.get("extraction")}
         envelope.claim(
-            "job_posting",
-            {key: ad.get(key) for key in ("title", "url", "published", "expires")},
+            "hiring_signal",
+            ad.get("url"),
             "available",
             [envelope.cite(page_record, ad.get("claim_span"))],
             confidence=0.95,
+            signal_type="job_posting",
+            title=ad.get("title"),
+            published_at=ad.get("published"),
+            expires_at=ad.get("expires"),
             effective_at=ad.get("published"),
             relation="listed_on_verified_company_website",
+        )
+    careers = value.get("careers_page")
+    if careers and careers.get("url") not in seen_urls:
+        page_record = {"source_url": careers.get("source_url"), "source_class": "company_owned_website", "retrieved_at": careers.get("retrieved_at"),
+                       "content_sha256": careers.get("content_sha256"), "method": careers.get("extraction")}
+        envelope.claim(
+            "hiring_signal",
+            careers.get("url"),
+            "available",
+            [envelope.cite(page_record, careers.get("claim_span"))],
+            confidence=0.95,
+            signal_type="careers_page",
+            title="Careers page",
+            relation="linked_from_verified_company_website",
         )
 
 
@@ -259,17 +297,20 @@ def _activity(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
     state = availability(record)
     items = ((record or {}).get("value") or {}).get("items") or []
     if state != "available" or not items:
-        envelope.unavailable("public_activity", record, "not_available" if state == "available" else state)
+        envelope.unavailable("dated_news", record, "not_available" if state == "available" else state)
         return
     for item in items:
         page_record = {"source_url": item.get("source_url"), "source_class": "company_owned_website", "retrieved_at": item.get("retrieved_at"),
                        "content_sha256": item.get("content_sha256"), "method": item.get("extraction")}
         envelope.claim(
-            "public_activity",
-            {"title": item.get("title"), "url": item.get("url"), "date": item.get("date"), "kind": "company_site_article"},
+            "dated_news",
+            item.get("url"),
             "available",
             [envelope.cite(page_record, item.get("claim_span"))],
             confidence=0.9,
+            signal_type="public_post",
+            title=item.get("title"),
+            published_at=item.get("date"),
             effective_at=item.get("date"),
             relation="published_on_verified_company_website",
         )
@@ -338,22 +379,30 @@ def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, An
     website = first("official_website")
     if website:
         points.append({"topic": "web", "text": f"Verified official website: {website['value']}.", "evidence_ids": ids(website)})
-    jobs = available.get("job_posting", [])
+    hiring = available.get("hiring_signal", [])
+    jobs = [claim for claim in hiring if claim.get("signal_type") == "job_posting"]
+    careers = [claim for claim in hiring if claim.get("signal_type") == "careers_page"]
     if jobs:
-        titles = ", ".join(str((claim.get("value") or {}).get("title")) for claim in jobs[:3])
-        points.append({"topic": "hiring", "text": f"Hiring: {len(jobs)} active job ad(s) on NAV naming this entity as employer ({titles}).", "evidence_ids": ids(*jobs[:3])})
-    activity = available.get("public_activity", [])
+        titles = ", ".join(str(claim.get("title")) for claim in jobs[:3])
+        points.append({"topic": "hiring", "text": f"Hiring: {len(jobs)} active job ad(s) naming this entity as employer ({titles}).", "evidence_ids": ids(*jobs[:3])})
+    elif careers:
+        points.append({"topic": "hiring", "text": f"Recruits through a careers page linked from its website: {careers[0]['value']}.", "evidence_ids": ids(careers[0])})
+    socials = available.get("social_profile", [])
+    if socials:
+        platforms = ", ".join(sorted({str(claim.get("platform")) for claim in socials}))
+        points.append({"topic": "profiles", "text": f"Social profiles linked from its website: {platforms}.", "evidence_ids": ids(*socials[:5])})
+    activity = available.get("dated_news", [])
     if activity:
-        latest = activity[0].get("value") or {}
-        points.append({"topic": "activity", "text": f"Most recent dated activity on its website: \"{latest.get('title')}\" ({latest.get('date')}).", "evidence_ids": ids(activity[0])})
+        latest = activity[0]
+        points.append({"topic": "activity", "text": f"Most recent dated news on its website: \"{latest.get('title')}\" ({latest.get('published_at')}).", "evidence_ids": ids(activity[0])})
     changes = list(changes)
     if changes:
         points.append({"topic": "changes", "text": f"{len(changes)} material change(s) since the previous run.", "evidence_ids": []})
     unknowns = [label for field, label in (
         ("official_website", "no verified official website"),
         ("financials.revenue", "no revenue figure in the latest filed accounts"),
-        ("job_posting", "no active job ads found"),
-        ("public_activity", "no dated public activity found"),
+        ("hiring_signal", "no hiring signal found"),
+        ("dated_news", "no dated news found"),
     ) if field not in available]
     return {
         "text": " ".join(point["text"] for point in points),
@@ -383,12 +432,13 @@ def build_envelope(
     _website(envelope, records.get("website"), records.get("registry"))
     _social(envelope, records.get("social_profiles"))
     site_jobs = records.get("site_jobs")
-    site_has_ads = availability(site_jobs) == "available" and bool(((site_jobs or {}).get("value") or {}).get("ads"))
+    site_value = (site_jobs or {}).get("value") or {}
+    site_has_ads = availability(site_jobs) == "available" and bool(site_value.get("ads") or site_value.get("careers_page"))
     nav_record = records.get("jobs")
     if site_has_ads and availability(nav_record) != "available":
         nav_record = None  # the site's own postings answer the hiring question; no contradictory "not found" claim
     _jobs(envelope, nav_record)
-    _site_jobs(envelope, site_jobs, {str(c["value"].get("url")) for c in envelope.claims if c["field"] == "job_posting" and isinstance(c.get("value"), dict)})
+    _site_jobs(envelope, site_jobs, {str(c["value"]) for c in envelope.claims if c["field"] == "hiring_signal" and c.get("value")})
     _activity(envelope, records.get("public_activity"))
     return {
         "organisation_number": profile["organisation_number"],
