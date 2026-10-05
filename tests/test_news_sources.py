@@ -61,6 +61,16 @@ class NewsSourcesTest(unittest.TestCase):
         self.assertEqual(news_index_links("https://acme.no/", html), ["https://acme.no/om-oss/nyheter/"])
 
 
+class SocialDedupTest(unittest.TestCase):
+    def test_case_variants_of_one_profile_are_one_claim(self):
+        from norway_company_agent.contract import build_envelope
+        record = {"status": "available", "source_url": "https://acme.no/", "retrieved_at": "t", "value": {"profiles": [
+            {"platform": "facebook", "url": "https://facebook.com/Acme1"}, {"platform": "facebook", "url": "https://facebook.com/acme1"}]}}
+        envelope = build_envelope({"organisation_number": "912345678", "evidence": {"social_profiles": record}},
+                                  run_id="r", started_at="s", completed_at="c", operations={"requests": 0, "runtime_ms": 0})
+        self.assertEqual([c["value"] for c in envelope["claims"] if c["field"] == "social_profile"], ["https://facebook.com/acme1"])
+
+
 class GroupDomainTest(unittest.TestCase):
     ROW = {"organisasjonsnummer": "912345678", "navn": "ACME ASA", "hjemmeside": "www.acme.com", "epostadresse": "", "telefon": "", "mobil": ""}
 

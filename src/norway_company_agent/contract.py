@@ -211,10 +211,15 @@ def _social(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
     if state != "available" or not profiles:
         envelope.unavailable("social_profile", record, "not_available" if state == "available" else state)
         return
+    seen: set[str] = set()
     for item in profiles:
+        url = canonical_social_url(str(item.get("url")), item.get("platform"))
+        if url in seen:  # the same profile linked with different capitalisation
+            continue
+        seen.add(url)
         envelope.claim(
             "social_profile",
-            canonical_social_url(str(item.get("url")), item.get("platform")),
+            url,
             "available",
             [envelope.cite(record, item.get("claim_span") or item.get("url"))],
             confidence=0.95,

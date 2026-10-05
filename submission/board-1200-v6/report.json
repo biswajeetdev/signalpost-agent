@@ -1,0 +1,161 @@
+{
+  "run_id": "board-1200-v6",
+  "expected_count": 1200,
+  "registry": {
+    "registry_snapshot_sha256": "1c89710e5b01f8617e86d09fbdff4a52f2f8dbbba297e74f7164b5984f5a0384",
+    "registry_rows_scanned": 410567,
+    "requested": 1200,
+    "selected": 1200,
+    "absent_from_snapshot": []
+  },
+  "started_at": "2026-10-05T19:03:05.026733Z",
+  "completed_at": "2026-10-05T19:31:12.749887Z",
+  "envelopes": 1200,
+  "unique_organisations": true,
+  "module_states": {
+    "registry": {
+      "available": 1200
+    },
+    "financials": {
+      "available": 1195,
+      "not_available": 2,
+      "failed": 3
+    },
+    "financial_history": {
+      "available": 1172,
+      "failed": 28
+    },
+    "roles": {
+      "available": 1197,
+      "not_available": 3
+    },
+    "locations": {
+      "available": 900,
+      "not_available": 300
+    },
+    "website": {
+      "available": 214,
+      "ambiguous": 468,
+      "not_available": 514,
+      "failed": 4
+    },
+    "social_profiles": {
+      "not_available": 1088,
+      "available": 112
+    },
+    "jobs": {
+      "not_available": 1197,
+      "available": 3
+    },
+    "site_jobs": {
+      "not_available": 1171,
+      "available": 29
+    },
+    "public_activity": {
+      "not_available": 1156,
+      "available": 44
+    }
+  },
+  "available_claims": {
+    "legal_name": 1200,
+    "legal_form": 1200,
+    "industry_code": 1200,
+    "industry": 1200,
+    "business_address": 1195,
+    "bankrupt": 1200,
+    "under_liquidation": 1200,
+    "financials.revenue": 932,
+    "financials.operating_result": 1178,
+    "financials.profit_before_tax": 1155,
+    "financials.annual_result": 1195,
+    "financials.assets": 1195,
+    "financials.equity": 1188,
+    "financials.debt": 1150,
+    "financials.filed_years": 1172,
+    "role": 4743,
+    "registered_workplace": 1046,
+    "official_website": 214,
+    "social_profile": 240,
+    "dated_news": 211,
+    "registered_employees": 174,
+    "registry_declared_website": 126,
+    "hiring_signal": 39
+  },
+  "operations": {
+    "requests": 12225,
+    "limit": 24600,
+    "by_purpose": {
+      "jobs_feed": 217,
+      "official": 5530,
+      "robots": 2789,
+      "site_page": 2944,
+      "robots_redirect": 649,
+      "site_page_redirect": 1025,
+      "jobs_detail": 4
+    },
+    "per_company_p50": 10,
+    "per_company_max": 32,
+    "runtime_ms_p50": 16602,
+    "runtime_ms_p95": 42127,
+    "third_party_cost_usd": 0,
+    "resumed_requests": 0
+  },
+  "validation": {
+    "passed": true,
+    "problems": {},
+    "envelopes_with_problems": 0,
+    "exact_expected_count": true,
+    "input_order": true
+  },
+  "chunks": {
+    "size": 100,
+    "total": 12,
+    "passed_first_try": 12,
+    "retried": 0,
+    "fallback": 0,
+    "resumed": 0,
+    "outage_retries": 0,
+    "fallback_organisations": []
+  },
+  "history_stream": {
+    "fetched": 1172,
+    "of": 1200,
+    "filled_after_batch": 1190
+  },
+  "jobs_feed": {
+    "state": "available",
+    "pages": 218,
+    "active_ads": 9432,
+    "lookback_days": 120,
+    "deferred_then_filled": 651,
+    "note": null
+  },
+  "guardrails": {
+    "contract_passed": true,
+    "contract_failures": [],
+    "warnings": [
+      "1 duplicate available claims"
+    ],
+    "failure_rates": {
+      "website": 0.0033,
+      "financials": 0.0025,
+      "financial_history": 0.0233
+    },
+    "failure_reasons": {
+      "website": {
+        "company allowance exhausted (32)": 4
+      },
+      "financials": {
+        "HTTP 500": 3
+      },
+      "financial_history": {
+        "Deferred: the rate-limited annual-account copy endpoint did not reach ": 28
+      }
+    },
+    "watchdog_stopped": 0,
+    "deferred_unfilled": 0,
+    "published_websites": 214,
+    "websites_demoted": 0
+  },
+  "viewer": "/Users/biswajeetkumar/.claude/jobs/67421539/tmp/r1200v6/envelopes.html"
+}
