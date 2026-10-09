@@ -19,6 +19,7 @@ from .contract import MODULES, build_envelope, validate_envelope
 from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
 from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
+from .news_search import news_mentions
 from .site_activity import site_activity
 from .site_jobs import site_postings
 from .search_candidates import search_domains, search_key
@@ -259,6 +260,12 @@ def enrich_company(
     else:
         records["public_activity"] = site_activity(records["website"], None, None, None)
         records["site_jobs"] = careers_record(None, None, None)
+    if budget.seconds_left() > settings.min_seconds_for_discovery:
+        # Headlines naming this exact entity; independent of the website, one request.
+        records["news_mentions"] = news_mentions(
+            org, str(registry_row.get("navn") or profile.get("name") or ""), shared["names"],
+            spend=lambda: budget.spend(org, "news_search"),
+        )
     if jobs_index is not None and not jobs_first:
         add_jobs()
     # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,

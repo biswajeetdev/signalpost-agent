@@ -22,8 +22,8 @@ _STATUS_TO_STATE = {
     "source_error": "failed",
     "not_fetched": "failed",
 }
-MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles", "jobs", "site_jobs", "public_activity")
-OPTIONAL_MODULES = frozenset({"jobs", "site_jobs", "public_activity"})
+MODULES = ("registry", "financials", "financial_history", "roles", "locations", "website", "social_profiles", "jobs", "site_jobs", "public_activity", "news_mentions")
+OPTIONAL_MODULES = frozenset({"jobs", "site_jobs", "public_activity", "news_mentions"})
 REGISTRY_FIELDS = (
     ("legal_name", "navn"),
     ("legal_form", "organisasjonsform.kode"),
@@ -296,14 +296,35 @@ def _site_jobs(envelope: _Envelope, record: Mapping[str, Any] | None, seen_urls:
         )
 
 
-def _activity(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
-    if record is None:
+def _activity(envelope: _Envelope, record: Mapping[str, Any] | None, news: Mapping[str, Any] | None = None) -> None:
+    if record is None and news is None:
         return
-    state = availability(record)
-    items = ((record or {}).get("value") or {}).get("items") or []
-    if state != "available" or not items:
-        envelope.unavailable("dated_news", record, "not_available" if state == "available" else state)
+    state = availability(record) if record is not None else "not_available"
+    items = ((record or {}).get("value") or {}).get("items") or [] if state == "available" else []
+    news_items = ((news or {}).get("value") or {}).get("items") or [] if availability(news) == "available" else []
+    if not items and not news_items:
+        envelope.unavailable("dated_news", record or news, "not_available" if state == "available" else state)
         return
+    seen = {str(item.get("url")) for item in items}
+    for item in news_items:
+        if str(item.get("url")) in seen:
+            continue
+        seen.add(str(item.get("url")))
+        feed_record = {"source_url": news.get("source_url"), "source_class": news.get("source_class") or news.get("source_type"),
+                       "retrieved_at": news.get("retrieved_at"), "content_sha256": news.get("content_sha256"), "method": "exact_legal_name_in_news_title"}
+        envelope.claim(
+            "dated_news",
+            item.get("url"),
+            "available",
+            [envelope.cite(feed_record, item.get("claim_span"))],
+            confidence=0.85,
+            signal_type="news_mention",
+            title=item.get("title"),
+            published_at=item.get("date"),
+            effective_at=item.get("date"),
+            publisher=item.get("publisher"),
+            relation="exact_legal_name_in_news_title",
+        )
     for item in items:
         page_record = {"source_url": item.get("source_url"), "source_class": "company_owned_website", "retrieved_at": item.get("retrieved_at"),
                        "content_sha256": item.get("content_sha256"), "method": item.get("extraction")}
@@ -398,8 +419,9 @@ def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, An
         points.append({"topic": "profiles", "text": f"Social profiles linked from its website: {platforms}.", "evidence_ids": ids(*socials[:5])})
     activity = available.get("dated_news", [])
     if activity:
-        latest = activity[0]
-        points.append({"topic": "activity", "text": f"Most recent dated news on its website: \"{latest.get('title')}\" ({latest.get('published_at')}).", "evidence_ids": ids(activity[0])})
+        latest = max(activity, key=lambda claim: str(claim.get("published_at") or ""))
+        where = "in the news" if latest.get("signal_type") == "news_mention" else "on its website"
+        points.append({"topic": "activity", "text": f"Most recent dated news {where}: \"{latest.get('title')}\" ({latest.get('published_at')}).", "evidence_ids": ids(latest)})
     changes = list(changes)
     if changes:
         points.append({"topic": "changes", "text": f"{len(changes)} material change(s) since the previous run.", "evidence_ids": []})
@@ -444,7 +466,7 @@ def build_envelope(
         nav_record = None  # the site's own postings answer the hiring question; no contradictory "not found" claim
     _jobs(envelope, nav_record)
     _site_jobs(envelope, site_jobs, {str(c["value"]) for c in envelope.claims if c["field"] == "hiring_signal" and c.get("value")})
-    _activity(envelope, records.get("public_activity"))
+    _activity(envelope, records.get("public_activity"), records.get("news_mentions"))
     return {
         "organisation_number": profile["organisation_number"],
         "legal_name": profile.get("name"),
