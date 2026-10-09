@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from norway_company_agent import news_search  # noqa: E402
 from norway_company_agent.contract import build_envelope, validate_envelope  # noqa: E402
-from norway_company_agent.news_search import name_pattern, names_entity, news_items, news_mentions  # noqa: E402
+from norway_company_agent.news_search import NewsPrefetcher, name_pattern, names_entity, news_items, news_mentions  # noqa: E402
 
 NOW = datetime(2026, 10, 9, tzinfo=timezone.utc)
 
@@ -124,6 +124,31 @@ class NewsSearchTest(unittest.TestCase):
 
         record = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: None, fetch=fetch, now=NOW)
         self.assertEqual(record["status"], "not_available")
+
+    def test_prefetcher_searches_every_company_and_stops_at_the_margin(self):
+        from norway_company_agent.budget import RequestBudget
+
+        searched = []
+
+        def fetch(url, spend):
+            spend()
+            if url.endswith("robots.txt"):
+                return 200, b""
+            searched.append(url)
+            return 200, feed()
+
+        companies = [("1", "HERMETIKKEN VINBAR AS"), ("2", "WYSSEN NORGE AS"), ("3", "JIA AS")]
+        budget = RequestBudget(100, 600)
+        unshared = type("Unshared", (), {"get": lambda self, key, default=0: 1})()  # like _SharedOnly: absent means unique
+        prefetch = NewsPrefetcher(companies, unshared, budget, fetch=fetch, threads=2).start()
+        self.assertTrue(prefetch.done.wait(5))
+        self.assertEqual({org: prefetch.record(org)["status"] for org, _ in companies}, {"1": "not_available", "2": "not_available", "3": "not_applicable"})
+        self.assertEqual(len(searched), 2)
+        late = NewsPrefetcher(companies, {}, RequestBudget(100, 30), fetch=fetch, threads=1, margin_seconds=60).start()
+        self.assertTrue(late.done.wait(5))
+        self.assertEqual(late.results, {})
+        self.assertEqual(late.final_record("1")["status"], "failed")
+        self.assertIn("Deferred", late.final_record("1")["note"])
 
     def test_redirect_to_private_address_is_refused_and_hops_are_charged(self):
         spent = []

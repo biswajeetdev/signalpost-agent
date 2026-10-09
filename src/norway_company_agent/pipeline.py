@@ -190,6 +190,7 @@ def enrich_company(
     jobs_index: NavJobIndex | None = None,
     previous_profile: Mapping[str, Any] | None = None,
     history_prefetch: Any = None,
+    news_prefetch: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     org = profile["organisation_number"]
     started = time.monotonic()
@@ -224,15 +225,6 @@ def enrich_company(
             found = []
         if found:
             registry_row = {**registry_row, "_search_domains": found}
-    # News naming this exact entity does not depend on the website: run it alongside discovery so it
-    # adds no time to the company (it stops reading articles after news_search.MAX_SECONDS).
-    news_pool = news_future = None
-    if budget.seconds_left() > settings.min_seconds_for_discovery:
-        news_pool = ThreadPoolExecutor(max_workers=1)
-        news_future = news_pool.submit(
-            news_mentions, org, str(registry_row.get("navn") or profile.get("name") or ""), shared["names"],
-            spend=lambda: budget.spend(org, "news_search"), fetch=news_fetch,
-        )
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
         records["website"] = evidence("website", "failed", "website_candidate_search", REGISTRY_SOURCE, note="Skipped: run wall-clock budget nearly exhausted")
@@ -270,9 +262,16 @@ def enrich_company(
     else:
         records["public_activity"] = site_activity(records["website"], None, None, None)
         records["site_jobs"] = careers_record(None, None, None)
-    if news_future is not None:
-        records["news_mentions"] = news_future.result()
-        news_pool.shutdown(wait=False)
+    if news_prefetch is not None:
+        # Searched on the prefetch threads; never wait for it here (see finalize_deferred).
+        records["news_mentions"] = news_prefetch.record(org) or {
+            **evidence("news_mentions", "failed", "independent_news_discovery", "https://www.bing.com/news/search",
+                       note="Deferred: filled from the paced news search after the batch"), "deferred": True}
+    elif budget.seconds_left() > settings.min_seconds_for_discovery:
+        records["news_mentions"] = news_mentions(
+            org, str(registry_row.get("navn") or profile.get("name") or ""), shared["names"],
+            spend=lambda: budget.spend(org, "news_search"), fetch=news_fetch,
+        )
     if jobs_index is not None and not jobs_first:
         add_jobs()
     # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,
@@ -396,11 +395,12 @@ def finalize_deferred(
     history_prefetch: Any = None,
     jobs_index: NavJobIndex | None = None,
     margin_seconds: float = 30.0,
+    news_prefetch: Any = None,
     previous: Mapping[str, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
-    """Fill records deferred during the batch (paced filing history, NAV jobs) within the time left, then
+    """Fill records deferred during the batch (paced filing history, news search, NAV jobs) within the time left, then
     rebuild only the affected envelopes. Returns counts of rebuilt envelopes per source."""
-    counts = {"history": 0, "jobs": 0}
+    counts = {"history": 0, "jobs": 0, "news": 0}
     if history_prefetch is not None:
         history_prefetch.done.wait(max(budget.seconds_left() - margin_seconds, 0.0))
         history_prefetch.stop()
@@ -409,6 +409,15 @@ def finalize_deferred(
             if (records.get("financial_history") or {}).get("deferred"):
                 records["financial_history"] = history_prefetch.final_record(profile["organisation_number"])
                 counts["history"] += 1
+                _rebuild(envelopes, profiles, position, budget, previous)
+    if news_prefetch is not None:
+        news_prefetch.done.wait(max(budget.seconds_left() - margin_seconds, 0.0))
+        news_prefetch.stop()
+        for position, profile in enumerate(profiles):
+            records = profile.get("evidence") or {}
+            if (records.get("news_mentions") or {}).get("deferred"):
+                records["news_mentions"] = news_prefetch.final_record(profile["organisation_number"])
+                counts["news"] += 1
                 _rebuild(envelopes, profiles, position, budget, previous)
     if jobs_index is not None:
         counts["jobs"] = fill_deferred_jobs(envelopes, profiles, jobs_index=jobs_index, budget=budget, previous=previous)

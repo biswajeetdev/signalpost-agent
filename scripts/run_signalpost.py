@@ -37,6 +37,7 @@ from norway_company_agent.chunked import run_chunked, wait_for_source  # noqa: E
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
 from norway_company_agent.guardrails import check_run, enforce_site_basis  # noqa: E402
 from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
+from norway_company_agent.news_search import NewsPrefetcher  # noqa: E402
 from norway_company_agent.pipeline import batch_report, budgeted_official_fetcher, finalize_deferred  # noqa: E402
 from norway_company_agent.viewer import render  # noqa: E402
 from norway_company_agent.pipeline import RunSettings  # noqa: E402
@@ -135,6 +136,10 @@ def main() -> None:
     # No bulk supplied: the batch file itself is the registry source when it carries company rows,
     # otherwise the live entity endpoint fills each registry row (see profiles_from_live_registry).
     profiles, registry = profiles_from_bulk(args.bulk, organisations) if args.bulk else profiles_from_live_registry(organisations)
+    cache = open_official_cache(args.cache)
+    # Bing is paced run-wide: news searches get their own threads from here on (input order), so workers never queue on them.
+    news = NewsPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles],
+                          cache.name_keys(), budget).start()
     settings = RunSettings(
         discovery_allowance=args.discovery_allowance,
         unique_name_rule=not args.disable_unique_name_rule,
@@ -146,7 +151,7 @@ def main() -> None:
     previous = read_previous(args.previous_profiles)
     envelopes, enriched, report = run_chunked(
         profiles,
-        cache=open_official_cache(args.cache),
+        cache=cache,
         budget=budget,
         run_id=args.run_id,
         settings=settings,
@@ -157,14 +162,16 @@ def main() -> None:
         chunk_retries=args.chunk_retries,
         jobs_index=jobs_index,
         history_prefetch=history,
+        news_prefetch=news,
     )
-    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index, previous=previous)
+    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index, previous=previous, news_prefetch=news)
     if any(rebuilt.values()):
         # Envelopes changed after the chunks: recompute the envelope-derived report parts.
         refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
         for key in ("module_states", "available_claims", "validation", "unique_organisations"):
             report[key] = refreshed[key]
     report["history_stream"] = {"fetched": len(history.results), "of": len(organisations), "filled_after_batch": rebuilt["history"]}
+    report["news_stream"] = {"searched": len(news.results), "of": len(organisations), "filled_after_batch": rebuilt["news"]}
     if jobs_index is not None:
         report["jobs_feed"] = {"state": jobs_index.state, "pages": jobs_index.pages, "active_ads": jobs_index.active_ads,
                                "lookback_days": jobs_index.lookback_days, "deferred_then_filled": rebuilt["jobs"], "note": jobs_index.note}

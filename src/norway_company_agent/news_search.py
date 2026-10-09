@@ -292,3 +292,66 @@ def news_mentions(
         return evidence("news_mentions", "not_available", SOURCE_CLASS, url, retrieved_at=retrieved_at,
                         note=note or "No news article names the exact legal name on its publisher's page")
     return evidence("news_mentions", "available", SOURCE_CLASS, url, value={"items": verified}, retrieved_at=retrieved_at, note=note)
+
+
+class NewsPrefetcher:
+    """News searches on their own threads from the start of the run, in input order. Bing is paced
+    run-wide, so searching inside company workers made fast companies queue for a search slot; here
+    workers never wait: a company whose search is not done yet is filled after the batch."""
+
+    def __init__(self, companies: list[tuple[str, str]], name_keys: Mapping[str, int] | Any, budget: Any,
+                 *, fetch: Fetch = default_fetch, threads: int = 4, margin_seconds: float = 60.0) -> None:
+        self.companies = companies  # (organisation number, legal name), input order
+        self.name_keys = name_keys
+        self.budget = budget
+        self.fetch = fetch
+        self.threads = threads
+        self.margin_seconds = margin_seconds
+        self.results: dict[str, dict[str, Any]] = {}
+        self.done = threading.Event()
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+        self._next = 0
+        self._running = 0
+
+    def start(self) -> "NewsPrefetcher":
+        self._running = self.threads
+        for index in range(self.threads):
+            threading.Thread(target=self._run, name=f"news-prefetch-{index}", daemon=True).start()
+        if not self.threads:
+            self.done.set()
+        return self
+
+    def _take(self) -> tuple[str, str] | None:
+        with self._lock:
+            if self._stop.is_set() or self._next >= len(self.companies) or self.budget.seconds_left() < self.margin_seconds:
+                return None
+            self._next += 1
+            return self.companies[self._next - 1]
+
+    def _run(self) -> None:
+        try:
+            while (company := self._take()) is not None:
+                org, name = company
+                record = news_mentions(org, name, self.name_keys, spend=lambda org=org: self.budget.spend(org, "news_search"), fetch=self.fetch)
+                with self._lock:
+                    self.results[org] = record
+        finally:
+            with self._lock:
+                self._running -= 1
+                if self._running == 0:
+                    self.done.set()
+
+    def stop(self) -> None:
+        self._stop.set()
+
+    def record(self, org: str) -> dict[str, Any] | None:
+        with self._lock:
+            return self.results.get(org)
+
+    def final_record(self, org: str) -> dict[str, Any]:
+        found = self.record(org)
+        if found is not None:
+            return found
+        return evidence("news_mentions", "failed", SOURCE_CLASS, SEARCH_URL.format(query=""),
+                        note="Deferred: the paced news search did not reach this company within the run time budget")
