@@ -224,6 +224,15 @@ def enrich_company(
             found = []
         if found:
             registry_row = {**registry_row, "_search_domains": found}
+    # News naming this exact entity does not depend on the website: run it alongside discovery so it
+    # adds no time to the company (it stops reading articles after news_search.MAX_SECONDS).
+    news_pool = news_future = None
+    if budget.seconds_left() > settings.min_seconds_for_discovery:
+        news_pool = ThreadPoolExecutor(max_workers=1)
+        news_future = news_pool.submit(
+            news_mentions, org, str(registry_row.get("navn") or profile.get("name") or ""), shared["names"],
+            spend=lambda: budget.spend(org, "news_search"), fetch=news_fetch,
+        )
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
         records["website"] = evidence("website", "failed", "website_candidate_search", REGISTRY_SOURCE, note="Skipped: run wall-clock budget nearly exhausted")
@@ -261,12 +270,9 @@ def enrich_company(
     else:
         records["public_activity"] = site_activity(records["website"], None, None, None)
         records["site_jobs"] = careers_record(None, None, None)
-    if budget.seconds_left() > settings.min_seconds_for_discovery:
-        # Headlines naming this exact entity; independent of the website, one request.
-        records["news_mentions"] = news_mentions(
-            org, str(registry_row.get("navn") or profile.get("name") or ""), shared["names"],
-            spend=lambda: budget.spend(org, "news_search"), fetch=news_fetch,
-        )
+    if news_future is not None:
+        records["news_mentions"] = news_future.result()
+        news_pool.shutdown(wait=False)
     if jobs_index is not None and not jobs_first:
         add_jobs()
     # The annual-account copy endpoint is paced run-wide (one start per HISTORY_SECONDS); fetch it last,

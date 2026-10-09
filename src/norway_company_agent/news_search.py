@@ -35,6 +35,7 @@ MAX_ITEMS = 10
 MAX_AGE_DAYS = 3 * 365
 MAX_BYTES = 1_500_000
 MAX_VERIFIED = 3  # articles read on the publisher's page per company
+MAX_SECONDS = 15.0  # per company: no new article is read after this
 MIN_NAME_CHARS = 5
 MIN_INTERVAL_SECONDS = 0.25  # run-wide pacing for the search endpoint
 MIN_HEADLINE_WORDS = 2  # words besides the legal name
@@ -148,20 +149,22 @@ def _robots_allowed(url: str, fetch: Fetch, spend: Callable[[], None]) -> bool:
     cached, so a later company tries again, and until then the page is treated as not permitted."""
     parsed = urllib.parse.urlparse(url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
-    with _robots_lock:
-        if origin not in _robots_answer:
-            try:
-                status, body = fetch(origin + "/robots.txt", spend)
-            except BudgetExhausted:
-                raise
-            except Exception:
-                return False
-            parser = urllib.robotparser.RobotFileParser()
-            if status == 200:
-                parser.parse(body.decode("utf-8", errors="replace").splitlines())
-            # Same convention as site discovery: 401/403 disallow, other 4xx/5xx allow.
-            _robots_answer[origin] = parser if status == 200 else status not in {401, 403}
-        answer = _robots_answer[origin]
+    with _robots_lock:  # held only to read the cache, never during a fetch
+        answer = _robots_answer.get(origin)
+    if answer is None:
+        try:
+            status, body = fetch(origin + "/robots.txt", spend)
+        except BudgetExhausted:
+            raise
+        except Exception:
+            return False
+        parser = urllib.robotparser.RobotFileParser()
+        if status == 200:
+            parser.parse(body.decode("utf-8", errors="replace").splitlines())
+        # Same convention as site discovery: 401/403 disallow, other 4xx/5xx allow.
+        answer = parser if status == 200 else status not in {401, 403}
+        with _robots_lock:
+            answer = _robots_answer.setdefault(origin, answer)
     return answer.can_fetch(USER_AGENT, url) if isinstance(answer, urllib.robotparser.RobotFileParser) else bool(answer)
 
 
@@ -179,14 +182,14 @@ class _ChargedRedirects(urllib.request.HTTPRedirectHandler):
 
 
 def default_fetch(url: str, spend: Callable[[], None]) -> tuple[int, bytes]:
-    """One guarded, paced, charged request (HTTP errors come back as their status)."""
+    """One guarded, charged request (HTTP errors come back as their status); bing.com is paced run-wide."""
     assert_public_url(url)
     spend()
-    with _pace_lock:
-        wait = _last_request[0] + MIN_INTERVAL_SECONDS - time.monotonic()
-        if wait > 0:
-            time.sleep(wait)
-        _last_request[0] = time.monotonic()
+    if urllib.parse.urlparse(url).netloc.endswith("bing.com"):  # pace the search engine only
+        with _pace_lock:
+            slot = max(_last_request[0] + MIN_INTERVAL_SECONDS, time.monotonic())
+            _last_request[0] = slot
+        time.sleep(max(slot - time.monotonic(), 0.0))
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/rss+xml,application/xml,text/xml,text/plain"})
     try:
         with urllib.request.build_opener(_ChargedRedirects(spend)).open(request, timeout=10) as response:
@@ -252,6 +255,7 @@ def news_mentions(
 ) -> dict[str, Any]:
     """Evidence record of news articles that name this exact entity, each read on its publisher's page."""
     now = now or datetime.now(timezone.utc)
+    started = time.monotonic()
     query = urllib.parse.quote(f'"{legal_name}"')
     url = SEARCH_URL.format(query=query)
     if reason := eligible_name(legal_name, name_keys):
@@ -268,6 +272,9 @@ def news_mentions(
         candidates = news_items(body, legal_name, now)
         pattern = name_pattern(legal_name)
         for item in candidates[:MAX_VERIFIED]:
+            if time.monotonic() - started > MAX_SECONDS:
+                note = f"Article checks stopped after {MAX_SECONDS:.0f}s"
+                break
             try:
                 if found := verify_on_publisher(item, pattern, fetch, spend, now):
                     verified.append(found)
