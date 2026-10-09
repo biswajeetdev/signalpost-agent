@@ -57,6 +57,14 @@ def site_fetchers(budget: RequestBudget, company: str, *, allowance: int, robots
     return fetch, lambda url: True
 
 
+def news_fetch(url: str, spend) -> tuple[int, bytes]:
+    """Offline Bing News: robots.txt allows the search, which finds nothing."""
+    spend()
+    if url.endswith("robots.txt"):
+        return 200, b"User-agent: *\nDisallow: /search"
+    return 200, b'<?xml version="1.0"?><rss><channel></channel></rss>'
+
+
 def resolver(host: str) -> bool:
     return host == "www.arkjv.no"
 
@@ -72,6 +80,7 @@ class PipelineTest(unittest.TestCase):
             official_fetcher=official_fetcher,
             site_fetchers=site_fetchers,
             resolver=resolver,
+            news_fetch=news_fetch,
         )
 
     def test_end_to_end_envelopes_validate_and_cover_every_module(self) -> None:

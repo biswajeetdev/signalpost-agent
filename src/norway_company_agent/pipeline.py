@@ -19,7 +19,7 @@ from .contract import MODULES, build_envelope, validate_envelope
 from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
 from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
-from .news_search import news_mentions
+from .news_search import default_fetch as default_news_fetch, news_mentions
 from .site_activity import site_activity
 from .site_jobs import site_postings
 from .search_candidates import search_domains, search_key
@@ -185,6 +185,7 @@ def enrich_company(
     shared: Mapping[str, Mapping[str, int]],
     official_fetcher: Callable[[RequestBudget, str], Callable[[str], FetchResult]] = budgeted_official_fetcher,
     site_fetchers: Callable[..., Any] = make_site_fetchers,
+    news_fetch: Callable[..., Any] = default_news_fetch,
     resolver: Callable[[str], bool] | None = None,
     jobs_index: NavJobIndex | None = None,
     previous_profile: Mapping[str, Any] | None = None,
@@ -264,7 +265,7 @@ def enrich_company(
         # Headlines naming this exact entity; independent of the website, one request.
         records["news_mentions"] = news_mentions(
             org, str(registry_row.get("navn") or profile.get("name") or ""), shared["names"],
-            spend=lambda: budget.spend(org, "news_search"),
+            spend=lambda: budget.spend(org, "news_search"), fetch=news_fetch,
         )
     if jobs_index is not None and not jobs_first:
         add_jobs()

@@ -59,23 +59,27 @@ class NewsSearchTest(unittest.TestCase):
 
     def test_shared_or_short_names_are_not_searched(self):
         calls = []
-        fetch = lambda url: calls.append(url) or (200, b"")  # noqa: E731
+        fetch = lambda url, spend: calls.append(url) or (200, b"")  # noqa: E731
         shared = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 2}, spend=lambda: None, fetch=fetch, now=NOW)
         short = news_mentions("1", "JIA AS", {}, spend=lambda: None, fetch=fetch, now=NOW)
         self.assertEqual((shared["status"], short["status"]), ("not_applicable", "not_applicable"))
         self.assertEqual(calls, [])
 
     def test_robots_disallow_blocks(self):
-        fetch = lambda url: (200, b"User-agent: *\nDisallow: /news/") if url.endswith("robots.txt") else self.fail("searched")  # noqa: E731
+        fetch = lambda url, spend: (200, b"User-agent: *\nDisallow: /news/") if url.endswith("robots.txt") else self.fail("searched")  # noqa: E731
         record = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: None, fetch=fetch, now=NOW)
         self.assertEqual(record["status"], "blocked")
 
     def test_available_record_becomes_valid_dated_news_claims_next_to_site_items(self):
         body = feed(item("Hermetikken Vinbar AS opplever en kraftig økning", "https://www.aftenbladet.no/a/1"))
-        fetch = lambda url: (200, b"User-agent: *\nAllow: /news/search") if url.endswith("robots.txt") else (200, body)  # noqa: E731
         spent = []
+
+        def fetch(url, spend):
+            spend()
+            return (200, b"User-agent: *\nDisallow: /search") if url.endswith("robots.txt") else (200, body)
+
         record = news_mentions("912345678", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: spent.append(1), fetch=fetch, now=NOW)
-        self.assertEqual((record["status"], len(spent)), ("available", 1))
+        self.assertEqual((record["status"], len(spent)), ("available", 2))  # robots.txt + search, both charged
         site = {"field": "public_activity", "status": "not_available", "source_url": "https://hermetikken.no/", "note": "No dated articles"}
         envelope = build_envelope({"organisation_number": "912345678", "evidence": {"public_activity": site, "news_mentions": record}},
                                   run_id="r", started_at="s", completed_at="c", operations={"requests": 1, "runtime_ms": 0})
@@ -85,6 +89,21 @@ class NewsSearchTest(unittest.TestCase):
         self.assertEqual((claims[0]["availability"], claims[0]["published_at"], claims[0]["signal_type"]), ("available", "2025-07-22", "news_mention"))
         self.assertEqual([p for p in validate_envelope(envelope) if "dated_news" in p], [])
         self.assertIn("in the news", envelope["summary"]["text"])
+
+    def test_redirect_to_private_address_is_refused_and_hops_are_charged(self):
+        spent = []
+        handler = news_search._ChargedRedirects(lambda: spent.append(1))
+        with self.assertRaises(ValueError):
+            handler.redirect_request(None, None, 302, "Found", {}, "http://127.0.0.1/admin")
+        self.assertEqual(spent, [])
+
+    def test_budget_exhaustion_is_a_failed_record(self):
+        from norway_company_agent.budget import BudgetExhausted
+
+        def spend():
+            raise BudgetExhausted("run request budget exhausted")
+        record = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=spend, fetch=lambda url, charge: charge() or (200, b""), now=NOW)
+        self.assertEqual(record["status"], "failed")
 
     def test_no_news_and_no_site_items_is_one_not_available_claim(self):
         record = {"field": "news_mentions", "status": "not_available", "source_url": "https://www.bing.com/news/search", "note": "none"}

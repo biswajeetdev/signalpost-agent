@@ -8,6 +8,7 @@ import hashlib
 import re
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import urllib.robotparser
@@ -33,7 +34,7 @@ MIN_INTERVAL_SECONDS = 0.25  # run-wide pacing for the search endpoint
 MIN_HEADLINE_WORDS = 2  # words besides the legal name
 CONNECTORS = frozenset({"og", "&", "and", "i"})  # words that join parts of a name
 
-Fetch = Callable[[str], tuple[int, bytes]]
+Fetch = Callable[[str, Callable[[], None]], tuple[int, bytes]]  # (url, spend) -> (status, body)
 
 _robots_lock = threading.Lock()
 _robots_answer: dict[str, bool] = {}
@@ -136,29 +137,53 @@ def eligible_name(legal_name: str, name_keys: Mapping[str, int] | Any) -> str | 
     return None
 
 
-def _robots_allowed(url: str, fetch: Fetch) -> bool:
+def _robots_allowed(url: str, fetch: Fetch, spend: Callable[[], None]) -> bool:
+    """robots.txt read once per run (charged like any request); a network failure is not cached, so a
+    later company tries again, and until then the search is treated as not permitted."""
     with _robots_lock:
         if "answer" not in _robots_answer:
-            parser = urllib.robotparser.RobotFileParser()
             try:
-                status, body = fetch(ROBOTS_URL)
-                parser.parse(body.decode("utf-8", errors="replace").splitlines()) if status == 200 else None
-                _robots_answer["answer"] = status == 200 and parser.can_fetch(USER_AGENT, url.split("&q=")[0] + "&q=x")
+                status, body = fetch(ROBOTS_URL, spend)
+            except BudgetExhausted:
+                raise
             except Exception:
-                _robots_answer["answer"] = False
+                return False
+            parser = urllib.robotparser.RobotFileParser()
+            if status == 200:
+                parser.parse(body.decode("utf-8", errors="replace").splitlines())
+            # Same convention as site discovery: 401/403 disallow, other 4xx/5xx allow.
+            _robots_answer["answer"] = parser.can_fetch(USER_AGENT, url) if status == 200 else status not in {401, 403}
         return _robots_answer["answer"]
 
 
-def default_fetch(url: str) -> tuple[int, bytes]:
+class _ChargedRedirects(urllib.request.HTTPRedirectHandler):
+    """Every redirect hop passes the public-URL guard and is charged to the budget."""
+
+    def __init__(self, spend: Callable[[], None]) -> None:
+        super().__init__()
+        self._spend = spend
+
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> Any:
+        assert_public_url(newurl)
+        self._spend()
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def default_fetch(url: str, spend: Callable[[], None]) -> tuple[int, bytes]:
+    """One guarded, paced, charged request (HTTP errors come back as their status)."""
     assert_public_url(url)
+    spend()
     with _pace_lock:
         wait = _last_request[0] + MIN_INTERVAL_SECONDS - time.monotonic()
         if wait > 0:
             time.sleep(wait)
         _last_request[0] = time.monotonic()
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/rss+xml,application/xml,text/xml"})
-    with urllib.request.urlopen(request, timeout=10) as response:
-        return response.status, read_bounded(response, MAX_FEED_BYTES)
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/rss+xml,application/xml,text/xml,text/plain"})
+    try:
+        with urllib.request.build_opener(_ChargedRedirects(spend)).open(request, timeout=10) as response:
+            return response.status, read_bounded(response, MAX_FEED_BYTES)
+    except urllib.error.HTTPError as exc:
+        return exc.code, b""
 
 
 def news_mentions(
@@ -175,12 +200,11 @@ def news_mentions(
     url = SEARCH_URL.format(query=query)
     if reason := eligible_name(legal_name, name_keys):
         return evidence("news_mentions", "not_applicable", SOURCE_CLASS, url, note=reason)
-    if not _robots_allowed(url, fetch):
-        return evidence("news_mentions", "blocked", SOURCE_CLASS, url, note="News search not permitted by robots.txt or unreachable")
     retrieved_at = utc_now()
     try:
-        spend()
-        status, body = fetch(url)
+        if not _robots_allowed(url, fetch, spend):
+            return evidence("news_mentions", "blocked", SOURCE_CLASS, url, note="News search not permitted by robots.txt or unreachable")
+        status, body = fetch(url, spend)
         if status != 200:
             return evidence("news_mentions", "failed", SOURCE_CLASS, url, retrieved_at=retrieved_at, note=f"HTTP {status}")
         items = news_items(body, legal_name, now)
