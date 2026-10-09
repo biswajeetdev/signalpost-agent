@@ -70,25 +70,60 @@ class NewsSearchTest(unittest.TestCase):
         record = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: None, fetch=fetch, now=NOW)
         self.assertEqual(record["status"], "blocked")
 
-    def test_available_record_becomes_valid_dated_news_claims_next_to_site_items(self):
-        body = feed(item("Hermetikken Vinbar AS opplever en kraftig økning", "https://www.aftenbladet.no/a/1"))
+    def test_claims_rest_on_the_publisher_page_not_on_bing(self):
+        body = feed(
+            item("Hermetikken Vinbar AS opplever en kraftig økning", "https://www.aftenbladet.no/a/1"),
+            item("Eksplosiv økning for Hermetikken Vinbar AS", "https://www.aftenbladet.no/a/2"),
+            item("Hermetikken Vinbar AS i vekst", "https://www.aftenbladet.no/a/3"),
+        )
+        pages = {
+            # Publisher headline and date differ from Bing's: the publisher's own page is what counts.
+            "https://www.aftenbladet.no/a/1": '<html><head><meta property="og:title" content="Hermetikken Vinbar AS opplever en kraftig &#248;kning i inntektene">'
+                                              '<meta property="article:published_time" content="2025-07-23T02:37:49Z"></head></html>',
+            "https://www.aftenbladet.no/a/2": "<html><head><title>Eksplosiv økning for Bryggen Hermetikken Vinbar AS</title>"
+                                              '<script>{"datePublished": "2024-07-31T05:21:00Z"}</script></head></html>',
+            "https://www.aftenbladet.no/a/3": "<html><head><title>Hermetikken Vinbar AS i vekst</title></head></html>",  # undated
+        }
         spent = []
 
         def fetch(url, spend):
             spend()
-            return (200, b"User-agent: *\nDisallow: /search") if url.endswith("robots.txt") else (200, body)
+            if url.endswith("robots.txt"):
+                return 200, b"User-agent: *\nDisallow: /search"
+            return (200, pages[url].encode()) if url in pages else (200, body)
 
         record = news_mentions("912345678", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: spent.append(1), fetch=fetch, now=NOW)
-        self.assertEqual((record["status"], len(spent)), ("available", 2))  # robots.txt + search, both charged
+        self.assertEqual(record["status"], "available")
+        self.assertEqual(len(spent), 6)  # two robots.txt, the search, three article pages: all charged
+        [verified] = record["value"]["items"]
+        self.assertEqual((verified["url"], verified["date"], verified["publisher"]), ("https://www.aftenbladet.no/a/1", "2025-07-23", "aftenbladet.no"))
+        self.assertEqual(verified["title"], "Hermetikken Vinbar AS opplever en kraftig økning i inntektene")
+        self.assertEqual(verified["source_url"], "https://www.aftenbladet.no/a/1")
+        self.assertEqual(len(verified["content_sha256"]), 64)
         site = {"field": "public_activity", "status": "not_available", "source_url": "https://hermetikken.no/", "note": "No dated articles"}
         envelope = build_envelope({"organisation_number": "912345678", "evidence": {"public_activity": site, "news_mentions": record}},
                                   run_id="r", started_at="s", completed_at="c", operations={"requests": 1, "runtime_ms": 0})
         claims = [claim for claim in envelope["claims"] if claim["field"] == "dated_news"]
         self.assertEqual(len(claims), 1)
         self.assertEqual(claims[0]["value"], "https://www.aftenbladet.no/a/1")
-        self.assertEqual((claims[0]["availability"], claims[0]["published_at"], claims[0]["signal_type"]), ("available", "2025-07-22", "news_mention"))
+        self.assertEqual((claims[0]["availability"], claims[0]["published_at"], claims[0]["signal_type"]), ("available", "2025-07-23", "news_mention"))
+        cited = [ev for ev in envelope["evidence"] if ev["id"] in claims[0]["evidence_ids"]]
+        self.assertEqual([(ev["source_url"], ev["source_class"]) for ev in cited], [("https://www.aftenbladet.no/a/1", "news_publisher_page")])
         self.assertEqual([p for p in validate_envelope(envelope) if "dated_news" in p], [])
         self.assertIn("in the news", envelope["summary"]["text"])
+
+    def test_publisher_robots_disallow_means_no_claim(self):
+        body = feed(item("Hermetikken Vinbar AS opplever en kraftig økning", "https://www.aftenbladet.no/a/1"))
+
+        def fetch(url, spend):
+            if url == "https://www.aftenbladet.no/robots.txt":
+                return 200, b"User-agent: *\nDisallow: /"
+            if url.endswith("robots.txt"):
+                return 200, b""
+            return (200, body) if "bing.com" in url else self.fail("article fetched")
+
+        record = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: None, fetch=fetch, now=NOW)
+        self.assertEqual(record["status"], "not_available")
 
     def test_redirect_to_private_address_is_refused_and_hops_are_charged(self):
         spent = []

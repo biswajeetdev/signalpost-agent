@@ -310,13 +310,13 @@ def _activity(envelope: _Envelope, record: Mapping[str, Any] | None, news: Mappi
         if str(item.get("url")) in seen:
             continue
         seen.add(str(item.get("url")))
-        feed_record = {"source_url": news.get("source_url"), "source_class": news.get("source_class") or news.get("source_type"),
-                       "retrieved_at": news.get("retrieved_at"), "content_sha256": news.get("content_sha256"), "method": "exact_legal_name_in_news_title"}
+        page_record = {"source_url": item.get("source_url"), "source_class": "news_publisher_page", "retrieved_at": item.get("retrieved_at"),
+                       "content_sha256": item.get("content_sha256"), "method": "exact_legal_name_in_publisher_headline"}
         envelope.claim(
             "dated_news",
             item.get("url"),
             "available",
-            [envelope.cite(feed_record, item.get("claim_span"))],
+            [envelope.cite(page_record, item.get("claim_span"))],
             confidence=0.85,
             signal_type="news_mention",
             title=item.get("title"),

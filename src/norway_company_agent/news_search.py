@@ -1,10 +1,14 @@
-"""Dated news about the entity from Bing News RSS (allowed by bing.com/robots.txt; no key). An item is
-published only when its headline carries the full legal name, legal form included, not glued to a
-preceding word or hyphen ("Midt-Norsk Maskin AS" is not "Norsk Maskin AS"), and only for a legal name
-that is distinctive and belongs to no other registry entity. One request per company."""
+"""Dated news about the entity. Bing News RSS (allowed by bing.com/robots.txt; no key) only points to
+candidate articles; each is then read on its publisher's own page (robots.txt honoured), and the claim
+rests on that page alone: its headline, its machine-readable publication date, its content hash.
+An article counts only when the headline carries the full legal name, legal form included, as a name
+of its own ("Midt-Norsk Maskin AS" and "Natur og Fritid AS" do not name "Norsk Maskin AS" or
+"Fritid AS"), and only for a legal name that is distinctive and unique in the registry. One search
+request per company, plus at most three article pages when the search names it."""
 from __future__ import annotations
 
 import hashlib
+import html as html_lib
 import re
 import threading
 import time
@@ -21,6 +25,7 @@ from .budget import BudgetExhausted
 from .evidence import evidence, utc_now
 from .http import read_bounded
 from .proof import name_key
+from .site_activity import _parse_date
 from .website import USER_AGENT, assert_public_url
 
 SOURCE_CLASS = "independent_news_discovery"
@@ -28,7 +33,8 @@ SEARCH_URL = "https://www.bing.com/news/search?format=rss&setlang=nb&cc=NO&q={qu
 ROBOTS_URL = "https://www.bing.com/robots.txt"
 MAX_ITEMS = 10
 MAX_AGE_DAYS = 3 * 365
-MAX_FEED_BYTES = 500_000
+MAX_BYTES = 1_500_000
+MAX_VERIFIED = 3  # articles read on the publisher's page per company
 MIN_NAME_CHARS = 5
 MIN_INTERVAL_SECONDS = 0.25  # run-wide pacing for the search endpoint
 MIN_HEADLINE_WORDS = 2  # words besides the legal name
@@ -37,7 +43,7 @@ CONNECTORS = frozenset({"og", "&", "and", "i"})  # words that join parts of a na
 Fetch = Callable[[str, Callable[[], None]], tuple[int, bytes]]  # (url, spend) -> (status, body)
 
 _robots_lock = threading.Lock()
-_robots_answer: dict[str, bool] = {}
+_robots_answer: dict[str, Any] = {}  # origin -> parsed robots.txt, or a blanket allow/deny
 _pace_lock = threading.Lock()
 _last_request = [0.0]
 
@@ -138,12 +144,14 @@ def eligible_name(legal_name: str, name_keys: Mapping[str, int] | Any) -> str | 
 
 
 def _robots_allowed(url: str, fetch: Fetch, spend: Callable[[], None]) -> bool:
-    """robots.txt read once per run (charged like any request); a network failure is not cached, so a
-    later company tries again, and until then the search is treated as not permitted."""
+    """robots.txt read once per origin per run (charged like any request); a network failure is not
+    cached, so a later company tries again, and until then the page is treated as not permitted."""
+    parsed = urllib.parse.urlparse(url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
     with _robots_lock:
-        if "answer" not in _robots_answer:
+        if origin not in _robots_answer:
             try:
-                status, body = fetch(ROBOTS_URL, spend)
+                status, body = fetch(origin + "/robots.txt", spend)
             except BudgetExhausted:
                 raise
             except Exception:
@@ -152,8 +160,9 @@ def _robots_allowed(url: str, fetch: Fetch, spend: Callable[[], None]) -> bool:
             if status == 200:
                 parser.parse(body.decode("utf-8", errors="replace").splitlines())
             # Same convention as site discovery: 401/403 disallow, other 4xx/5xx allow.
-            _robots_answer["answer"] = parser.can_fetch(USER_AGENT, url) if status == 200 else status not in {401, 403}
-        return _robots_answer["answer"]
+            _robots_answer[origin] = parser if status == 200 else status not in {401, 403}
+        answer = _robots_answer[origin]
+    return answer.can_fetch(USER_AGENT, url) if isinstance(answer, urllib.robotparser.RobotFileParser) else bool(answer)
 
 
 class _ChargedRedirects(urllib.request.HTTPRedirectHandler):
@@ -178,12 +187,58 @@ def default_fetch(url: str, spend: Callable[[], None]) -> tuple[int, bytes]:
         if wait > 0:
             time.sleep(wait)
         _last_request[0] = time.monotonic()
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/rss+xml,application/xml,text/xml,text/plain"})
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/rss+xml,application/xml,text/xml,text/plain"})
     try:
         with urllib.request.build_opener(_ChargedRedirects(spend)).open(request, timeout=10) as response:
-            return response.status, read_bounded(response, MAX_FEED_BYTES)
+            return response.status, read_bounded(response, MAX_BYTES)
     except urllib.error.HTTPError as exc:
         return exc.code, b""
+
+
+def _meta(html: str, key: str) -> str | None:
+    for tag in re.findall(r"<meta\b[^>]*>", html, re.I):
+        if re.search(r"""(?:property|name)\s*=\s*["']""" + re.escape(key) + r"""["']""", tag, re.I):
+            found = re.search(r"""content\s*=\s*["']([^"']*)["']""", tag, re.I)
+            if found:
+                return html_lib.unescape(found.group(1)).strip()
+    return None
+
+
+def article_facts(html: str, now: datetime) -> tuple[str | None, str | None, str | None]:
+    """(headline, publication date, the date text as printed) from the publisher's own article page."""
+    title = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+    headline = _meta(html, "og:title") or (html_lib.unescape(" ".join(title.group(1).split())) if title else None)
+    for raw in (_meta(html, "article:published_time"), *re.findall(r'"datePublished"\s*:\s*"([^"]+)"', html)[:1]):
+        if raw and (date := _parse_date(raw, now)):
+            return headline, date, raw
+    return headline, None, None
+
+
+def verify_on_publisher(item: Mapping[str, Any], pattern: re.Pattern[str], fetch: Fetch, spend: Callable[[], None], now: datetime) -> dict[str, Any] | None:
+    """The article as the publisher states it: its own headline names the entity and it carries a
+    machine-readable publication date. Bing only pointed to it; nothing from Bing is kept."""
+    url = str(item["url"])
+    if not _robots_allowed(url, fetch, spend):
+        return None
+    retrieved_at = utc_now()
+    status, body = fetch(url, spend)
+    if status != 200 or not body:
+        return None
+    html = body.decode("utf-8", errors="replace")
+    headline, date, raw_date = article_facts(html, now)
+    if not headline or not date or not names_entity(pattern, " ".join(headline.split())[:200]):
+        return None
+    headline = " ".join(headline.split())[:200]
+    return {
+        "title": headline,
+        "url": url,
+        "date": date,
+        "publisher": urllib.parse.urlparse(url).netloc.lower().removeprefix("www."),
+        "source_url": url,
+        "retrieved_at": retrieved_at,
+        "content_sha256": hashlib.sha256(body).hexdigest(),
+        "claim_span": f"{headline} — published {raw_date}",
+    }
 
 
 def news_mentions(
@@ -195,25 +250,38 @@ def news_mentions(
     fetch: Fetch = default_fetch,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    """Evidence record of news headlines that name this exact entity."""
+    """Evidence record of news articles that name this exact entity, each read on its publisher's page."""
+    now = now or datetime.now(timezone.utc)
     query = urllib.parse.quote(f'"{legal_name}"')
     url = SEARCH_URL.format(query=query)
     if reason := eligible_name(legal_name, name_keys):
         return evidence("news_mentions", "not_applicable", SOURCE_CLASS, url, note=reason)
     retrieved_at = utc_now()
+    verified: list[dict[str, Any]] = []
+    note = None
     try:
         if not _robots_allowed(url, fetch, spend):
             return evidence("news_mentions", "blocked", SOURCE_CLASS, url, note="News search not permitted by robots.txt or unreachable")
         status, body = fetch(url, spend)
         if status != 200:
             return evidence("news_mentions", "failed", SOURCE_CLASS, url, retrieved_at=retrieved_at, note=f"HTTP {status}")
-        items = news_items(body, legal_name, now)
+        candidates = news_items(body, legal_name, now)
+        pattern = name_pattern(legal_name)
+        for item in candidates[:MAX_VERIFIED]:
+            try:
+                if found := verify_on_publisher(item, pattern, fetch, spend, now):
+                    verified.append(found)
+            except BudgetExhausted:
+                raise
+            except Exception as exc:  # one unreadable article never sinks the others
+                note = f"An article could not be read: {type(exc).__name__}"
     except BudgetExhausted as exc:
-        return evidence("news_mentions", "failed", SOURCE_CLASS, url, retrieved_at=retrieved_at, note=str(exc))
+        if not verified:
+            return evidence("news_mentions", "failed", SOURCE_CLASS, url, retrieved_at=retrieved_at, note=str(exc))
+        note = str(exc)
     except Exception as exc:  # network error, timeout or malformed feed: no claim either way
         return evidence("news_mentions", "failed", SOURCE_CLASS, url, retrieved_at=retrieved_at, note=f"{type(exc).__name__}: {str(exc)[:120]}")
-    digest = hashlib.sha256(body).hexdigest()
-    if not items:
-        return evidence("news_mentions", "not_available", SOURCE_CLASS, url, retrieved_at=retrieved_at, content_sha256=digest,
-                        note="No news headline carries the exact legal name")
-    return evidence("news_mentions", "available", SOURCE_CLASS, url, value={"items": items}, retrieved_at=retrieved_at, content_sha256=digest)
+    if not verified:
+        return evidence("news_mentions", "not_available", SOURCE_CLASS, url, retrieved_at=retrieved_at,
+                        note=note or "No news article names the exact legal name on its publisher's page")
+    return evidence("news_mentions", "available", SOURCE_CLASS, url, value={"items": verified}, retrieved_at=retrieved_at, note=note)
