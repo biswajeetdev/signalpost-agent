@@ -38,6 +38,7 @@ from norway_company_agent.chunked import run_chunked, wait_for_source  # noqa: E
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
 from norway_company_agent.guardrails import check_run, enforce_site_basis  # noqa: E402
 from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
+from norway_company_agent.arbeidsplassen import BoardPrefetcher  # noqa: E402
 from norway_company_agent.news_search import NewsPrefetcher  # noqa: E402
 from norway_company_agent.pipeline import batch_report, budgeted_official_fetcher, finalize_deferred  # noqa: E402
 from norway_company_agent.viewer import render  # noqa: E402
@@ -142,6 +143,8 @@ def main() -> None:
     # Bing is paced run-wide: news searches get their own threads from here on (input order), so workers never queue on them.
     news = NewsPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles],
                           cache.name_keys(), budget, exact_names=exact_names or None).start()
+    # NAV's job board search: hiring signals that do not depend on reading the whole NAV feed.
+    board = None if args.no_jobs else BoardPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles], budget).start()
     settings = RunSettings(
         discovery_allowance=args.discovery_allowance,
         unique_name_rule=not args.disable_unique_name_rule,
@@ -166,7 +169,7 @@ def main() -> None:
         history_prefetch=history,
         news_prefetch=news,
     )
-    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index, previous=previous, news_prefetch=news)
+    rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index, previous=previous, news_prefetch=news, board_prefetch=board)
     if any(rebuilt.values()):
         # Envelopes changed after the chunks: recompute the envelope-derived report parts.
         refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
@@ -174,6 +177,8 @@ def main() -> None:
             report[key] = refreshed[key]
     report["history_stream"] = {"fetched": len(history.results), "of": len(organisations), "filled_after_batch": rebuilt["history"]}
     report["news_stream"] = {"searched": len(news.results), "of": len(organisations), "filled_after_batch": rebuilt["news"]}
+    if board is not None:
+        report["job_board_stream"] = {"searched": len(board.results), "of": len(organisations), "envelopes_updated": rebuilt["board"], "note": board.note}
     if jobs_index is not None:
         report["jobs_feed"] = {"state": jobs_index.state, "pages": jobs_index.pages, "active_ads": jobs_index.active_ads,
                                "lookback_days": jobs_index.lookback_days, "deferred_then_filled": rebuilt["jobs"], "note": jobs_index.note}

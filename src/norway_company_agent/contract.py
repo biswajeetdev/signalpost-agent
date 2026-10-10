@@ -238,7 +238,7 @@ def _jobs(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
         envelope.unavailable("hiring_signal", record, "not_available" if state == "available" else state)
         return
     for ad in ads:
-        ad_record = {"source_url": ad.get("source_url"), "source_class": "nav_public_job_feed", "retrieved_at": ad.get("retrieved_at"),
+        ad_record = {"source_url": ad.get("source_url"), "source_class": ad.get("source_class") or "nav_public_job_feed", "retrieved_at": ad.get("retrieved_at"),
                      "content_sha256": ad.get("content_sha256"), "method": "employer_organisation_number_match"}
         envelope.claim(
             "hiring_signal",

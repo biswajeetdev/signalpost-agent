@@ -19,6 +19,7 @@ from .contract import MODULES, build_envelope, validate_envelope
 from .evidence import evidence, utc_now
 from .http import FetchResult, fetch_json
 from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
+from .arbeidsplassen import attach_board_ads
 from .news_search import default_fetch as default_news_fetch, news_mentions
 from .site_activity import site_activity
 from .site_jobs import site_postings
@@ -396,11 +397,12 @@ def finalize_deferred(
     jobs_index: NavJobIndex | None = None,
     margin_seconds: float = 30.0,
     news_prefetch: Any = None,
+    board_prefetch: Any = None,
     previous: Mapping[str, dict[str, Any]] | None = None,
 ) -> dict[str, int]:
-    """Fill records deferred during the batch (paced filing history, news search, NAV jobs) within the time left, then
+    """Fill records deferred during the batch (paced filing history, news search, NAV jobs, job-board ads) within the time left, then
     rebuild only the affected envelopes. Returns counts of rebuilt envelopes per source."""
-    counts = {"history": 0, "jobs": 0, "news": 0}
+    counts = {"history": 0, "jobs": 0, "news": 0, "board": 0}
     if history_prefetch is not None:
         history_prefetch.done.wait(max(budget.seconds_left() - margin_seconds, 0.0))
         history_prefetch.stop()
@@ -421,6 +423,18 @@ def finalize_deferred(
                 _rebuild(envelopes, profiles, position, budget, previous)
     if jobs_index is not None:
         counts["jobs"] = fill_deferred_jobs(envelopes, profiles, jobs_index=jobs_index, budget=budget, previous=previous)
+    if board_prefetch is not None:
+        # Job-board ads are matched here, after the feed's own fill, against the entity and its subunits.
+        board_prefetch.done.wait(max(budget.seconds_left() - margin_seconds, 0.0))
+        board_prefetch.stop()
+        for position, profile in enumerate(profiles):
+            records = profile.get("evidence") or {}
+            updated = attach_board_ads(records.get("jobs"), board_prefetch.record(profile["organisation_number"]),
+                                       profile["organisation_number"], records.get("locations"))
+            if updated is not None:
+                records["jobs"] = updated
+                counts["board"] += 1
+                _rebuild(envelopes, profiles, position, budget, previous)
     return counts
 
 

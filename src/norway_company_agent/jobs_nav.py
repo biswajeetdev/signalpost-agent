@@ -30,18 +30,27 @@ MAX_ADS_PER_COMPANY = 25
 MAX_DETAIL_FETCHES_PER_COMPANY = 30
 
 
+TOKEN_TIMEOUT_SECONDS = 60.0  # the endpoint has taken ~30 s on degraded days (10 Oct 2026)
+TOKEN_ATTEMPTS = 2
+FEED_PAGE_TIMEOUT_SECONDS = 60.0  # feed pages took 30-50 s on 10 Oct 2026; read on its own thread
+
+
 def _public_token(on_attempt: Callable[[], None] | None = None) -> str | None:
-    """NAV publishes a rotating public token for the feed; it is not an account credential."""
-    if on_attempt:
-        on_attempt()
+    """NAV publishes a rotating public token for the feed; it is not an account credential. Read on the
+    feed thread, so a slow endpoint costs no worker time: wait long, and retry once."""
     request = urllib.request.Request(TOKEN_URL, headers={"User-Agent": "builderr-signalpost-poc/0.1 (+https://builderr.ai)"})
-    try:
-        with urllib.request.urlopen(request, timeout=20) as response:
-            text = read_bounded(response, 100_000).decode("utf-8", "replace")
-    except Exception:
-        return None
-    match = re.search(r"eyJ[\w\-]+\.[\w\-]+\.[\w\-]+", text)
-    return match.group(0) if match else None
+    for _ in range(TOKEN_ATTEMPTS):
+        if on_attempt:
+            on_attempt()
+        try:
+            with urllib.request.urlopen(request, timeout=TOKEN_TIMEOUT_SECONDS) as response:
+                text = read_bounded(response, 100_000, TOKEN_TIMEOUT_SECONDS).decode("utf-8", "replace")
+        except Exception:
+            continue
+        match = re.search(r"eyJ[\w\-]+\.[\w\-]+\.[\w\-]+", text)
+        if match:
+            return match.group(0)
+    return None
 
 
 class NavJobIndex:
@@ -101,7 +110,7 @@ class NavJobIndex:
         latest: dict[str, dict[str, Any]] = {}
         url: str | None = FEED_URL
         while url and self.pages < self.max_pages:
-            result = self._fetch(url, attempts=2, headers=headers, on_attempt=lambda: self._spend("jobs_feed"))
+            result = self._fetch(url, attempts=2, timeout=FEED_PAGE_TIMEOUT_SECONDS, headers=headers, on_attempt=lambda: self._spend("jobs_feed"))
             if result.status != 200 or not isinstance(result.body, dict):
                 if not latest:
                     self.state, self.note = "failed", f"NAV feed page failed: {result.error or result.status}"

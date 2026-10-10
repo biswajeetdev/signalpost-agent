@@ -25,7 +25,7 @@ class FakeFeed:
     def __init__(self, pages, details):
         self.pages, self.details, self.calls = pages, details, []
 
-    def __call__(self, url, attempts=2, headers=None, on_attempt=None):
+    def __call__(self, url, attempts=2, headers=None, on_attempt=None, timeout=20.0):
         self.calls.append(url)
         if on_attempt:
             on_attempt()
