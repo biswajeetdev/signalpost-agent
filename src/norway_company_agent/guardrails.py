@@ -11,7 +11,8 @@ from .contract import CONTRACT_STATES, validate_envelope
 STRONG_OR_ALLOWED = {"organisation_number", "subunit_organisation_number", "registry_email", "registry_phone", "registry_declared_website"}
 OFFICIAL_MODULES = ("registry", "financials", "roles", "locations")
 # Warning thresholds: share of companies with this module failed.
-FAIL_RATE_WARN = {"registry": 0.01, "financials": 0.02, "roles": 0.02, "locations": 0.02, "financial_history": 0.05, "website": 0.05, "jobs": 0.10}
+FAIL_RATE_WARN = {"registry": 0.01, "financials": 0.02, "roles": 0.02, "locations": 0.02, "financial_history": 0.05, "website": 0.05, "jobs": 0.10,
+                  "news_mentions": 0.05}
 
 
 def _site_basis_ok(website: Mapping[str, Any]) -> bool:
@@ -103,7 +104,7 @@ def check_run(envelopes: list[Mapping[str, Any]], profiles: list[Mapping[str, An
         if rates.get(module, 0) > limit:
             top = failed[module].most_common(1)[0][0]
             warnings.append(f"{module}: {rates[module]:.1%} failed (top reason: {top})")
-    deferred_left = sum(1 for p in profiles for m in ("financial_history", "jobs")
+    deferred_left = sum(1 for p in profiles for m in ("financial_history", "jobs", "news_mentions")
                         if ((p.get("evidence") or {}).get(m) or {}).get("deferred"))
     if deferred_left:
         warnings.append(f"{deferred_left} deferred records were never filled")
@@ -113,6 +114,9 @@ def check_run(envelopes: list[Mapping[str, Any]], profiles: list[Mapping[str, An
     budget_refusals = sum(reasons[r] for m in OFFICIAL_MODULES for reasons in [failed.get(m, Counter())] for r in reasons if "budget" in r.lower())
     if budget_refusals:
         warnings.append(f"{budget_refusals} official lookups refused because the run budget was exhausted")
+    blocked_news = sum(1 for p in profiles if ((p.get("evidence") or {}).get("news_mentions") or {}).get("status") == "blocked")
+    if blocked_news:
+        warnings.append(f"news search blocked for {blocked_news} companies (robots.txt or unreachable)")
     skipped_sites = sum(n for r, n in failed.get("website", Counter()).items() if "Skipped" in r or "time" in r.lower())
     if skipped_sites:
         warnings.append(f"{skipped_sites} website checks skipped or cut for time")
@@ -127,3 +131,21 @@ def check_run(envelopes: list[Mapping[str, Any]], profiles: list[Mapping[str, An
         "deferred_unfilled": deferred_left,
         "published_websites": sum(1 for p in profiles if ((p.get("evidence") or {}).get("website") or {}).get("status") == "available"),
     }
+
+
+def stream_warnings(report: Mapping[str, Any]) -> list[str]:
+    """Run-level sources that degrade without failing any single record: say so in the report."""
+    warnings: list[str] = []
+    for name in ("news_stream", "job_board_stream"):
+        stream = report.get(name) or {}
+        if stream and stream.get("searched", 0) < stream.get("of", 0):
+            warnings.append(f"{name}: searched {stream.get('searched')} of {stream.get('of')} companies" + (f" ({stream['note']})" if stream.get("note") else ""))
+    feed = report.get("jobs_feed") or {}
+    if feed and feed.get("state") != "available":
+        warnings.append(f"NAV job feed {feed.get('state')}: {feed.get('note')}")
+    elif feed.get("note"):
+        warnings.append(f"NAV job feed incomplete: {feed.get('note')}")
+    history = report.get("history_stream") or {}
+    if history and history.get("fetched", 0) < history.get("of", 0):
+        warnings.append(f"filing history fetched for {history.get('fetched')} of {history.get('of')} companies")
+    return warnings

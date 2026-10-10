@@ -36,7 +36,7 @@ from norway_company_agent.budget import RequestBudget  # noqa: E402
 from norway_company_agent.cached_official import open_official_cache  # noqa: E402
 from norway_company_agent.chunked import run_chunked, wait_for_source  # noqa: E402
 from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
-from norway_company_agent.guardrails import check_run, enforce_site_basis  # noqa: E402
+from norway_company_agent.guardrails import check_run, enforce_site_basis, stream_warnings  # noqa: E402
 from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
 from norway_company_agent.arbeidsplassen import BoardPrefetcher  # noqa: E402
 from norway_company_agent.news_search import NewsPrefetcher  # noqa: E402
@@ -193,6 +193,7 @@ def main() -> None:
             report[key] = refreshed[key]
     report = {"run_id": args.run_id, "expected_count": args.expected_count, "registry": registry, **report}
     report["guardrails"] = {**check_run(envelopes, enriched, organisations), "websites_demoted": demoted}
+    report["guardrails"]["warnings"] += stream_warnings(report)
     for line in report["guardrails"]["contract_failures"]:
         print(f"GUARDRAIL CONTRACT: {line}", file=sys.stderr)
     for line in report["guardrails"]["warnings"]:

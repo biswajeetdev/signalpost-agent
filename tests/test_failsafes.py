@@ -91,3 +91,25 @@ class GuardrailTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SilentFailureWarningTest(unittest.TestCase):
+    def test_degraded_streams_are_reported(self):
+        from norway_company_agent.guardrails import stream_warnings
+
+        warnings = stream_warnings({
+            "news_stream": {"searched": 900, "of": 1500, "filled_after_batch": 12},
+            "job_board_stream": {"searched": 9, "of": 1500, "note": "Job board search rate-limited (HTTP 429)"},
+            "jobs_feed": {"state": "failed", "note": "NAV public feed token unavailable"},
+            "history_stream": {"fetched": 1500, "of": 1500},
+        })
+        self.assertEqual(len(warnings), 3)
+        self.assertIn("429", warnings[1])
+        self.assertIn("token unavailable", warnings[2])
+        self.assertEqual(stream_warnings({"news_stream": {"searched": 5, "of": 5}, "jobs_feed": {"state": "available", "note": None}}), [])
+
+    def test_failed_and_blocked_news_records_warn(self):
+        profiles = [{"organisation_number": str(i), "evidence": {"news_mentions": {"status": "failed" if i < 3 else "blocked", "note": "HTTP 503"}}} for i in range(10)]
+        report = check_run([], profiles, [])
+        self.assertTrue(any(w.startswith("news_mentions: 30.0% failed") for w in report["warnings"]))
+        self.assertTrue(any("news search blocked for 7 companies" in w for w in report["warnings"]))
