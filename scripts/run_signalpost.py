@@ -99,6 +99,7 @@ def main() -> None:
     parser.add_argument("--jobs-lookback-days", type=int, default=int(env("JOBS_LOOKBACK_DAYS", "120")),
                         help="How far back the NAV public job feed is read for still-active ads")
     parser.add_argument("--no-jobs", action="store_true", help="Skip the NAV job-feed connector")
+    parser.add_argument("--job-board", action="store_true", help="Also search NAV's job board per company (paced; stops at the first HTTP 429)")
     parser.add_argument("--chunk-seconds", type=float, default=float(env("CHUNK_SECONDS", "480")),
                         help="Watchdog limit per chunk; unfinished companies get failed envelopes (0 disables)")
     parser.add_argument("organisations_positional", nargs="?", help=argparse.SUPPRESS)
@@ -143,8 +144,9 @@ def main() -> None:
     # Bing is paced run-wide: news searches get their own threads from here on (input order), so workers never queue on them.
     news = NewsPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles],
                           cache.name_keys(), budget, exact_names=exact_names or None).start()
-    # NAV's job board search: hiring signals that do not depend on reading the whole NAV feed.
-    board = None if args.no_jobs else BoardPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles], budget).start()
+    # NAV's job board search (opt-in): it rate-limits after a handful of searches (HTTP 429 after 9
+    # companies at one request per 2 s on 10 Oct 2026), so it is off until it is shown to hold at batch scale.
+    board = None if args.no_jobs or not args.job_board else BoardPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles], budget).start()
     settings = RunSettings(
         discovery_allowance=args.discovery_allowance,
         unique_name_rule=not args.disable_unique_name_rule,
