@@ -182,7 +182,7 @@ def main() -> None:
         refreshed = batch_report(envelopes, budget, report["started_at"], report["completed_at"])
         for key in ("module_states", "available_claims", "validation", "unique_organisations"):
             report[key] = refreshed[key]
-    report["history_stream"] = {"fetched": len(history.results), "of": len(organisations), "filled_after_batch": rebuilt["history"]}
+    report["history_stream"] = {"fetched": len(history.results), "of": len(organisations), "filled_after_batch": rebuilt["history"], "errors": history.errors}
     report["news_stream"] = {"searched": len(news.results), "of": len(organisations), "filled_after_batch": rebuilt["news"]}
     if directory is not None:
         directory.stop()

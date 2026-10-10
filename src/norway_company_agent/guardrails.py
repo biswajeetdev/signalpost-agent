@@ -152,4 +152,6 @@ def stream_warnings(report: Mapping[str, Any]) -> list[str]:
     history = report.get("history_stream") or {}
     if history and history.get("fetched", 0) < history.get("of", 0):
         warnings.append(f"filing history fetched for {history.get('fetched')} of {history.get('of')} companies")
+    if history.get("errors"):
+        warnings.append(f"filing history stream: {history['errors']} companies failed with an error")
     return warnings

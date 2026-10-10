@@ -24,6 +24,7 @@ class HistoryPrefetcher:
         self.seconds_per_call = seconds_per_call
         self.margin_seconds = margin_seconds
         self.results: dict[str, dict[str, Any]] = {}
+        self.errors = 0
         self.done = threading.Event()
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -39,10 +40,15 @@ class HistoryPrefetcher:
                     break
                 try:
                     records, _ = fetch_official_modules(org, {"financial_history"}, fetcher=self.fetcher_for(self.budget, org))
+                    record = records["financial_history"]
                 except BudgetExhausted:
                     break
+                except Exception as exc:  # one company's error must not end the stream for every company after it
+                    self.errors += 1
+                    record = evidence("financial_history", "failed", HISTORY_SOURCE, HISTORY_URL.format(org=org),
+                                      note=f"Filing history read failed: {type(exc).__name__}: {str(exc)[:120]}")
                 with self._lock:
-                    self.results[org] = records["financial_history"]
+                    self.results[org] = record
         finally:
             self.done.set()
 

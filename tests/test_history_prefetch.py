@@ -71,5 +71,30 @@ class HistoryPrefetchTest(unittest.TestCase):
         self.assertEqual([change["field"] for change in envelopes[0]["changes"]], [])
 
 
+
+
+class HistoryStreamErrorTest(unittest.TestCase):
+    def test_one_failing_company_does_not_stop_the_stream(self):
+        from unittest import mock
+
+        from norway_company_agent import history_prefetch
+        from norway_company_agent.budget import RequestBudget
+
+        calls = []
+
+        def fake(org, modules, fetcher):
+            calls.append(org)
+            if org == "2":
+                raise ConnectionResetError("peer reset")
+            return {"financial_history": {"field": "financial_history", "status": "available"}}, None
+
+        with mock.patch.object(history_prefetch, "fetch_official_modules", fake):
+            stream = history_prefetch.HistoryPrefetcher(["1", "2", "3"], RequestBudget(100, 600), lambda budget, org: None,
+                                                        seconds_per_call=0, margin_seconds=0).start()
+            self.assertTrue(stream.done.wait(5))
+        self.assertEqual(calls, ["1", "2", "3"])
+        self.assertEqual({org: stream.results[org]["status"] for org in "123"}, {"1": "available", "2": "failed", "3": "available"})
+        self.assertEqual(stream.errors, 1)
+
 if __name__ == "__main__":
     unittest.main()
