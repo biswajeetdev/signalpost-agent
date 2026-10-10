@@ -17,6 +17,7 @@ import faulthandler
 import json
 import os
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -135,11 +136,12 @@ def main() -> None:
     history = HistoryPrefetcher(organisations, budget, budgeted_official_fetcher).start()
     # No bulk supplied: the batch file itself is the registry source when it carries company rows,
     # otherwise the live entity endpoint fills each registry row (see profiles_from_live_registry).
-    profiles, registry = profiles_from_bulk(args.bulk, organisations) if args.bulk else profiles_from_live_registry(organisations)
+    exact_names: Counter[str] = Counter()  # exact legal-name counts across the snapshot, for the news name rule
+    profiles, registry = profiles_from_bulk(args.bulk, organisations, exact_names) if args.bulk else profiles_from_live_registry(organisations)
     cache = open_official_cache(args.cache)
     # Bing is paced run-wide: news searches get their own threads from here on (input order), so workers never queue on them.
     news = NewsPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles],
-                          cache.name_keys(), budget).start()
+                          cache.name_keys(), budget, exact_names=exact_names or None).start()
     settings = RunSettings(
         discovery_allowance=args.discovery_allowance,
         unique_name_rule=not args.disable_unique_name_rule,

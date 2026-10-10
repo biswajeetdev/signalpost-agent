@@ -134,14 +134,22 @@ def news_items(feed: bytes, legal_name: str, now: datetime | None = None) -> lis
     return unique[:MAX_ITEMS]
 
 
-def eligible_name(legal_name: str, name_keys: Mapping[str, int] | Any) -> str | None:
-    """Why this legal name cannot be searched safely, or None when it can."""
+def eligible_name(legal_name: str, name_keys: Mapping[str, int] | Any, exact_names: Mapping[str, int] | None = None) -> str | None:
+    """Why this legal name cannot be searched safely, or None when it can.
+
+    A headline must carry the full legal name, legal form included, so what matters is whether another
+    entity carries that exact name. When the distinctive words are shared, an AS/ASA name still qualifies
+    if no other row in the registry snapshot has the identical full name (the register refuses a company
+    name identical to one already registered, so the namesakes are other forms or other word orders)."""
     key = name_key(legal_name)
     if len(key.replace(" ", "")) < MIN_NAME_CHARS:
         return "Legal name too short to identify the entity in a headline"
-    if name_keys.get(key, 0) != 1:
-        return "Legal name is shared with another registry entity"
-    return None
+    if name_keys.get(key, 0) == 1:
+        return None
+    folded = " ".join(legal_name.casefold().split())
+    if exact_names is not None and folded.rsplit(" ", 1)[-1] in {"as", "asa"} and exact_names.get(folded, 0) == 1:
+        return None
+    return "Legal name is shared with another registry entity"
 
 
 def _robots_allowed(url: str, fetch: Fetch, spend: Callable[[], None]) -> bool:
@@ -252,13 +260,14 @@ def news_mentions(
     spend: Callable[[], None],
     fetch: Fetch = default_fetch,
     now: datetime | None = None,
+    exact_names: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Evidence record of news articles that name this exact entity, each read on its publisher's page."""
     now = now or datetime.now(timezone.utc)
     started = time.monotonic()
     query = urllib.parse.quote(f'"{legal_name}"')
     url = SEARCH_URL.format(query=query)
-    if reason := eligible_name(legal_name, name_keys):
+    if reason := eligible_name(legal_name, name_keys, exact_names):
         return evidence("news_mentions", "not_applicable", SOURCE_CLASS, url, note=reason)
     retrieved_at = utc_now()
     verified: list[dict[str, Any]] = []
@@ -300,7 +309,9 @@ class NewsPrefetcher:
     workers never wait: a company whose search is not done yet is filled after the batch."""
 
     def __init__(self, companies: list[tuple[str, str]], name_keys: Mapping[str, int] | Any, budget: Any,
-                 *, fetch: Fetch = default_fetch, threads: int = 4, margin_seconds: float = 60.0) -> None:
+                 *, fetch: Fetch = default_fetch, threads: int = 4, margin_seconds: float = 60.0,
+                 exact_names: Mapping[str, int] | None = None) -> None:
+        self.exact_names = exact_names
         self.companies = companies  # (organisation number, legal name), input order
         self.name_keys = name_keys
         self.budget = budget
@@ -333,7 +344,8 @@ class NewsPrefetcher:
         try:
             while (company := self._take()) is not None:
                 org, name = company
-                record = news_mentions(org, name, self.name_keys, spend=lambda org=org: self.budget.spend(org, "news_search"), fetch=self.fetch)
+                record = news_mentions(org, name, self.name_keys, spend=lambda org=org: self.budget.spend(org, "news_search"), fetch=self.fetch,
+                                       exact_names=self.exact_names)
                 with self._lock:
                     self.results[org] = record
         finally:

@@ -65,6 +65,15 @@ class NewsSearchTest(unittest.TestCase):
         self.assertEqual((shared["status"], short["status"]), ("not_applicable", "not_applicable"))
         self.assertEqual(calls, [])
 
+    def test_shared_words_but_unique_exact_as_name_is_searched(self):
+        from norway_company_agent.news_search import eligible_name
+
+        shared = {"tannlege bauge": 2}
+        self.assertIsNone(eligible_name("TANNLEGE BAUGE AS", shared, {"tannlege bauge as": 1, "tannlege bauge": 1}))
+        self.assertIsNotNone(eligible_name("TANNLEGE BAUGE AS", shared, {"tannlege bauge as": 2}))
+        self.assertIsNotNone(eligible_name("TANNLEGE BAUGE AS", shared, None))
+        self.assertIsNotNone(eligible_name("TANNLEGE BAUGE DA", shared, {"tannlege bauge da": 1}))
+
     def test_robots_disallow_blocks(self):
         fetch = lambda url, spend: (200, b"User-agent: *\nDisallow: /news/") if url.endswith("robots.txt") else self.fail("searched")  # noqa: E731
         record = news_mentions("1", "HERMETIKKEN VINBAR AS", {"hermetikken vinbar": 1}, spend=lambda: None, fetch=fetch, now=NOW)

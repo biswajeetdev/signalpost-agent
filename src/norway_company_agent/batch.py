@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -100,11 +101,17 @@ def _looks_jsonl(text: str) -> bool:
     return "\n" in text.strip()
 
 
+def exact_name(name: str) -> str:
+    return " ".join(name.casefold().split())
+
+
 def read_organisation_numbers(path: str | Path) -> list[str]:
     return [record["organisation_number"] for record in read_organisation_inputs(path)]
 
 
-def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str], name_counts: "Counter[str] | None" = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Requested registry rows from the bulk snapshot. With `name_counts`, every row is read and the
+    count of each exact legal name (casefolded, spacing normalised) is added to it."""
     requested = list(organisation_numbers)
     wanted = set(requested)
     snapshot_sha256 = hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -114,6 +121,8 @@ def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) ->
     for profile in iter_bulk(path):
         scanned += 1
         org = profile["organisation_number"]
+        if name_counts is not None:
+            name_counts[exact_name(str(profile.get("name") or ""))] += 1
         if org not in wanted:
             continue
         raw = profile.pop("raw", {})
@@ -133,7 +142,7 @@ def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) ->
             "accounting_obligation": accounting_obligation_assessment(profile),
         }
         found[org] = profile
-        if len(found) == len(wanted):
+        if len(found) == len(wanted) and name_counts is None:
             break
     missing = [org for org in requested if org not in found]
     for org in missing:
