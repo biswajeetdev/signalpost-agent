@@ -217,11 +217,14 @@ def _social(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
         if url in seen:  # the same profile linked with different capitalisation
             continue
         seen.add(url)
+        # A profile found on an inner page of the verified site (contact, careers) cites that page.
+        source = {"source_url": item["source_url"], "source_class": "company_owned_website", "retrieved_at": item.get("retrieved_at"),
+                  "content_sha256": item.get("content_sha256")} if item.get("source_url") else record
         envelope.claim(
             "social_profile",
             url,
             "available",
-            [envelope.cite(record, item.get("claim_span") or item.get("url"))],
+            [envelope.cite(source, item.get("claim_span") or item.get("url"))],
             confidence=0.95,
             platform=item.get("platform"),
             signal_type="profile_handle",

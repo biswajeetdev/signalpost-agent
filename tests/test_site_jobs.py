@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from norway_company_agent.contract import build_envelope, validate_envelope  # noqa: E402
-from norway_company_agent.pipeline import careers_record  # noqa: E402
+from norway_company_agent.pipeline import careers_record, inner_page_profiles  # noqa: E402
 from norway_company_agent.site_discovery import Page  # noqa: E402
 from norway_company_agent.site_jobs import career_links, postings_on_page  # noqa: E402
 
@@ -99,6 +99,23 @@ class SiteJobsRecallTest(unittest.TestCase):
         self.assertEqual(fetched, ["https://acme.teamtailor.com/jobs"])
         self.assertEqual(record["status"], "available")
         self.assertEqual([ad["title"] for ad in record["value"]["ads"]], ["Lagerarbeider Oslo"])
+
+    def test_apply_button_text_is_not_a_job_title(self):
+        html = '<li><h3>Laboratorieingeniør</h3><a href="https://web103.reachmee.com/ext/I022/2047/job?job_id=19">Send søknad (opens in new tab)</a></li>'
+        self.assertEqual([item["title"] for item in postings_on_page("https://acme.no/karriere", html, NOW)], ["Laboratorieingeniør"])
+
+    def test_profiles_on_the_contact_page_cite_that_page(self):
+        home = page("https://acme.no/", '<a href="/kontakt">Kontakt oss</a>')
+        contact = page("https://acme.no/kontakt", '<a href="https://www.facebook.com/acmenorge">Facebook</a><a href="https://www.facebook.com/sharer/sharer.php?u=x">Del</a>')
+        record = inner_page_profiles({"status": "available"}, {"status": "not_available"}, home, lambda url: contact, lambda url: True)
+        [profile] = record["value"]["profiles"]
+        self.assertEqual((profile["platform"], profile["source_url"]), ("facebook", "https://acme.no/kontakt"))
+        envelope = build_envelope({"organisation_number": "912345678", "evidence": {"social_profiles": record}},
+                                  run_id="r", started_at="s", completed_at="c", operations={"requests": 1, "runtime_ms": 0})
+        [claim] = [c for c in envelope["claims"] if c["field"] == "social_profile"]
+        cited = [ev["source_url"] for ev in envelope["evidence"] if ev["id"] in claim["evidence_ids"]]
+        self.assertEqual(cited, ["https://acme.no/kontakt"])
+        self.assertIsNone(inner_page_profiles({"status": "available"}, {"status": "available"}, home, lambda url: self.fail("fetched"), lambda url: True))
 
     def test_one_level_deeper_when_landing_page_has_no_ads(self):
         home = '<a href="/karriere">Karriere</a>'

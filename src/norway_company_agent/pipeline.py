@@ -22,12 +22,13 @@ from .jobs_nav import NavJobIndex, company_jobs, employer_homepages
 from .arbeidsplassen import attach_board_ads
 from .news_search import default_fetch as default_news_fetch, news_mentions
 from .site_activity import site_activity
-from .site_jobs import site_postings
+from .site_jobs import career_links, site_postings
 from .search_candidates import search_domains, search_key
 from .proof import STRONG_PROOFS
 from .official import _reserve_history_slot, fetch_official_modules
 from .refresh import carry_forward, diff_profile
-from .site_discovery import Page, discover_website, make_site_fetchers
+from .candidates import registered_domain
+from .site_discovery import Page, contact_links, discover_website, make_site_fetchers
 from .website import _social_links, structured_social_links
 
 LIVE_OFFICIAL_MODULES = frozenset({"financials", "financial_history"})
@@ -129,6 +130,31 @@ def carry_unreachable_site(previous: Mapping[str, Any] | None, current: Mapping[
         social = {"field": "social_profiles", "status": "not_available", "source_type": "company_owned_website", "source_class": "company_owned_website",
                   "source_url": prior_site.get("source_url"), "retrieved_at": prior_site.get("retrieved_at"), "note": "Carried forward with the website"}
     return website, social
+
+
+def inner_page_profiles(website: Mapping[str, Any], social: Mapping[str, Any], home: Page | None, fetch: Any, robots_allowed: Any) -> dict[str, Any] | None:
+    """When the verified home page links no profile, read its contact page and its careers page (two pages at
+    most, robots-checked) for profiles; each one cites the page it is on. None when nothing changes."""
+    if social.get("status") == "available" or website.get("status") != "available" or home is None or fetch is None:
+        return None
+    links = list(dict.fromkeys(contact_links(home.final_url, home.html, limit=1) + career_links(home.final_url, home.html)))[:2]
+    profiles: dict[str, dict[str, Any]] = {}
+    for link in links:
+        try:
+            if robots_allowed(link) is not True:
+                continue
+            page = fetch(link)
+        except BudgetExhausted:
+            break
+        if page.status != 200 or not page.html or not page.final_url or registered_domain(page.final_url) != registered_domain(home.final_url):
+            continue
+        for item in _social_links(page.final_url, BeautifulSoup(page.html, "lxml")):
+            profiles.setdefault(item["url"], {**item, "claim_span": _link_span(page.html, item["url"]), "source_url": page.final_url,
+                                              "retrieved_at": page.retrieved_at, "content_sha256": page.content_sha256})
+    if not profiles:
+        return None
+    return evidence("social_profiles", "available", "company_owned_website", home.final_url, value={"profiles": [profiles[key] for key in sorted(profiles)]},
+                    content_sha256=home.content_sha256, retrieved_at=home.retrieved_at, note="Profiles linked from the verified site's contact or careers page")
 
 
 def careers_record(home: Page | None, fetch: Any, robots_allowed: Any) -> dict[str, Any]:
@@ -266,6 +292,11 @@ def enrich_company(
         # page the site links to: postings the company itself lists.
         jobs_fetch, jobs_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 7, robots=robots)
         records["site_jobs"] = careers_record(home, jobs_fetch, jobs_robots)
+        social_fetch, social_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 4, robots=robots)
+        inner = inner_page_profiles(records["website"], records["social_profiles"], home, social_fetch, social_robots)
+        if inner is not None:
+            records["social_profiles"] = inner
+            records["website"]["value"]["social_links"] = [{"platform": item.get("platform"), "url": item.get("url")} for item in inner["value"]["profiles"]]
     else:
         records["public_activity"] = site_activity(records["website"], None, None, None)
         records["site_jobs"] = careers_record(None, None, None)

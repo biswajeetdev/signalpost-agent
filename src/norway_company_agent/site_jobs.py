@@ -49,6 +49,9 @@ ATS_HOSTS = re.compile(r"(?:^|\.)(?:webcruiter\.(?:no|com)|teamtailor\.com|jobyl
 # Paths that mention a careers term but are not a careers page (news items, privacy notices).
 NOT_CAREERS = ("personvern", "privacy", "cookie", "/nyheter/", "/news/", "/artikkel", "/article")
 MAX_POSTINGS = 15
+# Button and link text that names the action, not the job: the title is then taken from the nearest heading.
+GENERIC_AD_TEXT = frozenset({"les mer", "søk", "sok", "apply", "read more", "søk her", "se stillingen", "send søknad", "søk nå",
+                             "søk på stillingen", "søk stillingen", "apply now", "apply here", "view job", "se annonse", "mer info"})
 
 
 def _same_host(base_url: str, url: str) -> bool:
@@ -154,8 +157,8 @@ def postings_on_page(page_url: str, html: str, now: datetime | None = None) -> l
         url = urllib.parse.urljoin(page_url, str(anchor.get("href") or "").strip())
         if not any(pattern.match(url) for pattern in ATS_AD_PATTERNS):
             continue
-        title = " ".join(anchor.get_text(" ", strip=True).split())[:200]
-        if len(title) < 4 or title.casefold() in {"les mer", "søk", "sok", "apply", "read more", "søk her", "se stillingen"}:
+        title = re.sub(r"\s*\((?:opens in (?:a )?new (?:tab|window)|åpnes i ny fane)\)\s*$", "", " ".join(anchor.get_text(" ", strip=True).split()), flags=re.I)[:200]
+        if len(title) < 4 or title.casefold() in GENERIC_AD_TEXT:
             parent = anchor.find_parent(["li", "article", "div"])
             heading = parent.select_one("h2, h3, h4") if parent is not None else None
             title = " ".join((heading.get_text(" ", strip=True) if heading else "").split())[:200]

@@ -125,23 +125,31 @@ def make_site_fetchers(
         except Exception as exc:  # DNS, TLS, timeout, or a redirect refused by the URL guard
             return Page(url, None, 0, retrieved_at=retrieved_at, error=f"{type(exc).__name__}: {str(exc)[:120]}")
 
-    def load_robots(origin: str) -> urllib.robotparser.RobotFileParser:
+    def load_robots(origin: str, attempts: int = 2) -> urllib.robotparser.RobotFileParser:
         parser = urllib.robotparser.RobotFileParser()
-        try:
-            with open_url(origin + "/robots.txt", "text/plain", "robots") as response:
-                parser.parse(read_bounded(response, 500_000, 10.0).decode("utf-8", errors="replace").splitlines())
-        except BudgetExhausted:
-            raise
-        except urllib.error.HTTPError as exc:
-            # Same convention as urllib.robotparser.read(): auth errors disallow, other 4xx/5xx allow.
-            if exc.code in {401, 403}:
-                parser.disallow_all = True
-            else:
-                parser.allow_all = True
-        except Exception as exc:
-            # Connection, TLS or timeout failure: the host cannot serve pages either.
-            parser.unreachable = True  # type: ignore[attr-defined]
-            parser.unreachable_reason = f"{type(exc).__name__}: {exc}"  # type: ignore[attr-defined]
+        for attempt in range(attempts):
+            try:
+                with open_url(origin + "/robots.txt", "text/plain", "robots") as response:
+                    parser.parse(read_bounded(response, 500_000, 10.0).decode("utf-8", errors="replace").splitlines())
+                return parser
+            except BudgetExhausted:
+                raise
+            except urllib.error.HTTPError as exc:
+                # Same convention as urllib.robotparser.read(): auth errors disallow, other 4xx/5xx allow.
+                if exc.code in {401, 403}:
+                    parser.disallow_all = True
+                else:
+                    parser.allow_all = True
+                return parser
+            except Exception as exc:
+                # Connection, TLS or timeout failure: the host cannot serve pages either. A reset or refused
+                # connection is often transient, so it gets one retry (charged); a timeout or a TLS failure does
+                # not, because dead hosts time out and retrying them all would cost minutes per run.
+                reason = f"{type(exc).__name__}: {exc}"
+                if attempt + 1 < attempts and _fallback_kind(reason) == "other" and "Errno 8" not in reason:
+                    continue
+                parser.unreachable = True  # type: ignore[attr-defined]
+                parser.unreachable_reason = reason  # type: ignore[attr-defined]
         return parser
 
     def _parser(url: str) -> Any:
