@@ -116,6 +116,9 @@ def website_candidates(row: Mapping[str, Any], shared_counts: Mapping[str, int],
     # Search-API results (only when a key is configured): nominations, still need site proof.
     for domain in row.get("_search_domains") or []:
         add(domain, "search_result")
+    # Outbound links on the company's 1881.no directory page: nominations, still need site proof.
+    for domain in row.get("_directory_domains") or []:
+        add(domain, "directory_listing")
     # Homepages NAV lists on job ads whose employer organisation number is this entity (still need site proof).
     for homepage in row.get("_nav_employer_homepages") or []:
         add(registered_domain(homepage), "nav_employer_homepage")

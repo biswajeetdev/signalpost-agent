@@ -140,6 +140,10 @@ def stream_warnings(report: Mapping[str, Any]) -> list[str]:
         stream = report.get(name) or {}
         if stream and stream.get("searched", 0) < stream.get("of", 0):
             warnings.append(f"{name}: searched {stream.get('searched')} of {stream.get('of')} companies" + (f" ({stream['note']})" if stream.get("note") else ""))
+    directory = report.get("directory_stream") or {}
+    if directory and (directory.get("note") or directory.get("failed") or directory.get("looked_up", 0) < directory.get("of", 0)):
+        warnings.append(f"directory_stream: looked up {directory.get('looked_up')} of {directory.get('of')}, {directory.get('failed')} failed"
+                        + (f" ({directory['note']})" if directory.get("note") else ""))
     feed = report.get("jobs_feed") or {}
     if feed and feed.get("state") != "available":
         warnings.append(f"NAV job feed {feed.get('state')}: {feed.get('note')}")

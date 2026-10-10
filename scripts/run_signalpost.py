@@ -39,6 +39,7 @@ from norway_company_agent.jobs_nav import NavJobIndex  # noqa: E402
 from norway_company_agent.guardrails import check_run, enforce_site_basis, stream_warnings  # noqa: E402
 from norway_company_agent.history_prefetch import HistoryPrefetcher  # noqa: E402
 from norway_company_agent.arbeidsplassen import BoardPrefetcher  # noqa: E402
+from norway_company_agent.directory_candidates import DirectoryPrefetcher  # noqa: E402
 from norway_company_agent.news_search import NewsPrefetcher  # noqa: E402
 from norway_company_agent.pipeline import batch_report, budgeted_official_fetcher, finalize_deferred  # noqa: E402
 from norway_company_agent.viewer import render  # noqa: E402
@@ -99,6 +100,7 @@ def main() -> None:
     parser.add_argument("--jobs-lookback-days", type=int, default=int(env("JOBS_LOOKBACK_DAYS", "120")),
                         help="How far back the NAV public job feed is read for still-active ads")
     parser.add_argument("--no-jobs", action="store_true", help="Skip the NAV job-feed connector")
+    parser.add_argument("--no-directory", action="store_true", help="Skip 1881.no directory website candidates")
     parser.add_argument("--job-board", action="store_true", help="Also search NAV's job board per company (paced; stops at the first HTTP 429)")
     parser.add_argument("--chunk-seconds", type=float, default=float(env("CHUNK_SECONDS", "480")),
                         help="Watchdog limit per chunk; unfinished companies get failed envelopes (0 disables)")
@@ -144,6 +146,8 @@ def main() -> None:
     # Bing is paced run-wide: news searches get their own threads from here on (input order), so workers never queue on them.
     news = NewsPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles],
                           cache.name_keys(), budget, exact_names=exact_names or None).start()
+    # 1881.no directory pages: website candidates (still proven on the site itself), looked up ahead of the workers.
+    directory = None if args.no_directory else DirectoryPrefetcher(organisations, budget).start()
     # NAV's job board search (opt-in): it rate-limits after a handful of searches (HTTP 429 after 9
     # companies at one request per 2 s on 10 Oct 2026), so it is off until it is shown to hold at batch scale.
     board = None if args.no_jobs or not args.job_board else BoardPrefetcher([(profile["organisation_number"], str(profile.get("name") or "")) for profile in profiles], budget).start()
@@ -170,6 +174,7 @@ def main() -> None:
         jobs_index=jobs_index,
         history_prefetch=history,
         news_prefetch=news,
+        directory_prefetch=directory,
     )
     rebuilt = finalize_deferred(envelopes, enriched, budget=budget, history_prefetch=history, jobs_index=jobs_index, previous=previous, news_prefetch=news, board_prefetch=board)
     if any(rebuilt.values()):
@@ -179,6 +184,9 @@ def main() -> None:
             report[key] = refreshed[key]
     report["history_stream"] = {"fetched": len(history.results), "of": len(organisations), "filled_after_batch": rebuilt["history"]}
     report["news_stream"] = {"searched": len(news.results), "of": len(organisations), "filled_after_batch": rebuilt["news"]}
+    if directory is not None:
+        directory.stop()
+        report["directory_stream"] = directory.summary()
     if board is not None:
         report["job_board_stream"] = {"searched": len(board.results), "of": len(organisations), "envelopes_updated": rebuilt["board"], "note": board.note}
     if jobs_index is not None:

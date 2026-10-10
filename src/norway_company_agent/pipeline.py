@@ -192,6 +192,7 @@ def enrich_company(
     previous_profile: Mapping[str, Any] | None = None,
     history_prefetch: Any = None,
     news_prefetch: Any = None,
+    directory_prefetch: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     org = profile["organisation_number"]
     started = time.monotonic()
@@ -226,6 +227,10 @@ def enrich_company(
             found = []
         if found:
             registry_row = {**registry_row, "_search_domains": found}
+    if directory_prefetch is not None and isinstance(registry_row, dict) and not registry_row.get("hjemmeside"):
+        listed = directory_prefetch.candidates(org)  # never waits: used only if the lookup already finished
+        if listed:
+            registry_row = {**registry_row, "_directory_domains": listed}
     home: Page | None = None
     if budget.seconds_left() < settings.min_seconds_for_discovery:
         records["website"] = evidence("website", "failed", "website_candidate_search", REGISTRY_SOURCE, note="Skipped: run wall-clock budget nearly exhausted")
