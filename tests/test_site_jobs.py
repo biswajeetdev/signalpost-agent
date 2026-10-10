@@ -62,5 +62,52 @@ class SiteJobsTest(unittest.TestCase):
         self.assertEqual(careers_record(None, None, None)["status"], "not_available")
 
 
+class SiteJobsRecallTest(unittest.TestCase):
+    def test_bestilling_is_not_a_careers_page(self):
+        home = '<a href="/bestilling">Bestilling</a><a href="/nettbutikk/bestillingsinfo">Info</a>'
+        self.assertEqual(career_links("https://acme.no/", home), [])
+
+    def test_careers_subdomain_counts_as_the_verified_site(self):
+        home = '<a href="https://karriere.acme.no/">Karriere</a><a href="https://karriere.other.no/">Karriere hos andre</a>'
+        self.assertEqual(career_links("https://www.acme.no/", home), ["https://karriere.acme.no/"])
+
+    def test_microdata_jobposting_is_read(self):
+        html = """<div itemscope itemtype="https://schema.org/JobPosting">
+        <h2 itemprop="title">Regnskapsfører</h2><meta itemprop="datePosted" content="2026-09-25">
+        <meta itemprop="validThrough" content="2026-11-01"><a itemprop="url" href="/jobb/regnskap">Les</a></div>"""
+        items = postings_on_page("https://acme.no/karriere", html, NOW)
+        self.assertEqual([(item["title"], item["extraction"]) for item in items], [("Regnskapsfører", "microdata_jobposting")])
+
+    def test_new_ats_ad_patterns(self):
+        html = """<a href="https://jobs.lever.co/acme/0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b">Backend Engineer</a>
+        <a href="https://boards.greenhouse.io/acme/jobs/1234567">Sales Lead</a>
+        <a href="https://www.jobbnorge.no/ledige-stillinger/stilling/245678/radgiver">Rådgiver</a>
+        <a href="https://jobs.lever.co/acme">All jobs</a>"""
+        titles = sorted(item["title"] for item in postings_on_page("https://acme.no/karriere", html, NOW))
+        self.assertEqual(titles, ["Backend Engineer", "Rådgiver", "Sales Lead"])
+
+    def test_recruitment_page_linked_from_the_site_is_read(self):
+        home = '<a href="https://acme.teamtailor.com/jobs">Ledige stillinger</a>'
+        ats = '<ul><li><a href="https://acme.teamtailor.com/jobs/5550001-lagerarbeider">Lagerarbeider Oslo</a></li></ul>'
+        fetched = []
+
+        def fetch(url):
+            fetched.append(url)
+            return page(url, ats)
+
+        record = careers_record(page("https://acme.no/", home), fetch, lambda url: True)
+        self.assertEqual(fetched, ["https://acme.teamtailor.com/jobs"])
+        self.assertEqual(record["status"], "available")
+        self.assertEqual([ad["title"] for ad in record["value"]["ads"]], ["Lagerarbeider Oslo"])
+
+    def test_one_level_deeper_when_landing_page_has_no_ads(self):
+        home = '<a href="/karriere">Karriere</a>'
+        landing = '<p>Jobb hos oss</p><a href="/karriere/ledige-stillinger">Se ledige stillinger</a>'
+        listing = '<a href="https://www.finn.no/job/fulltime/ad.html?finnkode=412345679">Butikkmedarbeider Bergen</a>'
+        pages = {"https://acme.no/karriere": landing, "https://acme.no/karriere/ledige-stillinger": listing}
+        record = careers_record(page("https://acme.no/", home), lambda url: page(url, pages[url]), lambda url: True)
+        self.assertEqual([ad["title"] for ad in record["value"]["ads"]], ["Butikkmedarbeider Bergen"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -262,8 +262,9 @@ def enrich_company(
         # then, only if it shows no dates, the site's feed or sitemap and up to five article pages.
         activity_fetch, activity_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 10, robots=robots)
         records["public_activity"] = site_activity(records["website"], home, activity_fetch, activity_robots)
-        # And one careers page on the verified site: postings the company itself lists.
-        jobs_fetch, jobs_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 3, robots=robots)
+        # And the careers page on the verified site (one level deeper if it lists no ads), plus the recruitment-host
+        # page the site links to: postings the company itself lists.
+        jobs_fetch, jobs_robots = site_fetchers(budget, org, allowance=budget.by_company[org] + 7, robots=robots)
         records["site_jobs"] = careers_record(home, jobs_fetch, jobs_robots)
     else:
         records["public_activity"] = site_activity(records["website"], None, None, None)
