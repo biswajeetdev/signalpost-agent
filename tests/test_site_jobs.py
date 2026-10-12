@@ -125,6 +125,28 @@ class SiteJobsRecallTest(unittest.TestCase):
         record = careers_record(page("https://acme.no/", home), lambda url: page(url, pages[url]), lambda url: True)
         self.assertEqual([ad["title"] for ad in record["value"]["ads"]], ["Butikkmedarbeider Bergen"])
 
+    def test_never_one_level_deeper_into_a_single_ad(self):
+        # meny.no/ledige-stillinger renders its list in script; its one static link is an Eide Handel AS vacancy.
+        home = '<a href="/ledige-stillinger">Ledige stillinger</a>'
+        landing = '<a href="/ledige-stillinger/jr10031084">Vi søker medarbeidere</a>'
+        ad = '<a href="https://norgesgruppen.wd3.myworkdayjobs.com/no-NO/karriere/job/Eide-Handel/Vi-sker_JR1">Vi søker medarbeidere til nye Eide Handel</a>'
+        pages = {"https://meny.no/ledige-stillinger": landing, "https://meny.no/ledige-stillinger/jr10031084": ad}
+        fetched = []
+
+        def fetch(url):
+            fetched.append(url)
+            return page(url, pages[url])
+
+        record = careers_record(page("https://meny.no/", home), fetch, lambda url: True)
+        self.assertEqual(fetched, ["https://meny.no/ledige-stillinger"])
+        self.assertEqual(record["value"]["ads"], [])
+
+    def test_profiles_only_from_a_page_whose_path_is_contact_about_or_careers(self):
+        # bb-stillas.no: "Kontakt oss" leads to /grenland/, the branch page of another entity.
+        home = page("https://bb-stillas.no/", '<a href="/grenland/">Kontakt oss</a>')
+        branch = page("https://bb-stillas.no/grenland/", '<a href="https://www.facebook.com/BBGrenland/">Facebook</a>')
+        self.assertIsNone(inner_page_profiles({"status": "available"}, {"status": "not_available"}, home, lambda url: branch, lambda url: True))
+
 
 if __name__ == "__main__":
     unittest.main()

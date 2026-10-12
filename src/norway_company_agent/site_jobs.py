@@ -169,6 +169,14 @@ def postings_on_page(page_url: str, html: str, now: datetime | None = None) -> l
     return list(found.values())[:MAX_POSTINGS]
 
 
+def _listing_not_ad(url: str, base: str) -> bool:
+    """A link below the careers page counts only when its own last path segment names a listing, not an ad id."""
+    if not url.startswith(base + "/"):
+        return True
+    last = urllib.parse.unquote(urllib.parse.urlparse(url).path.rstrip("/").rsplit("/", 1)[-1]).casefold().replace("_", "-")
+    return any(term.replace(" ", "-") in last for term in CAREER_TERMS)
+
+
 def _get(link: str, fetch: Callable[[str], Any], robots_allowed: Callable[[str], Any]) -> tuple[Any, str | None]:
     """(page, note): a robots-checked fetch that never raises on budget exhaustion."""
     try:
@@ -206,7 +214,10 @@ def site_postings(home: Any, fetch: Callable[[str], Any] | None, robots_allowed:
                                "content_sha256": page.content_sha256, "extraction": "careers_page_on_verified_site"}
                 if not postings_on_page(page.final_url, page.html, now):
                     # A careers landing page often links on to its own "ledige stillinger" list: read one level deeper.
-                    deeper = [url for url in career_links(page.final_url, page.html) if url.rstrip("/") != page.final_url.rstrip("/")]
+                    # Only another listing, never a single ad under this page: on a chain site that ad can be a franchisee's
+                    # (meny.no/ledige-stillinger/jr10031084 is an Eide Handel AS vacancy, not MENY AS's).
+                    base = page.final_url.rstrip("/")
+                    deeper = [url for url in career_links(page.final_url, page.html) if url.rstrip("/") != base and _listing_not_ad(url, base)]
                     for url in deeper[:1]:
                         sub, note = _get(url, fetch, robots_allowed)
                         if note:

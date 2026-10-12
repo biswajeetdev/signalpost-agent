@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import time
+import urllib.parse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
@@ -132,12 +133,23 @@ def carry_unreachable_site(previous: Mapping[str, Any] | None, current: Mapping[
     return website, social
 
 
+INNER_PAGE_PATH_TERMS = ("kontakt", "contact", "om-oss", "om_oss", "about", "karriere", "career", "jobb", "jobs", "stillinger", "vacancies")
+
+
+def _names_inner_page(url: str) -> bool:
+    path = urllib.parse.unquote(urllib.parse.urlparse(url).path).casefold()
+    return any(term in path for term in INNER_PAGE_PATH_TERMS)
+
+
 def inner_page_profiles(website: Mapping[str, Any], social: Mapping[str, Any], home: Page | None, fetch: Any, robots_allowed: Any) -> dict[str, Any] | None:
     """When the verified home page links no profile, read its contact page and its careers page (two pages at
     most, robots-checked) for profiles; each one cites the page it is on. None when nothing changes."""
     if social.get("status") == "available" or website.get("status") != "available" or home is None or fetch is None:
         return None
     links = list(dict.fromkeys(contact_links(home.final_url, home.html, limit=1) + career_links(home.final_url, home.html)))[:2]
+    # The path itself must name a contact, about or careers page: on a multi-company brand site a "Kontakt" link can
+    # lead to another entity's branch page (bb-stillas.no/grenland/ is B&B Stillasutleie Grenland AS, not ours).
+    links = [link for link in links if _names_inner_page(link)]
     profiles: dict[str, dict[str, Any]] = {}
     for link in links:
         try:
