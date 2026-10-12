@@ -85,7 +85,7 @@ def main() -> None:
     parser.add_argument("--run-id", default=env("RUN_ID"))
     parser.add_argument("--expected-count", type=int, default=int(env("EXPECTED_COUNT", "0")), help="0: take the batch size")
     parser.add_argument("--previous-profiles", default=env("PREVIOUS_PROFILES"), help="Profiles JSONL from the previous run, for change detection")
-    parser.add_argument("--max-requests", type=int, default=int(env("MAX_REQUESTS", "0")), help="0: 20 per company")
+    parser.add_argument("--max-requests", type=int, default=int(env("MAX_REQUESTS", "0")), help="0: 20 per company, every source included")
     parser.add_argument("--max-minutes", type=float, default=float(env("MAX_MINUTES", "45")))
     parser.add_argument("--workers", type=int, default=int(env("WORKERS", "16")))
     parser.add_argument("--discovery-allowance", type=int, default=32)
@@ -128,8 +128,8 @@ def main() -> None:
     args.expected_count = args.expected_count or len(organisations)
     if len(organisations) != args.expected_count:
         raise SystemExit(f"Expected {args.expected_count} organisations, received {len(organisations)}")
-    # 20 per company, plus room for the one-off NAV feed read (~4 pages per look-back day).
-    budget = RequestBudget(args.max_requests or 20 * len(organisations) + 5 * args.jobs_lookback_days, args.max_minutes * 60)
+    # 20 per company in total, the NAV feed read included: the locked budget is 2,000 requests per 100 inputs.
+    budget = RequestBudget(args.max_requests or 20 * len(organisations), args.max_minutes * 60)
     budget.paced_pending = len(organisations)
     budget.company_seconds = args.company_seconds or None
     # Start-up gate: do not burn the batch during a network outage; wait (bounded) for the official API.

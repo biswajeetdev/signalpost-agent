@@ -1,4 +1,4 @@
-# Signalpost agent — agent-v4
+# Signalpost agent — agent-v8
 
 A Norwegian company research agent for the Builderr Signalpost challenge. Give it organisation
 numbers; it returns exactly one terminal contract envelope per input, with a source, retrieval
@@ -19,9 +19,10 @@ tie to this exact entity. Parent, group, administrator and similarly named sites
 | Roles (board, CEO, auditor, …) | Brønnøysund `roller/totalbestand` bulk, declared local cache | Active roles only; birth dates never stored |
 | Registered workplaces | Brønnøysund `underenheter` bulk, declared local cache | Subunits whose parent is the organisation |
 | Official website | Registry-declared site, subunit-declared sites, registry email domain, legal and subunit trading-name domains (tried as https/http, bare/www) | The entity's or one of its subunits' organisation number, the registry email or registry phone on the site; or a registry-declared site carrying the legal name; or a `.no` domain equal to a unique (5+ character) legal name carrying it. Outside `.no` the name rule also needs the registered street and postcode on the site. Never published: parked/for-sale pages, or a page naming another entity's organisation number and none of ours |
+| Website candidates (nominations only) | 1881.no directory page for the organisation number (robots.txt allows `/?query=`), prefetched in the background | Nothing from 1881 is published: each outbound domain is only a candidate that must pass the same proof on the company's own site |
 | Social profiles | Links on the verified company website only | Never matched by name similarity |
-| Job postings (hiring) | NAV public job-vacancy feed (arbeidsplassen.nav.no API), read once per run | The ad is ACTIVE and its employer organisation number is the entity or one of its registered subunits; name matches only select candidates |
-| Dated public activity | Verified company website: home page and one same-host news/press page, robots.txt honoured | The item has a machine-readable date (JSON-LD `datePublished` or `<time datetime>`) and a same-host URL |
+| Job postings (hiring) | NAV public job-vacancy feed (arbeidsplassen.nav.no API), read once per run; the verified website's careers page and the recruitment-system page it links to (Webcruiter, Teamtailor, Jobylon and similar) | NAV: the ad is ACTIVE and its employer organisation number is the entity or one of its registered subunits; name matches only select candidates. Website: the careers page is linked from the verified site, or is that site's careers subdomain |
+| Dated public activity | Verified company website (home, news/press page, RSS/Atom feed, sitemap article pages); news articles found through Bing News RSS, read on the publisher's own page | The item has a machine-readable date on its own page; never dated from listing order or sitemap lastmod. A news article also needs its headline to carry the full, registry-unique legal name including legal form; the claim rests on the publisher page only (Bing results are not stored) |
 | Summary | Deterministic template over the envelope's available claims | Every sentence cites the evidence ids it restates; unknowns listed; no model |
 
 Each run also writes `<output>.html`, a self-contained searchable viewer: per-company summary, every
@@ -101,14 +102,14 @@ uv run python scripts/run_signalpost.py \
   --expected-count 100
 ```
 
-Defaults: `--max-requests` 12 per company, `--max-minutes 45`, 8 workers, 14 website requests per
-company. The rate-limited annual-account copy endpoint (one call per 2.1 s run-wide) is called last
+Defaults: `--max-requests` 20 per company, `--max-minutes 45`, 16 workers, 32 website-discovery requests
+per company. The rate-limited annual-account copy endpoint (one call per 2.1 s run-wide) is called last
 and only while the remaining backlog fits `--max-minutes`, so the run finishes inside its budget. Every attempt, retry, robots.txt fetch and redirect hop is charged
 to the budget. Near the wall-clock limit website discovery is skipped and marked `failed`, so every
 input still gets its envelope. The command exits non-zero if validation fails, the envelope count
 differs from `--expected-count`, or envelopes are out of input order.
 
-**Fail-safe chunks.** The batch runs in chunks of `--chunk-size` companies (default 50), one after
+**Fail-safe chunks.** The batch runs in chunks of `--chunk-size` companies (default 100), one after
 another in the same process, sharing one request budget and one robots.txt cache. Each finished
 chunk is checked (one valid envelope per company, in order) and saved to `--checkpoint-dir`
 (default `<report>.checkpoints/` next to `--report`) before the next chunk starts. A chunk that
@@ -176,10 +177,19 @@ latest accounts for 997 companies, 872 registered workplaces, 225 verified offic
   contact/about pages per candidate host, at most four hosts; on a verified site, one news/press page). robots.txt is fetched and honoured
   per host, 401/403 on robots.txt means disallow. User agent:
   `builderr-signalpost-poc/0.1 (+https://builderr.ai)`.
+- **Recruitment-system pages** (Webcruiter, Teamtailor, Jobylon and similar): only the page the
+  verified company website links to as its careers page; robots.txt honoured; job titles and links only.
+- **1881.no directory:** one request per company to `/?query=<organisation number>` (allowed by its
+  robots.txt), paced run-wide and stopped at the first HTTP 429. Used only to nominate candidate
+  domains; nothing from 1881 is stored or published.
+- **Bing News RSS** (`bing.com/news/search?format=rss`, allowed by bing.com/robots.txt, no key): one
+  request per company with a distinctive, registry-unique legal name, paced run-wide. It only points
+  to candidate articles; Bing results are not stored or published. Each claim rests on the
+  publisher's own page, read with its robots.txt honoured.
 - **URL safety:** every URL and every redirect hop passes a public-address guard (no private,
   loopback or link-local targets), redirects are capped at 5 and pages at 1.5 MB.
-- **No scraping of restricted platforms.** LinkedIn, Meta, Indeed and search engines are not called
-  by the evaluator command. Standalone experimental connectors under `scripts/` are not part of it.
+- **No scraping of restricted platforms.** LinkedIn, Meta and Indeed are not called by the evaluator
+  command; the only search engine call is the Bing News RSS feed above. Standalone experimental connectors under `scripts/` are not part of it.
 
 ## Known limits
 
@@ -203,6 +213,6 @@ latest accounts for 997 companies, 872 registered workplaces, 225 verified offic
   re-diffing it with the current code reports 3 changes: ATEA ASA's `https://atea.com/` is no longer
   provable (its LinkedIn link is withdrawn with it) and STIFTELSEN SILDAJAZZEN's
   `https://sildajazz.no/` became verified. The immediate re-run still reports 0 changes.
-- Jobs and dated public activity are not yet collected.
+- NAV's job-board search (`--job-board`) is opt-in: it rate-limits after about nine companies.
 
 See `OUTPUT_CONTRACT.md` for the envelope shape and `docs/builderr/` for the challenge rules.
