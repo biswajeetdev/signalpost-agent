@@ -1287,6 +1287,14 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual([(c["field"], c["old_value"], c["new_value"]) for c in proven], [("website.official_url", None, "https://sildajazz.no/")])
         self.assertEqual(proven[0]["source_url"], "https://sildajazz.no/")
 
+    def test_www_or_bare_host_of_the_same_site_is_not_a_change(self):
+        # An immediate re-run landed on gulen-industrihamn.no after www.gulen-industrihamn.no (same content hash).
+        first = self.site_profile("available", "https://www.gulen-industrihamn.no/")
+        again = self.site_profile("available", "http://gulen-industrihamn.no")
+        self.assertEqual(diff_profile(first, again), [])
+        moved = diff_profile(first, self.site_profile("available", "https://gulen-industrihamn.com/"))
+        self.assertEqual([c["field"] for c in moved], ["website.official_url"])
+
     def test_failed_website_is_not_a_change_and_does_not_hide_the_next_one(self):
         first = self.site_profile("available", "https://atea.com/", socials=["https://linkedin.com/company/atea"])
         failed = carry_forward(first, self.site_profile("failed"))

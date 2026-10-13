@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import urllib.parse
 from typing import Any, Callable
 
 
@@ -22,6 +23,21 @@ SITE_FIELDS: dict[str, Callable[[dict[str, dict[str, Any]]], Any]] = {
     "website.official_url": lambda site: (site["website"].get("value") or {}).get("final_url") if site["website"].get("status") == "available" else None,
     "social_profiles.urls": lambda site: sorted(str(item.get("url")).lower() for item in (site["social_profiles"].get("value") or {}).get("profiles") or []),
 }
+
+
+def _site_key(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    return parsed.netloc.lower().removeprefix("www.") + parsed.path.rstrip("/")
+
+
+def _same_sites(old: Any, new: Any) -> bool:
+    """www/bare host, http/https and a trailing slash are one site: a run can land on either form of the same
+    page (www.gulen-industrihamn.no vs gulen-industrihamn.no, identical content hash), which is no change."""
+    if isinstance(old, str) and isinstance(new, str):
+        return _site_key(old) == _site_key(new)
+    if isinstance(old, list) and isinstance(new, list):
+        return sorted(map(_site_key, map(str, old))) == sorted(map(_site_key, map(str, new)))
+    return False
 
 
 def _read(value: Any, path: tuple[str, ...]) -> Any:
@@ -96,6 +112,8 @@ def diff_profile(previous: dict[str, Any], current: dict[str, Any]) -> list[dict
     if old_site and new_site:  # an inconclusive website check on either side is never a change
         for field, read in SITE_FIELDS.items():
             old_value, new_value = read(old_site), read(new_site)
+            if _same_sites(old_value, new_value):
+                continue
             if old_value != new_value:
                 module = field.split(".", 1)[0]
                 changes.append(_change(new_org, field, old_value, new_value, new_site[module], old_site[module]))
