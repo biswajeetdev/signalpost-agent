@@ -139,10 +139,15 @@ uv run python scripts/run_signalpost.py ... --previous-profiles out/previous-pro
 - `entry-1000-profiles.jsonl` — the profile snapshot a refresh diffs against
 - `entry-1000-report.json` — runtime, requests by purpose, module states, validation
 
-Run `entry-1000-2026-09-15` (code at commit `5c179c7`, registry snapshot SHA-256 `1817f874…`):
-1,000 envelopes in manifest order, validation passed, USD 0. Published claims include 3,962 roles,
-latest accounts for 997 companies, 872 registered workplaces, 225 verified official websites and
-259 company-linked social profiles.
+Run `entry-1000-v9` (code at commit `8f2fdb1`, clean clone, 14 October 2026, registry snapshot SHA-256 `1c89710e…`):
+1,000 envelopes in manifest order, all `completed`, validation and guard rails passed, 10/10 chunks
+first try, 29 minutes, 12,482 counted requests (largest 100-company chunk 1,637 outbound requests, under
+the 2,000 budget), USD 0. Companies covered: official website 168, social profile 83, hiring signal 26,
+dated news 55.
+
+`submission/refresh-v8/`: the first 100 of those companies re-run immediately at the same commit with
+`--previous-profiles submission/entry-1000-profiles.jsonl`: 100 envelopes, validation passed, 0 changes
+(no false changes).
 
 `submission/refresh/` holds the refresh evidence (code at commit `5ddd709`):
 

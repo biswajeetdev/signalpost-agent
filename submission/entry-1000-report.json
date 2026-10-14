@@ -1,23 +1,20 @@
 {
-  "run_id": "entry-1000-2026-09-15",
+  "run_id": "entry-1000-v9",
   "expected_count": 1000,
   "registry": {
-    "registry_snapshot_sha256": "1817f874fe09747c63207128d341a0b461c1596d070b2e08172cffffa1bb6732",
-    "registry_rows_scanned": 1174087,
+    "registry_snapshot_sha256": "1c89710e5b01f8617e86d09fbdff4a52f2f8dbbba297e74f7164b5984f5a0384",
+    "registry_rows_scanned": 411160,
     "requested": 1000,
-    "selected": 999,
-    "absent_from_snapshot": [
-      "928987728"
-    ]
+    "selected": 1000,
+    "absent_from_snapshot": []
   },
-  "started_at": "2026-09-15T13:49:15.106306Z",
-  "completed_at": "2026-09-15T14:29:08.015758Z",
+  "started_at": "2026-10-14T11:29:48.882949Z",
+  "completed_at": "2026-10-14T11:58:32.905086Z",
   "envelopes": 1000,
   "unique_organisations": true,
   "module_states": {
     "registry": {
-      "available": 999,
-      "not_available": 1
+      "available": 1000
     },
     "financials": {
       "available": 997,
@@ -28,67 +25,153 @@
       "available": 1000
     },
     "roles": {
-      "available": 999,
-      "not_available": 1
+      "available": 994,
+      "not_available": 6
     },
     "locations": {
-      "available": 745,
-      "not_available": 255
+      "available": 743,
+      "not_available": 257
     },
     "website": {
-      "available": 225,
-      "not_available": 598,
-      "ambiguous": 138,
-      "failed": 39
+      "available": 168,
+      "ambiguous": 388,
+      "not_available": 433,
+      "failed": 11
     },
     "social_profiles": {
-      "not_available": 887,
-      "available": 113
+      "not_available": 917,
+      "available": 83
+    },
+    "jobs": {
+      "not_available": 998,
+      "available": 2
+    },
+    "site_jobs": {
+      "not_available": 976,
+      "available": 24
+    },
+    "public_activity": {
+      "not_available": 969,
+      "available": 31
+    },
+    "news_mentions": {
+      "not_available": 889,
+      "available": 26,
+      "not_applicable": 85
     }
   },
   "available_claims": {
-    "legal_name": 999,
-    "legal_form": 999,
-    "industry_code": 999,
-    "industry": 999,
-    "business_address": 997,
-    "bankrupt": 999,
-    "under_liquidation": 999,
-    "financials.revenue": 772,
+    "legal_name": 1000,
+    "legal_form": 1000,
+    "industry_code": 1000,
+    "industry": 1000,
+    "business_address": 992,
+    "bankrupt": 1000,
+    "under_liquidation": 1000,
+    "financials.revenue": 774,
     "financials.operating_result": 982,
     "financials.profit_before_tax": 962,
     "financials.annual_result": 997,
     "financials.assets": 997,
     "financials.equity": 992,
-    "financials.debt": 956,
+    "financials.debt": 957,
     "financials.filed_years": 1000,
-    "role": 3962,
-    "registered_workplace": 872,
-    "official_website": 225,
-    "social_profile": 259,
+    "role": 3932,
+    "registered_workplace": 871,
+    "official_website": 168,
+    "social_profile": 179,
+    "dated_news": 187,
     "registered_employees": 144,
-    "registry_declared_website": 107
+    "registry_declared_website": 107,
+    "hiring_signal": 32
   },
   "operations": {
-    "requests": 5745,
-    "limit": 8000,
+    "requests": 12482,
+    "limit": 20000,
     "by_purpose": {
-      "official": 2002,
-      "robots": 1518,
-      "robots_redirect": 382,
-      "site_page": 1235,
-      "site_page_redirect": 608
+      "jobs_feed": 213,
+      "official": 4725,
+      "directory": 1796,
+      "news_search": 962,
+      "robots": 3374,
+      "robots_redirect": 647,
+      "site_page": 2546,
+      "site_page_redirect": 869,
+      "jobs_detail": 6
     },
-    "per_company_p50": 5,
-    "per_company_max": 14,
-    "runtime_ms_p50": 16740,
-    "runtime_ms_p95": 39830,
-    "third_party_cost_usd": 0
+    "per_company_p50": 11,
+    "per_company_max": 38,
+    "runtime_ms_p50": 18796,
+    "runtime_ms_p95": 50465,
+    "third_party_cost_usd": 0,
+    "resumed_requests": 0
   },
   "validation": {
     "passed": true,
     "problems": {},
     "envelopes_with_problems": 0,
-    "exact_expected_count": true
-  }
+    "exact_expected_count": true,
+    "input_order": true
+  },
+  "chunks": {
+    "size": 100,
+    "total": 10,
+    "passed_first_try": 10,
+    "retried": 0,
+    "fallback": 0,
+    "resumed": 0,
+    "outage_retries": 0,
+    "fallback_organisations": []
+  },
+  "history_stream": {
+    "fetched": 1000,
+    "of": 1000,
+    "filled_after_batch": 979,
+    "errors": 0
+  },
+  "news_stream": {
+    "searched": 1000,
+    "of": 1000,
+    "filled_after_batch": 0
+  },
+  "directory_stream": {
+    "looked_up": 1000,
+    "of": 1000,
+    "failed": 15,
+    "note": null
+  },
+  "jobs_feed": {
+    "state": "available",
+    "pages": 214,
+    "active_ads": 9712,
+    "lookback_days": 120,
+    "deferred_then_filled": 515,
+    "note": null
+  },
+  "guardrails": {
+    "contract_passed": true,
+    "contract_failures": [],
+    "warnings": [
+      "3 website checks skipped or cut for time",
+      "directory_stream: looked up 1000 of 1000, 15 failed"
+    ],
+    "failure_rates": {
+      "website": 0.011,
+      "financials": 0.002
+    },
+    "failure_reasons": {
+      "website": {
+        "company allowance exhausted (32)": 8,
+        "company time allowance exhausted (90s)": 3
+      },
+      "financials": {
+        "HTTP 500": 2
+      }
+    },
+    "watchdog_stopped": 0,
+    "deferred_unfilled": 0,
+    "published_websites": 168,
+    "websites_demoted": 0
+  },
+  "viewer": "/private/tmp/claude-501/-Users-biswajeetkumar/646f00b2-c451-4350-a128-d5e3a8faeab8/scratchpad/out/v9-entry/envelopes.html"
 }
