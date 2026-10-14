@@ -30,6 +30,20 @@ class ViewerTest(unittest.TestCase):
         self.assertIn("no verified official website", page)
         self.assertIn('name="viewport"', page)
 
+    def test_summary_flags_negative_equity_and_cites_the_figures(self):
+        def money(field, amount, ev):
+            return {"field": field, "value": {"amount": amount, "currency": "NOK"}, "availability": "available", "evidence_ids": [ev], "reporting_period": {"end": "2025-12-31"}}
+
+        claims = [money("financials.revenue", 1000000, "ev-r"), money("financials.operating_result", -200000, "ev-o"),
+                  money("financials.equity", -50000, "ev-e"), money("financials.assets", 500000, "ev-a")]
+        summary = synthesis(claims)
+        health = next(point for point in summary["points"] if point["topic"] == "financial_health")
+        self.assertIn("operating margin -20%", health["text"])
+        self.assertIn("negative equity", health["text"])
+        self.assertEqual(health["evidence_ids"], ["ev-a", "ev-e", "ev-o", "ev-r"])
+        self.assertEqual(summary["points"][0]["topic"], "takeaway")
+        self.assertIn("financially at risk (operating loss, negative equity)", summary["points"][0]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -87,6 +87,23 @@ class SiteDiscoveryTest(unittest.TestCase):
         self.assertFalse(record["value"]["identity_assessment"]["publishable"])
         self.assertIsNone(home)
 
+    def test_redirect_to_another_business_that_never_names_us_is_not_published(self) -> None:
+        web = FakeWeb(
+            {"https://fjeldogvann.no/": page("https://fjeldogvann.no/", "Butikk. Tel: +47 57 69 89 50", final_url="https://shop.annet.no/nb-no/fv")},
+            {"fjeldogvann.no"},
+        )
+        record, home = run(web)
+        self.assertEqual(record["status"], "ambiguous")
+        self.assertIsNone(home)
+
+    def test_redirect_to_a_new_domain_that_names_us_is_published(self) -> None:
+        web = FakeWeb(
+            {"https://fjeldogvann.no/": page("https://fjeldogvann.no/", "Fjeld og Vann AS. Tel: +47 57 69 89 50", final_url="https://fjeldvann.no/")},
+            {"fjeldogvann.no"},
+        )
+        record, _ = run(web)
+        self.assertEqual(record["status"], "available")
+
     def test_no_resolving_candidate_makes_no_requests(self) -> None:
         web = FakeWeb({}, set())
         record, _ = run(web)

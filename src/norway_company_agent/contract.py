@@ -356,6 +356,70 @@ def _nok(amount: Any) -> str:
     return f"NOK {value:.0f}"
 
 
+def _amount(claim: Mapping[str, Any] | None) -> float | None:
+    try:
+        return float((claim.get("value") or {}).get("amount")) if claim else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _financial_health(revenue, operating, equity, assets) -> dict[str, Any] | None:
+    """Ratios and risk flags computed only from the latest filed figures; each cites the figures it uses."""
+    rev, op, eq, tot = _amount(revenue), _amount(operating), _amount(equity), _amount(assets)
+    parts, used, flags = [], [], []
+    if rev and op is not None and rev > 0:
+        parts.append(f"operating margin {op / rev:.0%}")
+        used += [revenue, operating]
+        if op < 0:
+            flags.append("operating loss")
+    if eq is not None and tot and tot > 0:
+        parts.append(f"equity ratio {eq / tot:.0%}")
+        used += [equity, assets]
+        if eq < 0:
+            flags.append("negative equity")
+        elif eq / tot < 0.1:
+            flags.append("thin equity (under 10% of assets)")
+    if not parts:
+        return None
+    text = "Financial health from the latest accounts: " + ", ".join(parts) + "."
+    if flags:
+        text += " Watch: " + ", ".join(flags) + "."
+    evidence = sorted({evidence_id for claim in used for evidence_id in claim.get("evidence_ids") or []})
+    return {"text": text, "evidence_ids": evidence, "flags": flags, "has_margin": revenue in used}
+
+
+def _takeaway(points: list[dict[str, Any]], available: Mapping[str, list]) -> dict[str, Any] | None:
+    """One-line verdict for a reader deciding whether to engage: financial standing plus public signals."""
+    by_topic = {point["topic"]: point for point in points}
+    parts, cited = [], []
+    if "risk" in by_topic:
+        parts.append("formally distressed (bankruptcy or liquidation registered)")
+        cited.append(by_topic["risk"])
+    health = by_topic.get("financial_health")
+    if health:
+        flags = health["flags"]
+        if any("equity" in flag for flag in flags):
+            parts.append("financially at risk (" + ", ".join(flags) + ")")
+        elif flags:
+            parts.append("loss-making in the latest year but with adequate equity")
+        elif health["has_margin"]:
+            parts.append("profitable with adequate equity on its latest accounts")
+        else:
+            parts.append("adequate equity on its latest accounts")
+        cited.append(health)
+    signals = [label for field, label in (("hiring_signal", "hiring"), ("dated_news", "recent public activity"),
+                                          ("official_website", "verified website"), ("social_profile", "social presence")) if field in available]
+    if signals:
+        parts.append("public signals: " + ", ".join(signals))
+        cited += [by_topic[topic] for topic in ("hiring", "activity", "web", "profiles") if topic in by_topic]
+    else:
+        parts.append("no verified public footprint beyond the official register")
+    if not parts:
+        return None
+    evidence = sorted({evidence_id for point in cited for evidence_id in point.get("evidence_ids") or []})
+    return {"topic": "takeaway", "text": "In short: " + "; ".join(parts) + ".", "evidence_ids": evidence}
+
+
 def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, Any]] = ()) -> dict[str, Any]:
     """Decision-useful summary restating only available claims; every point cites their evidence ids."""
     available: dict[str, list[Mapping[str, Any]]] = {}
@@ -399,12 +463,16 @@ def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, An
         period = ((figures[0][1].get("reporting_period") or {}).get("end") or "")[:4]
         described = ", ".join(f"{label} {_nok((claim.get('value') or {}).get('amount'))}" for label, claim in figures)
         points.append({"topic": "financials", "text": f"Latest filed accounts{f' ({period})' if period else ''}: {described}.", "evidence_ids": ids(*(claim for _, claim in figures))})
+    health = _financial_health(first("financials.revenue"), first("financials.operating_result"), first("financials.equity"), first("financials.assets"))
+    if health:
+        points.append({"topic": "financial_health", **health})
     employees = first("registered_employees")
     if employees:
         points.append({"topic": "size", "text": f"{employees['value']} employees registered in the official register.", "evidence_ids": ids(employees)})
     workplaces = available.get("registered_workplace", [])
     if workplaces:
-        points.append({"topic": "locations", "text": f"{len(workplaces)} registered workplace(s).", "evidence_ids": ids(*workplaces[:5])})
+        count = len(workplaces)
+        points.append({"topic": "locations", "text": f"{count} registered workplace{'s' if count != 1 else ''}.", "evidence_ids": ids(*workplaces[:5])})
     website = first("official_website")
     if website:
         points.append({"topic": "web", "text": f"Verified official website: {website['value']}.", "evidence_ids": ids(website)})
@@ -424,7 +492,7 @@ def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, An
     if activity:
         latest = max(activity, key=lambda claim: str(claim.get("published_at") or ""))
         where = "in the news" if latest.get("signal_type") == "news_mention" else "on its website"
-        points.append({"topic": "activity", "text": f"Most recent dated news {where}: \"{latest.get('title')}\" ({latest.get('published_at')}).", "evidence_ids": ids(latest)})
+        points.append({"topic": "activity", "text": f"Most recent dated item {where}: \"{latest.get('title')}\" ({latest.get('published_at')}).", "evidence_ids": ids(latest)})
     changes = list(changes)
     if changes:
         points.append({"topic": "changes", "text": f"{len(changes)} material change(s) since the previous run.", "evidence_ids": []})
@@ -434,6 +502,9 @@ def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, An
         ("hiring_signal", "no hiring signal found"),
         ("dated_news", "no dated news found"),
     ) if field not in available]
+    takeaway = _takeaway(points, available)
+    if takeaway:
+        points.insert(0, takeaway)
     return {
         "text": " ".join(point["text"] for point in points),
         "points": points,

@@ -422,6 +422,11 @@ def discover_website(
                 # or registry declaration alone (group, parent, previous owner or a namesake).
                 assessment = {**assessment, "status": "related", "publishable": False,
                               "conflicting_organisation_numbers": sorted(foreign)}
+            elif (assessment["publishable"] and final_domain != candidate.get("domain") and not name_span
+                  and not found & {"organisation_number", "subunit_organisation_number"}):
+                # Redirected onto another business's domain that never names this entity: a shared phone or
+                # mailbox there marks a parent, owner or reseller (lydrommet.no -> a Captech shop page).
+                assessment = {**assessment, "status": "related", "publishable": False}
             attempts.append({**candidate, "outcome": assessment["status"], "url": home.final_url, "final_domain": final_domain, "proofs": assessment["proofs"]})
             value = {
                 "final_url": home.final_url,
