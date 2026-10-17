@@ -139,14 +139,17 @@ uv run python scripts/run_signalpost.py ... --previous-profiles out/previous-pro
 - `entry-1000-profiles.jsonl` — the profile snapshot a refresh diffs against
 - `entry-1000-report.json` — runtime, requests by purpose, module states, validation
 
-Run `entry-1000-v9` (code at commit `8f2fdb1`, clean clone, 14 October 2026, registry snapshot SHA-256 `1c89710e…`):
+Run `entry-v10k` (code at commit `78107c4`, 17 October 2026, registry snapshot SHA-256 `1c89710e…`):
 1,000 envelopes in manifest order, all `completed`, validation and guard rails passed, 10/10 chunks
-first try, 29 minutes, 12,482 counted requests (largest 100-company chunk 1,637 outbound requests, under
-the 2,000 budget), USD 0. Companies covered: official website 168, social profile 83, hiring signal 26,
-dated news 55.
+first try, 28 minutes, 12,315 counted requests (largest 100-company chunk 1,317, under the 2,000
+budget), USD 0. Companies covered: official website 162, social profile 74, hiring signal 23,
+dated news 45. Website recall is lower than the 14 October run (168) because several hosting
+providers now answer this network with a bot-protection check; those sites are reported as `failed`
+with that reason, not as "no official tie". Social and news counts also fall because v10 drops
+platform/reel profiles and CMS placeholder posts that v8 published.
 
-`submission/refresh-v8/`: the first 100 of those companies re-run immediately at the same commit with
-`--previous-profiles submission/entry-1000-profiles.jsonl`: 100 envelopes, validation passed, 0 changes
+`submission/refresh-v8/`: the first 100 companies of the 14 October entry run, re-run immediately at
+that run's commit (`8f2fdb1`) with `--previous-profiles`: 100 envelopes, validation passed, 0 changes
 (no false changes).
 
 `submission/refresh/` holds the refresh evidence (code at commit `5ddd709`):
