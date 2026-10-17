@@ -7,6 +7,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from norway_company_agent.proof import (  # noqa: E402
     assess_site_identity,
+    legal_name_masthead_span,
     legal_name_span,
     name_key,
     name_key_counts,
@@ -97,6 +98,27 @@ class ProofTest(unittest.TestCase):
         self.assertFalse(assess_site_identity(set())["publishable"])
         related = assess_site_identity({"organisation_number"}, relation="administrator_or_group")
         self.assertEqual((related["status"], related["publishable"]), ("related", False))
+
+    def test_masthead_name_in_title_copyright_or_contact_block(self) -> None:
+        self.assertIsNotNone(legal_name_masthead_span("VINJE KIROPRAKTOR AS", "<p>Åpningstider</p><footer>© 2026 Vinje Kiropraktor AS. Alle rettigheter reservert.</footer>"))
+        self.assertIsNotNone(legal_name_masthead_span("SKUDE BIL OG ANTIRUST AS", "<title>Skude Bil og Antirust AS - Ditt antirustverksted</title><p>Hei</p>"))
+        self.assertIsNotNone(legal_name_masthead_span("VMB TOTAL AS", "<p>VMB Total AS Apeltunvegen 2 5222 Nesttun</p>", "5222"))
+        self.assertIsNotNone(legal_name_masthead_span("INSIDER FACILITY SOLUTIONS AS", "<p>© Copyright Insider Facility Solutions AS. Personvern</p>"))
+
+    def test_masthead_rejects_running_text_longer_names_and_missing_form(self) -> None:
+        # A sister-company link or customer quote in running text is not where a site names its operator.
+        self.assertIsNone(legal_name_masthead_span("EUROSUPPLY INTERNATIONAL AS", "<title>Eurosupply</title><p>Besøk vårt søsterselskap Eurosupply International AS</p>"))
+        # A longer name that ends with ours belongs to someone else.
+        self.assertIsNone(legal_name_masthead_span("HUNSTAD EIENDOM AS", "<title>Idar O. Hunstad Eiendom as - Omsetting av eiendom</title>"))
+        self.assertIsNone(legal_name_masthead_span("LIE NILSEN AS", "<title>Lie Nilsen ASA</title>"))
+        self.assertIsNone(legal_name_masthead_span("ELTON", "<title>Elton</title>"))
+
+    def test_masthead_publishes_only_off_group_sites(self) -> None:
+        exact = assess_site_identity(set(), "candidate", name_masthead=True)
+        self.assertEqual((exact["status"], exact["publishable"]), ("exact", True))
+        self.assertIn("legal_name_masthead", exact["proofs"])
+        group = assess_site_identity(set(), "administrator_or_group", name_masthead=True)
+        self.assertFalse(group["publishable"])
 
 
 if __name__ == "__main__":

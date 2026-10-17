@@ -13,6 +13,9 @@ from .candidates import FILLER_TOKENS, FOLDS, LEGAL_FORM_TOKENS, fold_name
 STRONG_PROOFS = frozenset({"organisation_number", "subunit_organisation_number", "registry_email", "registry_phone"})
 # A phone registered for this many entities belongs to an accountant or administrator.
 SHARED_PHONE_THRESHOLD = 5
+# Foretaksregisteret refuses an AS/ASA name that cannot be told apart from one already registered
+# (foretaksnavneloven 2-6), so the full name with its legal form names exactly one company.
+NAME_PROTECTED_FORMS = frozenset({"AS", "ASA"})
 METHOD = "registry_identifier_on_site_v3"
 MAX_TEXT_CHARS = 300_000
 _SEPARATOR = r"[\s.\- ]?"
@@ -176,6 +179,41 @@ def legal_name_span(name: str, page_html: str, context: int = 60) -> str | None:
     return " ".join(text[max(0, start - context): end + context].split())[:240]
 
 
+_COPYRIGHT = re.compile(r"©|&copy;|\bcopyright\b", re.I)
+_NAME_LEAD_INS = ("copyright", "(c)", "©", "by", "av")
+
+
+def legal_name_masthead_span(name: str, page_html: str, postcode: str = "", context: int = 60) -> str | None:
+    """The full legal name, legal form included, where a site names its own operator: the page title, a
+    copyright line, or the contact block beside the registered postcode. A name in running text (a customer
+    list, a testimonial, a sister-company link) does not count, and neither does a longer name that merely
+    ends with ours ("Idar O. Hunstad Eiendom AS" is not "Hunstad Eiendom AS")."""
+    wanted = " ".join(unicodedata.normalize("NFKC", name).split()).casefold()
+    if not wanted or wanted.split()[-1] not in LEGAL_FORM_TOKENS:
+        return None
+    html = page_html or ""
+    title = re.search(r"(?is)<title[^>]*>(.*?)</title>", html)
+    text = _visible_text(html)
+    regions = [" ".join(html_lib.unescape(title.group(1)).split())] if title else []
+    for match in _COPYRIGHT.finditer(text):
+        regions.append(text[match.start(): match.end() + 120])
+    if len(postcode) == 4:
+        for match in re.finditer(r"(?<!\d)" + postcode + r"(?!\d)", text):
+            regions.append(text[max(0, match.start() - 150): match.end() + 150])
+    for region in regions:
+        folded = unicodedata.normalize("NFKC", region).casefold()
+        for match in re.finditer(re.escape(wanted), folded):
+            after = folded[match.end(): match.end() + 1]
+            if after.isalnum():
+                continue
+            before = folded[: match.start()].rstrip()
+            last_word = before.split()[-1] if before.split() else ""
+            if before and (before[-1].isalpha() or before[-1] == ".") and last_word not in _NAME_LEAD_INS:
+                continue
+            return " ".join(region[max(0, match.start() - context): match.end() + context].split())[:240]
+    return None
+
+
 def assess_site_identity(
     proofs: Iterable[str],
     relation: str = "candidate",
@@ -184,13 +222,16 @@ def assess_site_identity(
     name_on_site: bool = False,
     full_name_domain: bool = False,
     unique_legal_name: bool = False,
+    name_masthead: bool = False,
 ) -> dict[str, Any]:
     """Publishable only with an official tie to this exact entity.
 
     Exact when a registry identifier (org number, registry email, registry phone) is on the site,
     or when the entity declared the site in the official register and its legal name is on it,
     or when the domain is the entity's full legal name, that name belongs to no other registry
-    entity, and the legal name is on the site.
+    entity, and the legal name is on the site,
+    or when that registry-unique legal name, legal form included, stands where a site names its own
+    operator (title, copyright line or the registered-postcode contact block).
     A domain shared by many entities is exact only for the entity it is fully named after.
     Partial-name domains, shared email domains and addresses never publish on their own.
     """
@@ -204,9 +245,11 @@ def assess_site_identity(
         found.add("registry_declared_website")
     if unique_name_domain:
         found.add("unique_legal_name_domain")
+    if name_masthead:
+        found.add("legal_name_masthead")
     if relation == "administrator_or_group" and not (full_name_domain and (strong or declared)):
         status, publishable = "related", False
-    elif strong or declared or unique_name_domain:
+    elif strong or declared or unique_name_domain or name_masthead:
         status, publishable = "exact", True
     elif found:
         status, publishable = "weak", False

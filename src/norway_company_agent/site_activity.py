@@ -124,6 +124,13 @@ BOILERPLATE_TITLE = re.compile(
     r"\b(agbs?|vilkår|salgsbetingelser|terms|conditions|privacy|personvern|cookies?|datenschutz|impressum|"
     r"åpningstider|opening hours|kontakt( oss)?|contact( us)?|om oss|about( us)?)\b"
 )
+# The sample post and page a CMS creates on install ("Hello world!", WordPress's Norwegian "Hei, verden!"):
+# a placeholder left on the site, not something the company published.
+CMS_PLACEHOLDER = re.compile(r"^(hello,? world|hei,? verden|hallo,? verden|sample page|eksempelside|eksempel-side)!?$")
+# A short "Om <company>" / "About <company>" title is the company's about page posted as a dated
+# WordPress entry ("Om AVS Norge"), not news. Capped at 4 words so an article such as
+# "Om å bygge et passivhus i Bergen" still counts.
+ABOUT_TITLE = re.compile(r"^(om|about)\s+\S+(\s+\S+){0,2}$")
 
 
 def _norm(url: str | None) -> str:
@@ -150,6 +157,10 @@ def is_article(item: Mapping[str, Any], listing_urls: set[str], page_titles: set
         return False
     title = " ".join(str(item.get("title") or "").split()).casefold()
     if BOILERPLATE_TITLE.search(title):
+        return False
+    if CMS_PLACEHOLDER.match(title) or CMS_PLACEHOLDER.match(last.replace("-", " ")):
+        return False
+    if ABOUT_TITLE.match(title):
         return False
     return title not in page_titles
 

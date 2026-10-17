@@ -66,6 +66,23 @@ class SiteActivityTest(unittest.TestCase):
         record = site_activity({"status": "available"}, page("https://acme.no/", html), None, None, NOW)
         self.assertEqual([item["url"] for item in record["value"]["items"]], ["https://acme.no/blog/ny-kontrakt"])
 
+    def test_cms_install_placeholder_posts_are_not_activity(self):
+        html = """<html><head><title>Petter Eriksen</title></head><body>
+        <article><h2><a href="/hei-verden">Hei, verden!</a></h2><time datetime="2026-01-24">x</time></article>
+        <article><h2><a href="/hello-world/">Hello world!</a></h2><time datetime="2026-01-25">x</time></article>
+        <article><h2><a href="/2026/nytt-tak">Nytt tak på skolen</a></h2><time datetime="2026-09-07">x</time></article>
+        </body></html>"""
+        record = site_activity({"status": "available"}, page("https://pe.no/", html), None, None, NOW)
+        self.assertEqual([item["url"] for item in record["value"]["items"]], ["https://pe.no/2026/nytt-tak"])
+
+    def test_about_page_posted_as_entry_is_not_activity(self):
+        html = """<html><head><title>AVS Norge</title></head><body>
+        <article><h2><a href="/om-avs-norge/">Om AVS Norge</a></h2><time datetime="2025-03-02">x</time></article>
+        <article><h2><a href="/2026/passivhus">Om å bygge et passivhus i Bergen</a></h2><time datetime="2026-08-11">x</time></article>
+        </body></html>"""
+        record = site_activity({"status": "available"}, page("https://avs.no/", html), None, None, NOW)
+        self.assertEqual([item["url"] for item in record["value"]["items"]], ["https://avs.no/2026/passivhus"])
+
     def test_no_verified_site_is_not_available(self):
         record = site_activity({"status": "ambiguous"}, None, None, None, NOW)
         self.assertEqual(record["status"], "not_available")

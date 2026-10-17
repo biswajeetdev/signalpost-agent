@@ -47,6 +47,10 @@ ATS_HOSTS = re.compile(r"(?:^|\.)(?:webcruiter\.(?:no|com)|teamtailor\.com|jobyl
                        r"successfactors\.(?:eu|com)|talentech\.com|hrmanager\.no|lever\.co|greenhouse\.io|workable\.com|"
                        r"recruitee\.com|personio\.(?:de|com)|homerun\.co|bamboohr\.com|jobvite\.com|simployer\.(?:no|com))$", re.I)
 # Paths that mention a careers term but are not a careers page (news items, privacy notices).
+# A term must START a word: "problemstillinger" (issues) is not "stillinger" (vacancies), which put a
+# clinic's gynaecology page in as its careers page. The end stays open ("karrieresiden", "jobbe").
+MAX_LABEL_WORDS = 6
+_CAREER_RES = [re.compile(r"(?<![a-z0-9æøå])" + re.escape(term)) for term in CAREER_TERMS]
 NOT_CAREERS = ("personvern", "privacy", "cookie", "/nyheter/", "/news/", "/artikkel", "/article")
 MAX_POSTINGS = 15
 # Button and link text that names the action, not the job: the title is then taken from the nearest heading.
@@ -73,8 +77,13 @@ def _career_anchors(base_url: str, html: str, same_host: bool) -> dict[str, tupl
             continue
         if not same_host and not ATS_HOSTS.search(parsed.netloc):
             continue
-        haystack = (parsed.netloc + parsed.path + " " + anchor.get_text(" ", strip=True)).casefold()
-        rank = next((index for index, term in enumerate(CAREER_TERMS) if term in haystack), None)
+        label = anchor.get_text(" ", strip=True)
+        # A careers link has a short label ("Karriere", "Jobb hos oss"). A long card blurb that merely uses
+        # the word ("Å jobba smart med digital forbetring ...") is a service teaser: judge it by its URL alone.
+        if len(label.split()) > MAX_LABEL_WORDS:
+            label = ""
+        haystack = (parsed.netloc + parsed.path + " " + label).casefold()
+        rank = next((index for index, term in enumerate(CAREER_TERMS) if _CAREER_RES[index].search(haystack)), None)
         clean = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path or "/", "", parsed.query, ""))
         if rank is None or clean.rstrip("/") == base_url.rstrip("/") or any(term in parsed.path.casefold() for term in NOT_CAREERS):
             continue

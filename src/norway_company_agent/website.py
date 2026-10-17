@@ -143,6 +143,15 @@ def structured_social_links(value: Any) -> list[dict[str, str]]:
     return sorted(found.values(), key=lambda item: (item["platform"], item["url"]))
 
 
+PLATFORM_HANDLES = frozenset({
+    "wix", "wixcom", "wix-com", "squarespace", "wordpress", "wordpressdotcom", "wordpresscom", "shopify", "webflow", "weebly",
+    "jimdo", "webnode", "godaddy", "onecom", "one.com", "domeneshop", "hubspot", "mailchimp", "elementor",
+    "woocommerce", "strikingly", "simvoly", "123hjemmeside", "1881", "1881.no", "gulesider", "proff", "proffno",
+    "mittanbud", "tripadvisor", "booking", "bookingcom", "google", "facebook", "meta", "instagram", "linkedin",
+    "youtube", "twitter", "x", "tiktok", "visma", "tripletex", "fiken", "vipps", "klarna",
+})
+
+
 def normalize_social_url(url: str) -> dict[str, str] | None:
     try:
         parsed = urllib.parse.urlparse(url)
@@ -155,11 +164,21 @@ def normalize_social_url(url: str) -> dict[str, str] | None:
     parts = [part.strip() for part in parsed.path.split("/") if part.strip()]
     lowered = [part.casefold() for part in parts]
     rejected_first = {
-        "facebook": {"sharer", "sharer.php", "share.php", "dialog", "policy.php", "privacy", "events", "groups", "plugins"},
+        # A single post, reel, search or feed is not the company's profile (facebook.com/search/top on
+        # vinjekiropraktor.no; two /reel/ videos published for Nummer Ti AS in the v8 artifact).
+        "facebook": {"sharer", "sharer.php", "share.php", "dialog", "policy.php", "privacy", "events", "groups", "plugins",
+                     "search", "hashtag", "reel", "reels", "watch", "videos", "photo.php", "story.php", "permalink.php",
+                     "login", "login.php", "home.php", "marketplace", "gaming"},
         "instagram": {"p", "reel", "reels", "stories", "explore"},
         "x": {"intent", "share", "home", "search", "i"},
     }
     if not parts or lowered[0] in rejected_first.get(platform, set()):
+        return None
+    # Website builders, hosts and directories link their OWN profiles from the sites they power
+    # (facebook.com/wix was published for three companies on the 1,200 board batch).
+    if platform != "linkedin" and lowered[0].lstrip("@") in PLATFORM_HANDLES:
+        return None
+    if platform == "linkedin" and len(lowered) > 1 and lowered[1] in PLATFORM_HANDLES:
         return None
     if platform == "facebook" and lowered[0] == "profile.php":
         return None

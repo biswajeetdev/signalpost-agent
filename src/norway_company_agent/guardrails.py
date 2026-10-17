@@ -23,7 +23,7 @@ def _site_basis_ok(website: Mapping[str, Any]) -> bool:
         return True
     if "unique_legal_name_domain" in proofs:
         return domain.endswith(".no") or bool(proofs & {"registry_address", "norway_contact"})
-    return False
+    return "legal_name_masthead" in proofs
 
 
 def enforce_site_basis(envelopes: list[dict[str, Any]], profiles: list[dict[str, Any]], budget: Any) -> int:

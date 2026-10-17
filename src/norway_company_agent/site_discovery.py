@@ -16,7 +16,7 @@ from .budget import BudgetExhausted, RequestBudget, RobotsCache
 from .candidates import SHARED_DOMAIN_THRESHOLD, full_name_labels, registered_domain, website_candidates
 from .evidence import utc_now
 from .http import read_bounded
-from .proof import STRONG_PROOFS, address_span, assess_site_identity, legal_name_span, name_key, norway_span, page_proof_spans, registry_identifiers
+from .proof import NAME_PROTECTED_FORMS, STRONG_PROOFS, address_span, assess_site_identity, legal_name_masthead_span, legal_name_span, name_key, norway_span, page_proof_spans, registry_identifiers
 from .website import USER_AGENT, assert_public_url
 
 MAX_PAGE_BYTES = 1_500_000
@@ -187,6 +187,17 @@ def is_parked(html: str) -> bool:
     return len(text) < PARKED_MAX_TEXT_CHARS and bool(PARKED_PATTERNS.search(text))
 
 
+# Imunify360's bot check, served by many Norwegian cPanel/Plesk hosts once an IP's shared reputation drops: the
+# real page is never shown, so the site can be neither proven nor ruled out.
+BOT_CHALLENGE = re.compile(r"please wait while your request is being verified", re.I)
+
+
+def is_bot_challenge(html: str) -> bool:
+    text = re.sub(r"(?is)<(script|style)\b.*?</\1\s*>", " ", html or "")
+    text = " ".join(re.sub(r"<[^>]+>", " ", text).split())
+    return len(text) < PARKED_MAX_TEXT_CHARS and bool(BOT_CHALLENGE.search(text))
+
+
 ORG_NUMBER_MENTION = re.compile(r"(?i)(?:org(?:anisasjons)?\.?\s*(?:nr|nummer|no|number)\.?|foretaksregisteret|\bNO)\s*[:.]?\s*(\d{3}[\s.]?\d{3}[\s.]?\d{3})(?!\d)")
 
 
@@ -309,6 +320,7 @@ def discover_website(
     full_labels = full_name_labels(legal_name)
     # Acronyms (USH, NGE) are too short to identify a company by name alone; they need a registry identifier.
     distinctive = name_key(legal_name)
+    legal_form = legal_name.split()[-1].upper() if legal_name.split() else ""
     unique_name = (name_keys is not None and bool(distinctive) and name_keys.get(distinctive, 0) == 1
                    and len(distinctive.replace(" ", "")) >= MIN_UNIQUE_NAME_CHARS)
     attempts: list[dict[str, Any]] = []
@@ -362,6 +374,9 @@ def discover_website(
                 continue
             final_domain = registered_domain(home.final_url)
             seen_domains.update({domain, final_domain})
+            if is_bot_challenge(home.html):
+                attempts.append({**candidate, "outcome": "bot_challenge", "url": home.final_url, "final_domain": final_domain})
+                continue
             if is_parked(home.html):
                 attempts.append({**candidate, "outcome": "parked", "url": home.final_url, "final_domain": final_domain})
                 continue
@@ -382,11 +397,20 @@ def discover_website(
             if address:
                 spans[address[0]] = address[1]
             name_span = legal_name_span(legal_name, name_html(home.html))
+            # The full legal name where the site names its own operator. An AS/ASA name with its form is unique by
+            # law in Foretaksregisteret, so it needs no namesake check; other forms need a registry-unique name.
+            # A redirect onto another domain is fine here: the destination itself names this entity (Lyrosep's
+            # redirect target never did). Never on a shared/group site, and outside .no only with a Norway tie.
+            masthead_allowed = ((unique_name or legal_form in NAME_PROTECTED_FORMS) and relation != "administrator_or_group"
+                                and (is_no or bool(address) or bool(norway_span(home.html))))
+            masthead = legal_name_masthead_span(legal_name, name_html(home.html), identifiers.get("postcode") or "") if masthead_allowed else None
+            if masthead:
+                spans["legal_name_masthead"] = masthead
             found = set(spans)
             proof_pages = [_page_record(home, spans, name_span)]
             own_numbers = {identifiers.get("organisation_number") or "", *(identifiers.get("subunit_numbers") or [])} - {""}
             foreign = foreign_org_numbers(home.html, own_numbers)
-            if not found & STRONG_PROOFS and not (name_suffices and name_span and not foreign):
+            if not found & STRONG_PROOFS and not ((name_suffices and name_span or masthead) and not foreign):
                 for link in contact_links(home.final_url, home.html):
                     if not robots_allowed(link):
                         continue
@@ -400,11 +424,14 @@ def discover_website(
                         full_name_domain = label_match and (is_no or bool(address))
                         name_suffices = registry_declared or (unique_name and full_name_domain and relation != "administrator_or_group")
                     page_name = legal_name_span(legal_name, name_html(page.html))
+                    if masthead_allowed and not masthead and (page_masthead := legal_name_masthead_span(legal_name, name_html(page.html), identifiers.get("postcode") or "")):
+                        masthead = page_masthead
+                        page_spans["legal_name_masthead"] = page_masthead
                     foreign |= foreign_org_numbers(page.html, own_numbers)
                     proof_pages.append(_page_record(page, page_spans, page_name))
                     found |= set(page_spans)
                     name_span = name_span or page_name
-                    if found & STRONG_PROOFS or (name_suffices and name_span and not foreign):
+                    if found & STRONG_PROOFS or ((name_suffices and name_span or masthead) and not foreign):
                         break
             # A group domain the register declares for this entity, named exactly after it: the declaration
             # already rules out a foreign namesake, so the page need not also print a Norwegian address.
@@ -416,6 +443,7 @@ def discover_website(
                 name_on_site=bool(name_span),
                 full_name_domain=group_full_name,
                 unique_legal_name=unique_name,
+                name_masthead=bool(masthead),
             )
             if foreign and not found & STRONG_PROOFS:
                 # The site names another entity as its operator and none of ours: never publish on name
@@ -443,4 +471,8 @@ def discover_website(
         return _record("failed", source_url=REGISTRY_SOURCE, retrieved_at=utc_now(), attempts=attempts, note=str(exc)), None
     if fallback:
         return fallback, None
+    challenged = sorted({item["final_domain"] for item in attempts if item.get("outcome") == "bot_challenge"})
+    if challenged:
+        return _record("failed", source_url=REGISTRY_SOURCE, retrieved_at=utc_now(), attempts=attempts,
+                       note=f"{', '.join(challenged)} served a bot-protection check instead of its pages; identity could not be checked"), None
     return _record("not_available", source_url=REGISTRY_SOURCE, retrieved_at=utc_now(), attempts=attempts, note="No candidate website carried an official tie to this entity"), None

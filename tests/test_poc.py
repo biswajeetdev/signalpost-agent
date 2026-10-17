@@ -922,8 +922,14 @@ class WebsiteTests(unittest.TestCase):
             "https://facebook.com/groups/123", "https://facebook.com/policy.php",
             "https://facebook.com/privacy/explanation",
             "https://linkedin.com/shareArticle?url=x", "https://instagram.com/p/abc",
+            "https://facebook.com/search/top", "https://facebook.com/reel/224090190696387",
+            "https://facebook.com/watch/?v=1", "https://facebook.com/hashtag/bygg",
+            "https://www.facebook.com/wix", "https://instagram.com/squarespace", "https://linkedin.com/company/wix-com",
+            "https://linkedin.com/company/wix",
         )
         self.assertTrue(all(normalize_social_url(url) is None for url in rejected))
+        # Facebook's newer page address (/p/<name>-<id>) is a page, not a post.
+        self.assertIsNotNone(normalize_social_url("https://www.facebook.com/p/fjellgl%c3%b8d-100066361215136"))
 
     def test_social_profiles_canonicalize_www_variants(self):
         self.assertEqual(normalize_social_url("https://www.facebook.com/Example/"), {"platform": "facebook", "url": "https://facebook.com/Example"})
@@ -1111,6 +1117,13 @@ class OfficialNormalizationTests(unittest.TestCase):
         self.assertEqual(record["revenue"], 12)
         self.assertEqual(record["operating_result"], 0)
         self.assertEqual(record["currency"], "NOK")
+
+    def test_financial_records_keep_all_years_newest_company_first(self):
+        def item(year, kind):
+            return {"id": f"{kind}{year}", "regnskapstype": kind, "regnskapsperiode": {"tilDato": f"{year}-12-31"}}
+        body = [item(2023, "KONSERN"), item(2024, "KONSERN"), item(2023, "SELSKAP"), item(2024, "SELSKAP"), item(2025, "SELSKAP")]
+        order = [(r["account_type"], r["period"]["tilDato"][:4]) for r in normalize_financials(body)["records"]]
+        self.assertEqual(order, [("SELSKAP", "2025"), ("SELSKAP", "2024"), ("KONSERN", "2024"), ("SELSKAP", "2023"), ("KONSERN", "2023")])
 
     def test_financial_history_is_sorted_and_links_to_official_pdfs(self):
         record = normalize_financial_history(["2024", "2022", "2024", "invalid"], "923609016")

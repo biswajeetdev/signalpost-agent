@@ -29,6 +29,19 @@ class SiteJobsTest(unittest.TestCase):
     def test_career_link_is_same_host(self):
         self.assertEqual(career_links("https://acme.no/", HOME), ["https://acme.no/karriere"])
 
+    def test_career_term_must_start_a_word(self):
+        # "problemstillinger" (issues) contains "stillinger" (vacancies); a clinic's service page is not careers.
+        nav = ('<a href="/tjenester/gynekologi">Gynekologi Vi tilbyr konsultasjoner med alle problemstillinger.</a>'
+               '<a href="/ledige-stillinger">Ledige stillinger</a>')
+        self.assertEqual(career_links("https://klinikk.no/", nav), ["https://klinikk.no/ledige-stillinger"])
+        only_service = '<a href="/tjenester/gynekologi">Konsultasjoner for alle problemstillinger</a>'
+        self.assertEqual(career_links("https://klinikk.no/", only_service), [])
+
+    def test_long_card_text_is_not_a_careers_label(self):
+        card = '<a href="/digital-forbetring/">Digital forbedring Å jobba smart med digital forbetring krever ein stor verktøykasse</a>'
+        self.assertEqual(career_links("https://lovfall.com/", card), [])
+        self.assertEqual(career_links("https://lovfall.com/", '<a href="/om">Jobb hos oss</a>'), ["https://lovfall.com/om"])
+
     def test_postings_from_jsonld_and_ad_links_only(self):
         items = postings_on_page("https://acme.no/karriere", CAREERS, NOW)
         titles = sorted(item["title"] for item in items)

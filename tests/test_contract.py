@@ -123,6 +123,81 @@ class ContractTest(unittest.TestCase):
         self.assertTrue(any("carries a value" in problem for problem in problems))
         self.assertTrue(any("invalid state 'complete'" in problem for problem in problems))
 
+    @staticmethod
+    def _with_accounts(records, *, filed_years=None):
+        profile = copy.deepcopy(PROFILE)
+        profile["evidence"]["financials"]["value"]["records"] = records
+        if filed_years:
+            profile["evidence"]["financial_history"] = {
+                "field": "financial_history", "status": "available", "source_class": "official_annual_accounts",
+                "source_url": "https://data.brreg.no/regnskapsregisteret/regnskap/aarsregnskap/kopi/985589003/aar", "retrieved_at": AT,
+                "content_sha256": "dd" * 32, "value": {"years": filed_years, "pdfs": []}}
+        return envelope(profile)
+
+    @staticmethod
+    def _account(year, kind="SELSKAP", **figures):
+        return {"record_id": f"{kind}{year}", "account_type": kind, "period": {"fraDato": f"{year}-01-01", "tilDato": f"{year}-12-31"}, "currency": "NOK", **figures}
+
+    def test_latest_company_accounts_win_over_unsorted_and_group_records(self) -> None:
+        # Real Brreg order for 911004925: group years first, the newest company filing last.
+        result = self._with_accounts([self._account(2023, "KONSERN", revenue=9e8), self._account(2024, "KONSERN", revenue=9.5e8),
+                                      self._account(2023, revenue=1e8), self._account(2024, revenue=1.1e8), self._account(2025, revenue=1.2e8)])
+        revenue = claims(result, "financials.revenue")
+        self.assertEqual([(c["account_type"], c["reporting_period"]["end"]) for c in revenue], [("SELSKAP", "2025-12-31")])
+        self.assertEqual(claims(result, "financials.previous.revenue")[0]["reporting_period"]["end"], "2024-12-31")
+        self.assertIn("Latest filed accounts (2025)", result["summary"]["text"])
+        self.assertEqual(validate_envelope(result), [])
+
+    def test_group_only_accounts_are_labelled_as_group(self) -> None:
+        result = self._with_accounts([self._account(2025, "KONSERN", revenue=5e6)])
+        self.assertIn("Latest filed group accounts (2025)", result["summary"]["text"])
+
+    def test_older_figures_are_not_called_latest_when_register_lists_a_newer_filing(self) -> None:
+        result = self._with_accounts([self._account(2020, revenue=81200.0)], filed_years=["2019", "2020", "2025"])
+        text = result["summary"]["text"]
+        self.assertNotIn("Latest filed", text)
+        self.assertIn("Most recent accounts with published figures (2020)", text)
+        self.assertIn("filed for 2025", text)
+
+    def test_year_on_year_comparison_cites_both_filings(self) -> None:
+        result = self._with_accounts([self._account(2024, revenue=1e6, annual_result=-50000.0), self._account(2025, revenue=1.2e6, annual_result=80000.0)])
+        point = next(p for p in result["summary"]["points"] if p["topic"] == "comparison")
+        self.assertEqual(point["text"], "Compared with 2024, in 2025: revenue up 20% (NOK 1.0m to NOK 1.2m); annual result turned from a loss of NOK 50.0k to a profit of NOK 80.0k.")
+        cited = {claim["evidence_ids"][0] for claim in claims(result, "financials.revenue") + claims(result, "financials.previous.revenue")}
+        self.assertEqual(set(point["evidence_ids"]), cited)
+        self.assertIn("revenue up 20% on the previous year", result["summary"]["points"][0]["text"])
+
+    def test_stale_figures_are_not_called_latest_in_the_takeaway(self) -> None:
+        result = self._with_accounts([self._account(2020, revenue=81200.0, operating_result=38200.0, equity=9e5, assets=1e6)], filed_years=["2025"])
+        takeaway = result["summary"]["points"][0]["text"]
+        self.assertIn("its 2020 accounts (a newer filing is not yet published)", takeaway)
+        self.assertNotIn("latest", takeaway)
+
+    def test_two_losses_read_as_narrowed_or_widened(self) -> None:
+        result = self._with_accounts([self._account(2024, annual_result=-88900.0, equity=-33700.0), self._account(2025, annual_result=-760.0, equity=-34500.0)])
+        point = next(p for p in result["summary"]["points"] if p["topic"] == "comparison")
+        self.assertIn("annual result: loss narrowed from NOK 88.9k to NOK 760", point["text"])
+        self.assertIn("negative equity widened from NOK 33.7k to NOK 34.5k", point["text"])
+        self.assertNotIn("NOK -", point["text"])
+
+    def test_unchanged_and_profit_to_profit_changes_read_with_a_direction(self) -> None:
+        result = self._with_accounts([self._account(2024, revenue=0.0, operating_result=-5390.0, annual_result=61613.0),
+                                      self._account(2025, revenue=0.0, operating_result=-5390.0, annual_result=408777.0)])
+        point = next(p for p in result["summary"]["points"] if p["topic"] == "comparison")
+        self.assertEqual(point["text"], "Compared with 2024, in 2025: operating result: loss unchanged at NOK 5.4k; annual result up from NOK 61.6k to NOK 408.8k.")
+
+    def test_operating_profit_with_a_net_loss_is_not_called_profitable(self) -> None:
+        result = self._with_accounts([self._account(2025, revenue=459291.0, operating_result=82543.0, annual_result=-44062.0, equity=1.2e6, assets=1.5e6)])
+        takeaway = result["summary"]["points"][0]
+        self.assertIn("an operating profit but a net loss on its latest accounts, with adequate equity", takeaway["text"])
+        self.assertNotIn("profitable", takeaway["text"])
+        annual = claims(result, "financials.annual_result")[0]
+        self.assertTrue(set(annual["evidence_ids"]) <= set(takeaway["evidence_ids"]))
+
+    def test_no_comparison_without_a_prior_filing(self) -> None:
+        result = self._with_accounts([self._account(2025, revenue=1.2e6)])
+        self.assertFalse(any(p["topic"] == "comparison" for p in result["summary"]["points"]))
+
 
 if __name__ == "__main__":
     unittest.main()

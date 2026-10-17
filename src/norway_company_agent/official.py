@@ -76,7 +76,7 @@ def normalize_financials(body: Any) -> dict[str, Any]:
     if not records:
         return {"records": []}
     normalized = []
-    for item in records[:3]:
+    for item in records:
         normalized.append({
             "record_id": item.get("id"),
             "account_type": item.get("regnskapstype"),
@@ -90,7 +90,13 @@ def normalize_financials(body: Any) -> dict[str, Any]:
             "equity": _get(item, "egenkapitalGjeld", "egenkapital", "sumEgenkapital"),
             "debt": _get(item, "egenkapitalGjeld", "gjeldOversikt", "sumGjeld"),
         })
-    return {"records": normalized}
+    return {"records": order_financial_records(normalized)}
+
+
+def order_financial_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Newest period first, company accounts before group accounts. The API returns records in no fixed
+    order and mixes SELSKAP with KONSERN, so the first record is not the latest filing unless sorted."""
+    return sorted(records, key=lambda item: (str((item.get("period") or {}).get("tilDato") or ""), item.get("account_type") != "KONSERN"), reverse=True)
 
 
 def normalize_financial_history(body: Any, org: str) -> dict[str, Any]:

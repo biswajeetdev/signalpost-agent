@@ -35,6 +35,7 @@ REGISTRY_FIELDS = (
 REGISTRY_FLAGS = (("bankrupt", "konkurs"), ("under_liquidation", "underAvvikling"))
 ADDRESS_PARTS = ("adresse", "postnummer", "poststed", "kommune")
 FINANCIAL_FIELDS = ("revenue", "operating_result", "profit_before_tax", "annual_result", "assets", "equity", "debt")
+PREVIOUS_FIELDS = ("revenue", "operating_result", "annual_result", "equity")
 STRONG_WEBSITE_PROOFS = {"organisation_number", "subunit_organisation_number", "registry_email", "registry_phone"}
 
 
@@ -113,30 +114,53 @@ def _registry(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
             envelope.claim(field, value == "true", "available", [envelope.cite(record, f"{column}: {value}")], confidence=1.0)
 
 
-def _financials(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
+def _register_latest_year(registry: Mapping[str, Any] | None, history: Mapping[str, Any] | None) -> str | None:
+    """Newest annual-account year the register says was filed, from the entity row or the filed-years list."""
+    years = [str(((registry or {}).get("value") or {}).get("sisteInnsendteAarsregnskap") or "")]
+    if availability(history) == "available":
+        years += [str(year) for year in ((history or {}).get("value") or {}).get("years") or []]
+    years = [year for year in years if year.isdigit()]
+    return max(years) if years else None
+
+
+def _financials(envelope: _Envelope, record: Mapping[str, Any] | None, register_latest_year: str | None = None) -> None:
     state = availability(record)
     records = ((record or {}).get("value") or {}).get("records") or []
     if state != "available" or not records:
         envelope.unavailable("financials", record, "not_available" if state == "available" else state)
         return
-    latest_end = max(str((item.get("period") or {}).get("tilDato") or "") for item in records)
-    for item in records:
-        period = item.get("period") or {}
-        if str(period.get("tilDato") or "") != latest_end:
+    # One scope only: the company's own accounts, or group accounts when that is all that was filed.
+    # Mixing them would compare a group's revenue with a single company's.
+    company = [item for item in records if item.get("account_type") != "KONSERN"]
+    pool = sorted(company or records, key=lambda item: str((item.get("period") or {}).get("tilDato") or ""), reverse=True)
+    latest = pool[0]
+    previous = next((item for item in pool[1:] if _period_end(item) and _period_end(item) < _period_end(latest)), None)
+    end_year = _period_end(latest)[:4]
+    newer = register_latest_year if register_latest_year and end_year and register_latest_year > end_year else None
+    for prefix, item in (("financials", latest), ("financials.previous", previous)):
+        if item is None:
             continue
+        period = item.get("period") or {}
         reporting_period = {"start": period.get("fraDato"), "end": period.get("tilDato")}
         evidence_id = envelope.cite(record, f"Regnskap {item.get('record_id')} {item.get('account_type')} {period.get('fraDato')}..{period.get('tilDato')}")
-        for name in FINANCIAL_FIELDS:
+        for name in FINANCIAL_FIELDS if prefix == "financials" else PREVIOUS_FIELDS:
             amount = item.get(name)
+            if prefix != "financials" and amount is None:
+                continue  # a missing prior-year figure is simply not compared
             envelope.claim(
-                f"financials.{name}",
+                f"{prefix}.{name}",
                 None if amount is None else {"amount": amount, "currency": item.get("currency")},
                 "not_available" if amount is None else "available",
                 [evidence_id],
                 confidence=None if amount is None else 1.0,
                 reporting_period=reporting_period,
                 account_type=item.get("account_type"),
+                register_latest_year=newer,
             )
+
+
+def _period_end(item: Mapping[str, Any]) -> str:
+    return str((item.get("period") or {}).get("tilDato") or "")
 
 
 def _financial_history(envelope: _Envelope, record: Mapping[str, Any] | None) -> None:
@@ -381,11 +405,46 @@ def _financial_health(revenue, operating, equity, assets) -> dict[str, Any] | No
             flags.append("thin equity (under 10% of assets)")
     if not parts:
         return None
-    text = "Financial health from the latest accounts: " + ", ".join(parts) + "."
+    text = "Financial health from the same accounts: " + ", ".join(parts) + "."
     if flags:
         text += " Watch: " + ", ".join(flags) + "."
     evidence = sorted({evidence_id for claim in used for evidence_id in claim.get("evidence_ids") or []})
     return {"text": text, "evidence_ids": evidence, "flags": flags, "has_margin": revenue in used}
+
+
+def _year_on_year(available: Mapping[str, list]) -> dict[str, Any] | None:
+    """Latest year against the previous filing of the same scope; each sentence cites both filings."""
+    phrases, cited = [], []
+    years, trend = None, None
+    for name, label in (("revenue", "revenue"), ("operating_result", "operating result"), ("annual_result", "annual result"), ("equity", "equity")):
+        now, before = (available.get(f"financials.{name}") or [None])[0], (available.get(f"financials.previous.{name}") or [None])[0]
+        if not now or not before or now.get("account_type") != before.get("account_type"):
+            continue
+        a, b = _amount(before), _amount(now)
+        if a is None or b is None or a == b == 0:
+            continue  # nothing to compare when both years are zero
+        years = years or (((before.get("reporting_period") or {}).get("end") or "")[:4], ((now.get("reporting_period") or {}).get("end") or "")[:4])
+        if a > 0 and b >= 0 and name in ("revenue", "equity"):
+            change = (b - a) / a
+            direction = "flat" if abs(change) < 0.005 else f"{'up' if change > 0 else 'down'} {abs(change):.0%}"
+            phrases.append(f"{label} {direction} ({_nok(a)} to {_nok(b)})")
+            if name == "revenue":
+                trend = f"revenue {direction} on the previous year"
+        elif a == b:
+            what = "negative equity" if name == "equity" and b < 0 else f"{label}: loss" if b < 0 else label
+            phrases.append(f"{what} unchanged at {_nok(abs(b))}")
+        elif (a < 0) != (b < 0):
+            phrases.append(f"{label} turned from {'a loss' if a < 0 else 'a profit'} of {_nok(abs(a))} to {'a loss' if b < 0 else 'a profit'} of {_nok(abs(b))}")
+        elif a < 0 and b < 0:
+            what = "negative equity" if name == "equity" else f"{label}: loss"
+            phrases.append(f"{what} {'narrowed' if b > a else 'widened'} from {_nok(-a)} to {_nok(-b)}")
+        else:
+            phrases.append(f"{label} {'up' if b > a else 'down'} from {_nok(a)} to {_nok(b)}")
+        cited += [before, now]
+    if not phrases or not years or not all(years):
+        return None
+    evidence = sorted({evidence_id for claim in cited for evidence_id in claim.get("evidence_ids") or []})
+    return {"topic": "comparison", "text": f"Compared with {years[0]}, in {years[1]}: " + "; ".join(phrases) + ".", "evidence_ids": evidence, "trend": trend}
 
 
 def _takeaway(points: list[dict[str, Any]], available: Mapping[str, list]) -> dict[str, Any] | None:
@@ -398,15 +457,25 @@ def _takeaway(points: list[dict[str, Any]], available: Mapping[str, list]) -> di
     health = by_topic.get("financial_health")
     if health:
         flags = health["flags"]
+        stale = (by_topic.get("financials") or {}).get("stale_year")
+        accounts = f"its {stale} accounts (a newer filing is not yet published)" if stale else "its latest accounts"
+        net_loss = next((claim for claim in available.get("financials.annual_result") or [] if (_amount(claim) or 0) < 0), None)
         if any("equity" in flag for flag in flags):
-            parts.append("financially at risk (" + ", ".join(flags) + ")")
+            parts.append("financially at risk (" + ", ".join(flags) + ")" + (f" on {accounts}" if stale else ""))
         elif flags:
-            parts.append("loss-making in the latest year but with adequate equity")
+            parts.append(f"loss-making on {accounts} but with adequate equity")
+        elif health["has_margin"] and net_loss:
+            parts.append(f"an operating profit but a net loss on {accounts}, with adequate equity")
+            cited.append(net_loss)
         elif health["has_margin"]:
-            parts.append("profitable with adequate equity on its latest accounts")
+            parts.append(f"profitable with adequate equity on {accounts}")
         else:
-            parts.append("adequate equity on its latest accounts")
+            parts.append(f"adequate equity on {accounts}")
         cited.append(health)
+    comparison = by_topic.get("comparison")
+    if comparison and comparison.get("trend"):
+        parts.append(comparison["trend"])
+        cited.append(comparison)
     signals = [label for field, label in (("hiring_signal", "hiring"), ("dated_news", "recent public activity"),
                                           ("official_website", "verified website"), ("social_profile", "social presence")) if field in available]
     if signals:
@@ -460,9 +529,19 @@ def synthesis(claims: list[Mapping[str, Any]], changes: Iterable[Mapping[str, An
     revenue, result, equity = first("financials.revenue"), first("financials.annual_result"), first("financials.equity")
     figures = [(label, claim) for label, claim in (("revenue", revenue), ("annual result", result), ("equity", equity)) if claim]
     if figures:
-        period = ((figures[0][1].get("reporting_period") or {}).get("end") or "")[:4]
+        anchor = figures[0][1]
+        period = ((anchor.get("reporting_period") or {}).get("end") or "")[:4]
+        scope = "group accounts" if anchor.get("account_type") == "KONSERN" else "accounts"
         described = ", ".join(f"{label} {_nok((claim.get('value') or {}).get('amount'))}" for label, claim in figures)
-        points.append({"topic": "financials", "text": f"Latest filed accounts{f' ({period})' if period else ''}: {described}.", "evidence_ids": ids(*(claim for _, claim in figures))})
+        newer = anchor.get("register_latest_year")
+        if newer:
+            lead = f"Most recent {scope} with published figures ({period}): {described}. The register lists accounts filed for {newer}, whose figures are not yet in the open data"
+        else:
+            lead = f"Latest filed {scope}{f' ({period})' if period else ''}: {described}"
+        points.append({"topic": "financials", "text": lead + ".", "evidence_ids": ids(*(claim for _, claim in figures)), **({"stale_year": period} if newer else {})})
+    comparison = _year_on_year(available)
+    if comparison:
+        points.append(comparison)
     health = _financial_health(first("financials.revenue"), first("financials.operating_result"), first("financials.equity"), first("financials.assets"))
     if health:
         points.append({"topic": "financial_health", **health})
@@ -526,7 +605,7 @@ def build_envelope(
     changes = list(changes)
     envelope = _Envelope()
     _registry(envelope, records.get("registry"))
-    _financials(envelope, records.get("financials"))
+    _financials(envelope, records.get("financials"), _register_latest_year(records.get("registry"), records.get("financial_history")))
     _financial_history(envelope, records.get("financial_history"))
     _listed(envelope, records.get("roles"), module="roles", key="roles", field="role", span=lambda item: f"{item.get('role')}: {item.get('name')}")
     _listed(envelope, records.get("locations"), module="locations", key="locations", field="registered_workplace", span=lambda item: f"Underenhet {item.get('organisation_number')} {item.get('name')}")

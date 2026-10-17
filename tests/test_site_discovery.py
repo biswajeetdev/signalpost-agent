@@ -136,6 +136,15 @@ class SiteDiscoveryTest(unittest.TestCase):
         self.assertIn("Fjeld og Vann", record["value"]["proof_pages"][0]["claim_spans"]["legal_name_on_site"])
         self.assertEqual(web.calls, ["https://gamlefirma.no/"])
 
+    def test_bot_challenge_page_is_reported_as_unchecked_not_as_no_official_tie(self) -> None:
+        row = {**ROW, "hjemmeside": "www.gamlefirma.no", "epostadresse": ""}
+        challenge = '<title>One moment, please...</title><div id="spinner"></div><p>Please wait while your request is being verified...</p>'
+        web = FakeWeb({"https://gamlefirma.no/": page("https://gamlefirma.no/", challenge)}, {"gamlefirma.no"})
+        record, _ = discover_website(row, shared_domains=SHARED, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: True, resolver=web.resolve)
+        self.assertEqual(record["status"], "failed")
+        self.assertIn("gamlefirma.no served a bot-protection check", record["note"])
+        self.assertIn("bot_challenge", {item["outcome"] for item in record["attempts"]})
+
     def test_unreachable_host_is_skipped_without_page_fetch(self) -> None:
         web = FakeWeb({}, {"fjeldvann.no", "fjeldogvann.no"})
         record, _ = discover_website(ROW, shared_domains=SHARED, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: None, resolver=web.resolve)
@@ -155,8 +164,9 @@ class SiteDiscoveryTest(unittest.TestCase):
         self.assertEqual(record["status"], "ambiguous")
 
     def test_unique_name_rule_is_off_by_default_and_needs_full_name_domain(self) -> None:
-        title = "<title>Fjeld og Vann AS - rørlegger</title>"
-        web = FakeWeb({"https://fjeldvann.no/": page("https://fjeldvann.no/", title), "https://vann.no/": page("https://vann.no/", title)}, {"fjeldvann.no"})
+        # The name in running text only, so this exercises the domain rule and not the masthead rule.
+        body = "<title>Rørlegger i Sogn</title><p>Velkommen til Fjeld og Vann AS.</p>"
+        web = FakeWeb({"https://fjeldvann.no/": page("https://fjeldvann.no/", body), "https://vann.no/": page("https://vann.no/", body)}, {"fjeldvann.no"})
         record, _ = run(web)
         self.assertEqual(record["status"], "ambiguous")
         record, _ = run(web, name_keys={"fjeld vann": 1})
@@ -164,9 +174,35 @@ class SiteDiscoveryTest(unittest.TestCase):
         self.assertIn("unique_legal_name_domain", record["value"]["identity_assessment"]["proofs"])
         record, _ = run(web, name_keys={"fjeld vann": 2})
         self.assertEqual(record["status"], "ambiguous")
+        # A partial-name domain never publishes on the name in running text (a customer, partner or parent page).
         partial_only = FakeWeb(web.pages, {"vann.no"})
         record, _ = run(partial_only, name_keys={"fjeld vann": 1})
         self.assertEqual(record["status"], "ambiguous")
+
+    def test_masthead_name_publishes_and_an_as_name_needs_no_namesake_check(self) -> None:
+        title = "<title>Fjeld og Vann AS - rørlegger</title>"
+        masthead = FakeWeb({"https://vann.no/": page("https://vann.no/", title)}, {"vann.no"})
+        for keys in (None, {"fjeld vann": 1}, {"fjeld vann": 2}):
+            record, _ = run(masthead, name_keys=keys)
+            self.assertEqual(record["status"], "available", keys)
+            self.assertIn("legal_name_masthead", record["value"]["identity_assessment"]["proofs"])
+
+    def test_masthead_for_other_forms_needs_a_registry_unique_name(self) -> None:
+        row = {**ROW, "navn": "FJELD OG VANN DA"}
+        web = FakeWeb({"https://vann.no/": page("https://vann.no/", "<title>Fjeld og Vann DA - rørlegger</title>")}, {"vann.no"})
+        def go(keys):
+            return discover_website(row, shared_domains=SHARED, shared_phones={}, fetch=web.fetch, robots_allowed=lambda url: True,
+                                    resolver=web.resolve, name_keys=keys)[0]["status"]
+        self.assertEqual(go({"fjeld vann": 2}), "ambiguous")
+        self.assertEqual(go({"fjeld vann": 1}), "available")
+
+    def test_redirect_to_another_domain_publishes_only_when_it_names_us_in_the_masthead(self) -> None:
+        named = FakeWeb({"https://fjeldvann.no/": page("https://fjeldvann.no/", "<title>Fjeld og Vann AS</title>", "https://fv-ror.no/")}, {"fjeldvann.no"})
+        record, _ = run(named)
+        self.assertEqual(record["status"], "available")
+        shop = FakeWeb({"https://fjeldvann.no/": page("https://fjeldvann.no/", "<title>Captech nettbutikk</title><p>Tlf 57 69 89 50</p>", "https://captech.no/")}, {"fjeldvann.no"})
+        record, _ = run(shop)
+        self.assertNotEqual(record["status"], "available")
 
     def test_contact_links_stay_on_host_and_rank_contact_first(self) -> None:
         html = '<a href="https://other.no/kontakt">x</a><a href="/om-oss">Om</a><a href="/kontakt">Kontakt</a><a href="/">Hjem</a>'

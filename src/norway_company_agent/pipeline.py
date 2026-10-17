@@ -119,7 +119,7 @@ def carry_unreachable_site(previous: Mapping[str, Any] | None, current: Mapping[
         return None  # judged this run, or no longer a candidate under the current rules: the current verdict stands
     proofs = set(((prior_value.get("identity_assessment") or {}).get("proofs")) or [])
     still_valid = bool(proofs & STRONG_PROOFS) or "registry_declared_website" in proofs or (
-        "unique_legal_name_domain" in proofs and domain.endswith(".no"))
+        "unique_legal_name_domain" in proofs and domain.endswith(".no")) or "legal_name_masthead" in proofs
     if not still_valid:
         return None  # the earlier proof would not pass today's identity rules
     outcome = attempts[-1].get("outcome")
